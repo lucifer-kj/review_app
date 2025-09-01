@@ -15,11 +15,9 @@ import {
   Mail,
   Facebook,
   Twitter,
-  Instagram,
   Linkedin,
-  Whatsapp,
-  Telegram,
-  Link as LinkIcon,
+  MessageSquare,
+  Send, // Using Send instead of Telegram
 } from "lucide-react";
 
 interface ShareButtonProps {
@@ -134,13 +132,13 @@ export const ShareButton = ({
     }] : []),
     {
       name: "WhatsApp",
-      icon: Whatsapp,
+      icon: MessageSquare,
       action: () => shareViaSocial("whatsapp", reviewUrl),
       isWebShare: false,
     },
     {
       name: "Telegram",
-      icon: Telegram,
+      icon: Send, // Using Send icon for Telegram
       action: () => shareViaSocial("telegram", reviewUrl),
       isWebShare: false,
     },

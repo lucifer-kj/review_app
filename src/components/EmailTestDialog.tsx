@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Mail, Loader2, TestTube } from "lucide-react";
+import { Mail, Loader2, FlaskConical } from "lucide-react";
 
 export const EmailTestDialog = () => {
   const [testEmail, setTestEmail] = useState("");
@@ -64,7 +64,7 @@ export const EmailTestDialog = () => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <TestTube className="mr-2 h-4 w-4" />
+          <FlaskConical className="mr-2 h-4 w-4" />
           Test Email
         </Button>
       </DialogTrigger>

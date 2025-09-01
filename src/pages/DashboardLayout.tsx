@@ -1,8 +1,11 @@
 import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import { ShareButton } from "@/components/ShareButton";
 import { Building2 } from "lucide-react";
+import { Suspense, lazy } from "react";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+
+const ShareButton = lazy(() => import("@/components/ShareButton").then(module => ({ default: module.ShareButton })));
 
 const DashboardLayout = () => {
   return (
@@ -19,7 +22,9 @@ const DashboardLayout = () => {
               </div>
             </div>
             <div className="px-4">
-              <ShareButton />
+              <Suspense fallback={<LoadingSpinner />}>
+                <ShareButton />
+              </Suspense>
             </div>
           </header>
           <main className="flex-1 p-6">

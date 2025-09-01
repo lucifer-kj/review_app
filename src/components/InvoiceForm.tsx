@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { Calendar, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { Invoice } from "@/types";
@@ -317,7 +317,7 @@ export const InvoiceForm = ({ onSuccess, invoice }: InvoiceFormProps) => {
                   !dueDate && "text-muted-foreground"
                 )}
               >
-                <CalendarIcon className="mr-2 h-4 w-4" />
+                <Calendar className="mr-2 h-4 w-4" />
                 {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
               </Button>
             </PopoverTrigger>

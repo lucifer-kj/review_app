@@ -19,6 +19,20 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react-router-dom",
+      "@supabase/supabase-js",
+      "@tanstack/react-query",
+      "lucide-react",
+      "date-fns",
+      "zod",
+      "@hookform/resolvers",
+      "react-hook-form"
+    ],
+  },
   build: {
     chunkSizeWarningLimit: 1024,
     rollupOptions: {
@@ -29,6 +43,8 @@ export default defineConfig(({ mode }) => ({
           supabase: ["@supabase/supabase-js"],
           tanstack: ["@tanstack/react-query"],
           lucide: ["lucide-react"],
+          forms: ["react-hook-form", "@hookform/resolvers", "zod"],
+          utils: ["date-fns"],
         },
       },
     },

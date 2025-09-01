@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, Suspense, lazy } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,12 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { InvoiceListSkeleton } from "@/components/InvoiceSkeleton";
 import { useInvoices } from "@/hooks/useInvoices";
-import { Plus, Receipt, Eye, Search, Download, Filter, Edit, Trash2, FileText, DollarSign, Mail, FileDown } from "lucide-react";
+import { Plus, Receipt, Eye, Search, Download, Filter, Edit, Trash2, FileText, DollarSign, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { InvoiceForm } from "@/components/InvoiceForm";
 import { InvoiceGenerationService } from "@/services/invoiceGenerationService";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 import type { Invoice, InvoiceStatus } from "@/types";
+
+const InvoiceForm = lazy(() => import("@/components/InvoiceForm").then(module => ({ default: module.InvoiceForm })));
 
 const DashboardInvoices = () => {
   const { invoices, loading, error, refetch } = useInvoices();
@@ -202,7 +204,9 @@ const DashboardInvoices = () => {
                   Fill in the details to generate a new invoice
                 </DialogDescription>
               </DialogHeader>
-              <InvoiceForm onSuccess={handleInvoiceCreated} />
+              <Suspense fallback={<LoadingSpinner />}>
+                <InvoiceForm onSuccess={handleInvoiceCreated} />
+              </Suspense>
             </DialogContent>
           </Dialog>
         </div>
@@ -380,7 +384,7 @@ const DashboardInvoices = () => {
                             onClick={() => handleDownloadPDF(invoice)}
                             title="Download PDF"
                           >
-                            <FileDown className="h-4 w-4" />
+                            <Download className="h-4 w-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
@@ -428,10 +432,12 @@ const DashboardInvoices = () => {
                 Update the invoice details
               </DialogDescription>
             </DialogHeader>
-            <InvoiceForm 
-              invoice={selectedInvoice} 
-              onSuccess={handleInvoiceUpdated} 
-            />
+            <Suspense fallback={<LoadingSpinner />}>
+              <InvoiceForm 
+                invoice={selectedInvoice} 
+                onSuccess={handleInvoiceUpdated} 
+              />
+            </Suspense>
           </DialogContent>
         </Dialog>
       )}
