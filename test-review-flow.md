@@ -34,7 +34,7 @@
 
 #### 3. Test Review Form Page
 1. Click the "Leave a Review" button in the email
-2. Verify it opens `/review-form` with:
+2. Verify it opens `/review` with:
    - Pre-filled customer name (if provided in URL)
    - Email source indicator
    - All form fields working
@@ -47,10 +47,8 @@
    - Rating: 4 or 5 stars
 2. Submit the form
 3. Verify:
-   - Google Reviews page opens in new tab
-   - Redirects to `/review/thank-you` page
-   - Thank you page shows correct rating
-   - "Leave Google Review" button works
+   - Redirects directly to Google Reviews page (no thank you page)
+   - Review is saved to database with correct metadata
 
 #### 5. Test Low Rating Flow (1-3 stars)
 1. Fill out the review form with:
@@ -83,7 +81,7 @@
 ✅ **Email Sending**: Success message in dashboard
 ✅ **Email Content**: Professional, branded email with working button
 ✅ **Form Navigation**: Smooth transitions between pages
-✅ **High Rating Flow**: Google Reviews redirect + thank you page
+✅ **High Rating Flow**: Direct redirect to Google Reviews (no thank you page)
 ✅ **Low Rating Flow**: Feedback collection + thank you page
 ✅ **Database Storage**: All data properly stored with metadata
 ✅ **URL Parameters**: Tracking information preserved

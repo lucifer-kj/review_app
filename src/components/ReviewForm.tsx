@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { StarRating } from "./StarRating";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, User } from "lucide-react";
@@ -9,6 +10,7 @@ interface ReviewFormProps {
 }
 
 export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
+  const [searchParams] = useSearchParams();
   
   const [formData, setFormData] = useState({
     name: "",
@@ -18,6 +20,17 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  // Extract URL parameters
+  const customerName = searchParams.get('customer');
+  const utmSource = searchParams.get('utm_source');
+
+  // Pre-fill name if provided in URL
+  useEffect(() => {
+    if (customerName) {
+      setFormData(prev => ({ ...prev, name: decodeURIComponent(customerName) }));
+    }
+  }, [customerName]);
 
   const validatePhone = (phone: string) => {
     const phoneRegex = /^\d{8,15}$/;
@@ -107,6 +120,13 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
           <p className="text-muted-foreground">
             We'd love to hear about your experience
           </p>
+          {utmSource === 'email' && (
+            <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700">
+                📧 Thank you for responding to our review request!
+              </p>
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

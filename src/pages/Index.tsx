@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ReviewForm } from "@/components/ReviewForm";
 import { ThankYou } from "@/components/ThankYou";
 import { SorryPage } from "@/components/SorryPage";
@@ -18,14 +19,20 @@ const Index = () => {
   const [currentView, setCurrentView] = useState<'form' | 'thankyou' | 'sorry' | 'feedback-thanks'>('form');
   const [submittedData, setSubmittedData] = useState<ReviewData | null>(null);
   const [reviewId, setReviewId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
 
   // Import constants
   const { GOOGLE_REVIEWS_URL } = APP_CONFIG;
 
+  // Extract URL parameters for email-triggered reviews
+  const trackingId = searchParams.get('tracking_id');
+  const customerName = searchParams.get('customer');
+  const utmSource = searchParams.get('utm_source');
+
   const handleReviewSubmit = async (data: ReviewData) => {
     try {
-      // Save review to database
+      // Save review to database with tracking information
       const { data: insertedData, error } = await supabase
         .from('reviews')
         .insert({
@@ -34,6 +41,14 @@ const Index = () => {
           country_code: data.countryCode,
           rating: data.rating,
           google_review: data.rating >= 4,
+          redirect_opened: false,
+          metadata: {
+            trackingId: trackingId || null,
+            utmSource: utmSource || 'direct',
+            source: utmSource === 'email' ? 'email_form' : 'direct_form',
+            submitted_at: new Date().toISOString(),
+            form_version: utmSource === 'email' ? 'email_triggered' : 'direct'
+          }
         })
         .select()
         .single();
@@ -50,10 +65,8 @@ const Index = () => {
       });
 
       if (data.rating >= 4) {
-        // Redirect to Google Reviews for ratings 4 and above
-        window.open(GOOGLE_REVIEWS_URL, '_blank');
-        // Show thank you page in current tab
-        setCurrentView('thankyou');
+        // Redirect directly to Google Reviews for ratings 4 and above
+        window.location.href = GOOGLE_REVIEWS_URL;
       } else {
         // Show sorry page for ratings below 4
         setCurrentView('sorry');

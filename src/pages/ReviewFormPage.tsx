@@ -130,16 +130,8 @@ export default function ReviewFormPage() {
 
       // Handle conditional redirect based on rating
       if (formData.rating >= 4) {
-        // Redirect to Google Reviews for ratings 4 and above
-        window.open(APP_CONFIG.GOOGLE_REVIEWS_URL, '_blank');
-        // Navigate to thank you page
-        navigate('/review/thank-you', { 
-          state: { 
-            name: formData.name, 
-            rating: formData.rating,
-            reviewId: insertedData.id 
-          } 
-        });
+        // Redirect directly to Google Reviews for ratings 4 and above
+        window.location.href = APP_CONFIG.GOOGLE_REVIEWS_URL;
       } else {
         // Navigate to feedback page for ratings below 4
         navigate('/review/feedback', { 

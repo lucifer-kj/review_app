@@ -108,9 +108,9 @@ netlify deploy --prod --dir=dist
    ```
 
 2. **Test Frontend Routes**:
-   - Visit `/review-form` - should show the email-triggered review form
+   - Visit `/review` - should show the review form (works for both direct and email-triggered)
    - Visit `/review/feedback` - should show feedback form (with state)
-   - Visit `/review/thank-you` - should show thank you page (with state)
+   - Visit `/review/feedback-thank-you` - should show feedback thank you page (with state)
 
 3. **Test Dashboard Integration**:
    - Login to dashboard

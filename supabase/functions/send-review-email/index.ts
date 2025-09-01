@@ -107,7 +107,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Create tracking URL with UTM parameters
     const baseUrl = Deno.env.get("FRONTEND_URL") || "https://yourdomain.com";
-    const reviewUrl = `${baseUrl}/review-form?utm_source=email&utm_campaign=review_request&tracking_id=${trackingId || 'none'}&customer=${encodeURIComponent(customerName)}`;
+    const reviewUrl = `${baseUrl}/review?utm_source=email&utm_campaign=review_request&tracking_id=${trackingId || 'none'}&customer=${encodeURIComponent(customerName)}`;
 
     // Prepare email content
     const emailHtml = `
