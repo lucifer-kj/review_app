@@ -29,7 +29,7 @@ export const SendReviewEmailDialog = () => {
     setLoading(true);
     
     try {
-      const { error } = await supabase.functions.invoke('send-review-email', {
+      const { data, error } = await supabase.functions.invoke('send-review-email', {
         body: { 
           recipientEmail: recipientEmail.trim(),
           managerName: managerName.trim() || "Alpha Business Designs"
@@ -38,18 +38,24 @@ export const SendReviewEmailDialog = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Review Email Sent!",
-        description: `Review form has been sent to ${recipientEmail}`,
-      });
+      // Check if email was sent successfully
+      if (data && data.id) {
+        toast({
+          title: "Review Email Sent! 🎉",
+          description: `Embedded review form has been sent to ${recipientEmail}. The recipient can fill out the form directly in their email!`,
+        });
+      } else {
+        throw new Error("Email sending failed - no response ID received");
+      }
       
       setRecipientEmail("");
       setManagerName("");
       setOpen(false);
     } catch (error: any) {
+      console.error("Email sending error:", error);
       toast({
         title: "Failed to Send Email",
-        description: error.message,
+        description: error.message || "There was an error sending the email. Please check your Resend API key configuration.",
         variant: "destructive",
       });
     } finally {
@@ -69,7 +75,7 @@ export const SendReviewEmailDialog = () => {
         <DialogHeader>
           <DialogTitle>Send Review Request</DialogTitle>
           <DialogDescription>
-            Send a personalized review form to your client's email address.
+            Send an embedded review form directly to your client's email. They can fill out the form without leaving their email client!
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSendEmail}>

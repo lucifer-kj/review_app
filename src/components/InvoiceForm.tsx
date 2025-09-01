@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import type { Invoice } from "@/types";
 
 const invoiceSchema = z.object({
   customer_name: z.string().min(1, "Customer name is required"),
@@ -33,18 +34,21 @@ type InvoiceFormData = z.infer<typeof invoiceSchema>;
 
 interface InvoiceFormProps {
   onSuccess: () => void;
+  invoice?: Invoice;
 }
 
-export const InvoiceForm = ({ onSuccess }: InvoiceFormProps) => {
+export const InvoiceForm = ({ onSuccess, invoice }: InvoiceFormProps) => {
   const [loading, setLoading] = useState(false);
   const [dueDate, setDueDate] = useState<Date>();
   const { toast } = useToast();
+  const isEditing = !!invoice;
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceSchema),
@@ -54,6 +58,28 @@ export const InvoiceForm = ({ onSuccess }: InvoiceFormProps) => {
       quantity: 1,
     },
   });
+
+  // Populate form when editing
+  useEffect(() => {
+    if (invoice) {
+      reset({
+        customer_name: invoice.customer_name,
+        customer_email: invoice.customer_email,
+        customer_address: invoice.customer_address || "",
+        customer_phone: invoice.customer_phone || "",
+        item_description: invoice.item_description,
+        quantity: invoice.quantity,
+        unit_price: invoice.unit_price,
+        currency: invoice.currency,
+        status: invoice.status as any,
+        notes: invoice.notes || "",
+      });
+      
+      if (invoice.due_date) {
+        setDueDate(new Date(invoice.due_date));
+      }
+    }
+  }, [invoice, reset]);
 
   const quantity = watch("quantity") || 1;
   const unitPrice = watch("unit_price") || 0;
@@ -78,14 +104,13 @@ export const InvoiceForm = ({ onSuccess }: InvoiceFormProps) => {
       if (!user) {
         toast({
           title: "Authentication Error",
-          description: "You must be logged in to create an invoice.",
+          description: "You must be logged in to manage invoices.",
           variant: "destructive",
         });
         return;
       }
 
       const invoiceData = {
-        invoice_number: generateInvoiceNumber(),
         customer_name: data.customer_name,
         customer_email: data.customer_email,
         customer_address: data.customer_address || null,
@@ -98,19 +123,39 @@ export const InvoiceForm = ({ onSuccess }: InvoiceFormProps) => {
         due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
         status: data.status,
         notes: data.notes || null,
-        user_id: user.id
+        updated_at: new Date().toISOString()
       };
 
-      const { error } = await supabase
-        .from('invoices')
-        .insert(invoiceData);
+      if (isEditing && invoice) {
+        // Update existing invoice
+        const { error } = await supabase
+          .from('invoices')
+          .update(invoiceData)
+          .eq('id', invoice.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Invoice Created",
-        description: `Invoice ${invoiceData.invoice_number} has been created successfully.`,
-      });
+        toast({
+          title: "Invoice Updated",
+          description: `Invoice ${invoice.invoice_number} has been updated successfully.`,
+        });
+      } else {
+        // Create new invoice
+        const { error } = await supabase
+          .from('invoices')
+          .insert({
+            ...invoiceData,
+            invoice_number: generateInvoiceNumber(),
+            user_id: user.id
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Invoice Created",
+          description: `Invoice has been created successfully.`,
+        });
+      }
 
       onSuccess();
     } catch (error: any) {
@@ -302,7 +347,7 @@ export const InvoiceForm = ({ onSuccess }: InvoiceFormProps) => {
       <div className="flex justify-end gap-2">
         <Button type="submit" disabled={loading}>
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Create Invoice
+          {isEditing ? "Update Invoice" : "Create Invoice"}
         </Button>
       </div>
     </form>

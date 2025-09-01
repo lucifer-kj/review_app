@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SendReviewEmailDialog } from "@/components/SendReviewEmailDialog";
+import { EmailTestDialog } from "@/components/EmailTestDialog";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { ReviewService } from "@/services/reviewService";
 import { InvoiceService } from "@/services/invoiceService";
@@ -149,6 +150,7 @@ const Dashboard = () => {
           <CardContent>
             <div className="space-y-3">
               <SendReviewEmailDialog />
+              <EmailTestDialog />
               <button className="w-full text-left p-2 rounded-md hover:bg-accent text-sm">
                 Create new invoice
               </button>
