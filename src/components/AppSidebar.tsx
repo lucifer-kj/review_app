@@ -16,10 +16,10 @@ import {
 } from "@/components/ui/sidebar";
 
 const items = [
-  { title: "Dashboard", url: "/dashboard", icon: BarChart3 },
-  { title: "Reviews", url: "/dashboard/reviews", icon: FileText },
-  { title: "Invoices", url: "/dashboard/invoices", icon: Receipt },
-  { title: "Settings", url: "/dashboard/settings", icon: Settings },
+  { title: "Dashboard", url: "/", icon: BarChart3 },
+  { title: "Reviews", url: "/reviews", icon: FileText },
+  { title: "Invoices", url: "/invoices", icon: Receipt },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {

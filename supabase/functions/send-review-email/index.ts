@@ -1,227 +1,362 @@
+/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
+/// <reference types="https://deno.land/x/types/index.d.ts" />
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
+import { Resend } from "npm:resend@1.1.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// Configuration interface
+interface Config {
+  resendApiKey: string;
+  supabaseUrl: string;
+  frontendUrl: string;
+  googleReviewUrl: string;
+  allowedOrigins: string[];
+}
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
+// Request/Response interfaces
 interface ReviewEmailRequest {
   recipientEmail: string;
   managerName?: string;
+  customerName?: string;
 }
 
-// Generate a unique tracking ID for this email
-const generateTrackingId = () => {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-};
+interface ApiResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
+  trackingId?: string;
+}
 
+// Custom error classes
+class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+class ConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConfigurationError';
+  }
+}
+
+// Configuration loader with validation
+function loadConfig(): Config {
+  const config = {
+    resendApiKey: Deno.env.get("RESEND_API_KEY"),
+    supabaseUrl: Deno.env.get("SUPABASE_URL"),
+    frontendUrl: Deno.env.get("FRONTEND_URL") || "https://invoice-app-iota-livid.vercel.app/",
+    googleReviewUrl: Deno.env.get("GOOGLE_REVIEW_URL") || "https://g.page/r/CZEmfT3kD-k-EBM/review",
+    allowedOrigins: (Deno.env.get("ALLOWED_ORIGINS") || "").split(",").filter(Boolean),
+  };
+
+  // Validate required config
+  if (!config.resendApiKey) {
+    throw new ConfigurationError("RESEND_API_KEY environment variable is required");
+  }
+  if (!config.supabaseUrl) {
+    throw new ConfigurationError("SUPABASE_URL environment variable is required");
+  }
+
+  return config as Config;
+}
+
+// Input sanitization utility
+function sanitizeHtml(input: string): string {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
+// Input validation utilities
+function validateEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && email.length <= 254;
+}
+
+function validateInput(data: ReviewEmailRequest): void {
+  if (!data.recipientEmail || typeof data.recipientEmail !== 'string') {
+    throw new ValidationError("Valid recipient email is required");
+  }
+
+  if (!validateEmail(data.recipientEmail)) {
+    throw new ValidationError("Invalid email format");
+  }
+
+  if (data.managerName && data.managerName.length > 100) {
+    throw new ValidationError("Manager name too long");
+  }
+}
+
+// Enhanced tracking ID generator
+function generateTrackingId(): string {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 10);
+  return `${timestamp}_${random}`;
+}
+
+// CORS configuration
+function getCorsHeaders(origin: string | null, allowedOrigins: string[]): Record<string, string> {
+  const corsHeaders: Record<string, string> = {
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, ApiKey",
+  };
+
+  // Set appropriate CORS origin
+  if (allowedOrigins.length > 0 && origin && allowedOrigins.includes(origin)) {
+    corsHeaders["Access-Control-Allow-Origin"] = origin;
+  } else if (allowedOrigins.length === 0) {
+    corsHeaders["Access-Control-Allow-Origin"] = "*"; // Only for development
+  }
+
+  return corsHeaders;
+}
+
+// Email template service
+class EmailTemplateService {
+  constructor(private config: Config) {}
+
+  generateReviewEmail(data: ReviewEmailRequest, trackingId: string): string {
+    const managerName = sanitizeHtml(data.managerName || "Alpha Business Design");
+    const reviewUrl = `${this.config.frontendUrl}/review?token=${trackingId}`;
+    const customerName = data.customerName ? sanitizeHtml(data.customerName) : "";
+
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Share Your Experience - ${managerName}</title>
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+      line-height: 1.6; 
+      color: #333; 
+      max-width: 600px; 
+      margin: 0 auto; 
+      padding: 20px; 
+      background-color: #f8fafc;
+    }
+    .container {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 20px;
+    }
+    .header h1 {
+      color: #2563eb;
+      margin: 0 0 10px 0;
+      font-size: 28px;
+    }
+    .header p {
+      color: #666;
+      font-size: 18px;
+      margin: 0;
+    }
+    .content {
+      margin-bottom: 30px;
+    }
+    .content h2 {
+      color: #1e293b;
+      margin-bottom: 15px;
+    }
+    .cta-button {
+      display: inline-block;
+      background: #2563eb;
+      color: white !important;
+      padding: 16px 32px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 16px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .cta-button:hover {
+      background: #1d4ed8;
+    }
+    .footer {
+      text-align: center;
+      color: #666;
+      font-size: 14px;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 20px;
+    }
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      .container { padding: 20px; }
+      .cta-button { display: block; margin: 20px 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>${managerName}</h1>
+      <p>We'd love to hear about your experience!</p>
+    </div>
+    
+    <div class="content">
+      ${customerName ? `<p>Hi ${customerName},</p>` : '<p>Hello,</p>'}
+      
+      <p>Thank you for choosing ${managerName}. Your feedback is incredibly valuable to us and helps us continue providing excellent service.</p>
+      
+      <p><strong>Your review takes less than 2 minutes and would mean the world to us!</strong></p>
+      
+      <div style="text-align: center;">
+        <a href="${reviewUrl}" class="cta-button">
+          ⭐ Share Your Experience
+        </a>
+      </div>
+      
+      <p style="color: #666; font-size: 14px; margin-top: 20px;">
+        <em>This secure link is unique to you and will expire in 30 days.</em>
+      </p>
+    </div>
+    
+    <div class="footer">
+      <p>Thank you for choosing ${managerName}!</p>
+      <p style="margin-top: 10px;">
+        <em>If you have any questions, please don't hesitate to contact us.</em>
+      </p>
+    </div>
+  </div>
+</body>
+</html>`;
+  }
+}
+
+// Main handler function
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
+  let config: Config;
+  
+  try {
+    config = loadConfig();
+  } catch (error) {
+    console.error("Configuration error:", error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: "Service configuration error" 
+      }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const corsHeaders = getCorsHeaders(
+    req.headers.get('origin'), 
+    config.allowedOrigins
+  );
+
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 200, 
+      headers: corsHeaders 
+    });
+  }
+
+  // Only allow POST requests
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: "Method not allowed" 
+      }),
+      { 
+        status: 405, 
+        headers: { 
+          ...corsHeaders, 
+          "Content-Type": "application/json",
+          "Allow": "POST, OPTIONS"
+        } 
+      }
+    );
   }
 
   try {
-    const { recipientEmail, managerName = "Alpha Business Designs" }: ReviewEmailRequest = await req.json();
+    // Parse and validate request
+    let requestData: ReviewEmailRequest;
+    
+    try {
+      requestData = await req.json();
+    } catch {
+      throw new ValidationError("Invalid JSON in request body");
+    }
 
-    // Get the current domain from the request
-    const origin = req.headers.get('origin') || 'https://your-domain.com';
-    const reviewFormUrl = `${origin}/review`;
+    validateInput(requestData);
+
     const trackingId = generateTrackingId();
+    const emailService = new EmailTemplateService(config);
+    const emailHtml = emailService.generateReviewEmail(requestData, trackingId);
 
-    // Create embedded HTML form with conditional redirect logic
-    const emailHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Share Your Experience</title>
-        <style>
-          .rating-stars { display: flex; gap: 5px; justify-content: center; margin: 20px 0; }
-          .star { font-size: 24px; color: #ddd; cursor: pointer; transition: color 0.2s; }
-          .star:hover, .star.active { color: #ffc107; }
-          .form-field { margin-bottom: 15px; }
-          .form-label { display: block; margin-bottom: 5px; font-weight: 600; color: #374151; }
-          .form-input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
-          .form-button { background: #2563eb; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
-          .form-button:hover { background: #1d4ed8; }
-          .hidden { display: none; }
-          .success-message { background: #dcfce7; color: #166534; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center; }
-          .google-review { background: #fef3c7; color: #92400e; padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center; }
-          .google-review a { background: #f59e0b; color: white; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block; margin-top: 10px; }
-        </style>
-      </head>
-      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #2563eb; margin-bottom: 10px;">${managerName}</h1>
-          <p style="color: #666; font-size: 18px;">We'd love to hear about your experience!</p>
-        </div>
-        
-        <div style="background: #f8fafc; padding: 30px; border-radius: 12px; margin-bottom: 30px;">
-          <h2 style="color: #1e293b; margin-bottom: 15px;">Share Your Feedback</h2>
-          <p style="margin-bottom: 20px;">
-            Your opinion matters to us! Please take a moment to share your experience with our services.
-          </p>
-          
-          <!-- Embedded Review Form -->
-          <form id="reviewForm" style="max-width: 400px; margin: 0 auto;">
-            <input type="hidden" name="trackingId" value="${trackingId}" />
-            <input type="hidden" name="managerName" value="${managerName}" />
-            
-            <div class="form-field">
-              <label class="form-label" for="customerName">Your Name *</label>
-              <input type="text" id="customerName" name="name" class="form-input" required placeholder="Enter your full name" />
-            </div>
-            
-            <div class="form-field">
-              <label class="form-label" for="customerPhone">Phone Number *</label>
-              <input type="tel" id="customerPhone" name="phone" class="form-input" required placeholder="1234567890" />
-            </div>
-            
-            <div class="form-field">
-              <label class="form-label">How would you rate your experience? *</label>
-              <div class="rating-stars">
-                <span class="star" data-rating="1">★</span>
-                <span class="star" data-rating="2">★</span>
-                <span class="star" data-rating="3">★</span>
-                <span class="star" data-rating="4">★</span>
-                <span class="star" data-rating="5">★</span>
-              </div>
-              <input type="hidden" id="rating" name="rating" required />
-            </div>
-            
-            <div style="text-align: center; margin-top: 25px;">
-              <button type="submit" class="form-button">Submit Review</button>
-            </div>
-          </form>
-          
-          <!-- Thank you message (hidden initially) -->
-          <div id="thankYouMessage" class="hidden success-message">
-            <h3 style="margin-bottom: 10px;">Thank you for your feedback! 🎉</h3>
-            <p>Your review has been submitted successfully.</p>
-          </div>
-          
-          <!-- Google Review redirect (hidden initially) -->
-          <div id="googleReviewRedirect" class="hidden google-review">
-            <h3 style="margin-bottom: 10px;">Great rating! 🎉</h3>
-            <p style="margin-bottom: 10px;">Would you like to share this on Google Reviews too?</p>
-            <a href="https://g.page/r/CZEmfT3kD-k-EBM/review" target="_blank">
-              Leave Google Review
-            </a>
-          </div>
-        </div>
-        
-        <div style="text-align: center; color: #666; font-size: 14px;">
-          <p>Thank you for choosing ${managerName}!</p>
-          <p style="margin-top: 20px;">
-            <em>This review form takes less than 1 minute to complete.</em>
-          </p>
-        </div>
+    // Initialize Resend client
+    const resend = new Resend(config.resendApiKey);
 
-        <script>
-          // Star rating functionality
-          const stars = document.querySelectorAll('.star');
-          const ratingInput = document.getElementById('rating');
-          
-          stars.forEach((star, index) => {
-            star.addEventListener('click', () => {
-              const rating = index + 1;
-              ratingInput.value = rating;
-              
-              stars.forEach((s, i) => {
-                s.classList.toggle('active', i < rating);
-              });
-            });
-            
-            star.addEventListener('mouseenter', () => {
-              stars.forEach((s, i) => {
-                s.classList.toggle('active', i <= index);
-              });
-            });
-          });
-          
-          document.querySelector('.rating-stars').addEventListener('mouseleave', () => {
-            const currentRating = parseInt(ratingInput.value) || 0;
-            stars.forEach((s, i) => {
-              s.classList.toggle('active', i < currentRating);
-            });
-          });
-          
-          // Form submission
-          document.getElementById('reviewForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const data = Object.fromEntries(formData.entries());
-            data.countryCode = '+1';
-            
-            try {
-              const response = await fetch('${Deno.env.get("SUPABASE_URL")}/functions/v1/submit-review', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': 'Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}',
-                },
-                body: JSON.stringify(data)
-              });
-              
-              if (response.ok) {
-                document.getElementById('reviewForm').style.display = 'none';
-                document.getElementById('thankYouMessage').classList.remove('hidden');
-                
-                if (parseInt(data.rating) >= 4) {
-                  setTimeout(() => {
-                    document.getElementById('googleReviewRedirect').classList.remove('hidden');
-                  }, 2000);
-                }
-              } else {
-                alert('There was an error submitting your review. Please try again.');
-              }
-            } catch (error) {
-              console.error('Error:', error);
-              alert('There was an error submitting your review. Please try again.');
-            }
-          });
-        </script>
-      </body>
-      </html>
-    `;
-
-    // Send email using Resend
+    // Send email with proper error handling
     const emailResponse = await resend.emails.send({
-      from: "Alpha Business <onboarding@resend.dev>",
-      to: [recipientEmail],
-      subject: "We'd love your feedback!",
+      from: `${requestData.managerName || "Alpha Business"} <noreply@${new URL(config.frontendUrl).hostname}>`,
+      to: [requestData.recipientEmail],
+      subject: `We'd love your feedback! - ${requestData.managerName || "Alpha Business Design"}`,
       html: emailHtml,
     });
 
-    console.log("Review email sent successfully:", emailResponse);
-    console.log("Tracking ID:", trackingId);
+    if (!emailResponse.data?.id) {
+      throw new Error("Failed to send email - no response ID received");
+    }
 
-    return new Response(JSON.stringify({
-      ...emailResponse,
-      trackingId,
-      message: "Email sent successfully with embedded form"
-    }), {
+    console.log(`Review email sent successfully: ${emailResponse.data.id}, tracking: ${trackingId}`);
+
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        id: emailResponse.data.id,
+        recipient: requestData.recipientEmail,
+        managerName: requestData.managerName || "Alpha Business Design"
+      },
+      trackingId
+    };
+
+    return new Response(JSON.stringify(response), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
         ...corsHeaders,
       },
     });
-  } catch (error: any) {
-    console.error("Error in send-review-email function:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+
+  } catch (error) {
+    console.error("Handler error:", error);
+    
+    const statusCode = error instanceof ValidationError ? 400 : 500;
+    const errorMessage = error instanceof ValidationError 
+      ? error.message 
+      : "An unexpected error occurred";
+
+    const response: ApiResponse = {
+      success: false,
+      error: errorMessage
+    };
+
+    return new Response(JSON.stringify(response), {
+      status: statusCode,
+      headers: { 
+        "Content-Type": "application/json", 
+        ...corsHeaders 
+      },
+    });
   }
 };
 
