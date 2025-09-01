@@ -18,20 +18,63 @@ interface Invoice {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    });
+  }
+
+  // Only allow POST requests
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ 
+        success: false,
+        error: "Method not allowed" 
+      }),
+      {
+        status: 405,
+        headers: { 
+          "Content-Type": "application/json", 
+          ...corsHeaders,
+          "Allow": "POST, OPTIONS"
+        },
+      }
+    );
   }
 
   try {
-    const { invoice, recipientEmail, pdfAttachment }: {
+    // Parse request body with error handling
+    let requestData: {
       invoice: Invoice;
       recipientEmail: string;
       pdfAttachment: string;
-    } = await req.json();
+    };
+    
+    try {
+      requestData = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Invalid JSON in request body" 
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    const { invoice, recipientEmail, pdfAttachment } = requestData;
 
     if (!invoice || !recipientEmail) {
       return new Response(
-        JSON.stringify({ error: "Missing required parameters" }),
+        JSON.stringify({ 
+          success: false,
+          error: "Missing required parameters" 
+        }),
         {
           status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -42,7 +85,16 @@ const handler = async (req: Request): Promise<Response> => {
     // Get Resend API key
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
-      throw new Error("Resend API key not configured");
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Resend API key not configured" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     // Prepare email content
@@ -90,36 +142,97 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Send email using Resend
-    const emailResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Alpha Business Designs <noreply@alphabusiness.com>",
-        to: [recipientEmail],
-        subject: `Invoice ${invoice.invoice_number} - ${invoice.currency} ${invoice.total.toFixed(2)}`,
-        html: emailHtml,
-        attachments: [
-          {
-            filename: `invoice-${invoice.invoice_number}.pdf`,
-            content: pdfAttachment.split(',')[1], // Remove data:application/pdf;base64, prefix
-            type: "application/pdf"
-          }
-        ]
-      }),
-    });
-
-    if (!emailResponse.ok) {
-      const errorData = await emailResponse.json();
-      throw new Error(`Resend API error: ${errorData.message || 'Unknown error'}`);
+    // Send email using Resend with proper error handling
+    let emailResponse: Response;
+    try {
+      emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "Alpha Business Designs <noreply@alphabusiness.com>",
+          to: [recipientEmail],
+          subject: `Invoice ${invoice.invoice_number} - ${invoice.currency} ${invoice.total.toFixed(2)}`,
+          html: emailHtml,
+          attachments: [
+            {
+              filename: `invoice-${invoice.invoice_number}.pdf`,
+              content: pdfAttachment.split(',')[1], // Remove data:application/pdf;base64, prefix
+              type: "application/pdf"
+            }
+          ]
+        }),
+      });
+    } catch (fetchError) {
+      console.error("Network error sending email:", fetchError);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Network error while sending email" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
-    const emailData = await emailResponse.json();
+    if (!emailResponse.ok) {
+      let errorMessage = "Unknown error";
+      try {
+        const errorData = await emailResponse.json();
+        errorMessage = errorData.message || `HTTP ${emailResponse.status}`;
+      } catch {
+        errorMessage = `HTTP ${emailResponse.status} ${emailResponse.statusText}`;
+      }
+      
+      console.error("Resend API error:", errorMessage);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: `Resend API error: ${errorMessage}` 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    let emailData: any;
+    try {
+      emailData = await emailResponse.json();
+    } catch (parseError) {
+      console.error("Error parsing email response:", parseError);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Invalid response from email service" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
     
-    console.log("Invoice email sent:", {
+    if (!emailData.id) {
+      console.error("No email ID in response:", emailData);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Failed to send email - no response ID received" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
+    console.log("Invoice email sent successfully:", {
       invoiceId: invoice.id,
       recipientEmail,
       emailId: emailData.id
@@ -127,7 +240,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     return new Response(JSON.stringify({ 
       success: true,
-      emailId: emailData.id,
+      data: {
+        id: emailData.id,
+        recipient: recipientEmail,
+        invoiceNumber: invoice.invoice_number
+      },
       message: "Invoice email sent successfully" 
     }), {
       status: 200,
@@ -137,11 +254,11 @@ const handler = async (req: Request): Promise<Response> => {
       },
     });
   } catch (error: any) {
-    console.error("Error sending invoice email:", error);
+    console.error("Unexpected error in send-invoice-email:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Failed to send invoice email",
-        success: false 
+        success: false,
+        error: error.message || "An unexpected error occurred" 
       }),
       {
         status: 500,

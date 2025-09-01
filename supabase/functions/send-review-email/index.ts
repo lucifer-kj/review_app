@@ -251,7 +251,15 @@ const handler = async (req: Request): Promise<Response> => {
         success: false, 
         error: "Service configuration error" 
       }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { 
+        status: 500, 
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "POST, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, ApiKey"
+        } 
+      }
     );
   }
 
