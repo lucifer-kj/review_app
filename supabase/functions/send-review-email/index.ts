@@ -1,277 +1,24 @@
-/// <reference types="https://esm.sh/@supabase/functions-js/src/edge-runtime.d.ts" />
-/// <reference types="https://deno.land/x/types/index.d.ts" />
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@1.1.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Configuration interface
-interface Config {
-  resendApiKey: string;
-  supabaseUrl: string;
-  frontendUrl: string;
-  googleReviewUrl: string;
-  allowedOrigins: string[];
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
-// Request/Response interfaces
 interface ReviewEmailRequest {
-  recipientEmail: string;
-  managerName?: string;
-  customerName?: string;
-}
-
-interface ApiResponse {
-  success: boolean;
-  data?: any;
-  error?: string;
+  customerEmail: string;
+  customerName: string;
   trackingId?: string;
+  managerName?: string;
+  businessName?: string;
 }
 
-// Custom error classes
-class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
-
-class ConfigurationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ConfigurationError';
-  }
-}
-
-// Configuration loader with validation
-function loadConfig(): Config {
-  const config = {
-    resendApiKey: Deno.env.get("RESEND_API_KEY"),
-    supabaseUrl: Deno.env.get("SUPABASE_URL"),
-    frontendUrl: Deno.env.get("FRONTEND_URL") || "https://invoice-app-iota-livid.vercel.app/",
-    googleReviewUrl: Deno.env.get("GOOGLE_REVIEW_URL") || "https://g.page/r/CZEmfT3kD-k-EBM/review",
-    allowedOrigins: (Deno.env.get("ALLOWED_ORIGINS") || "").split(",").filter(Boolean),
-  };
-
-  // Validate required config
-  if (!config.resendApiKey) {
-    throw new ConfigurationError("RESEND_API_KEY environment variable is required");
-  }
-  if (!config.supabaseUrl) {
-    throw new ConfigurationError("SUPABASE_URL environment variable is required");
-  }
-
-  return config as Config;
-}
-
-// Input sanitization utility
-function sanitizeHtml(input: string): string {
-  return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
-}
-
-// Input validation utilities
-function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email) && email.length <= 254;
-}
-
-function validateInput(data: ReviewEmailRequest): void {
-  if (!data.recipientEmail || typeof data.recipientEmail !== 'string') {
-    throw new ValidationError("Valid recipient email is required");
-  }
-
-  if (!validateEmail(data.recipientEmail)) {
-    throw new ValidationError("Invalid email format");
-  }
-
-  if (data.managerName && data.managerName.length > 100) {
-    throw new ValidationError("Manager name too long");
-  }
-}
-
-// Enhanced tracking ID generator
-function generateTrackingId(): string {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substring(2, 10);
-  return `${timestamp}_${random}`;
-}
-
-// CORS configuration
-function getCorsHeaders(origin: string | null, allowedOrigins: string[]): Record<string, string> {
-  const corsHeaders: Record<string, string> = {
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, ApiKey",
-  };
-
-  // Set appropriate CORS origin
-  if (allowedOrigins.length > 0 && origin && allowedOrigins.includes(origin)) {
-    corsHeaders["Access-Control-Allow-Origin"] = origin;
-  } else if (allowedOrigins.length === 0) {
-    corsHeaders["Access-Control-Allow-Origin"] = "*"; // Only for development
-  }
-
-  return corsHeaders;
-}
-
-// Email template service
-class EmailTemplateService {
-  constructor(private config: Config) {}
-
-  generateReviewEmail(data: ReviewEmailRequest, trackingId: string): string {
-    const managerName = sanitizeHtml(data.managerName || "Alpha Business Design");
-    const reviewUrl = `${this.config.frontendUrl}/review?token=${trackingId}`;
-    const customerName = data.customerName ? sanitizeHtml(data.customerName) : "";
-
-    return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Share Your Experience - ${managerName}</title>
-  <style>
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-      line-height: 1.6; 
-      color: #333; 
-      max-width: 600px; 
-      margin: 0 auto; 
-      padding: 20px; 
-      background-color: #f8fafc;
-    }
-    .container {
-      background: white;
-      border-radius: 12px;
-      padding: 40px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 30px;
-      border-bottom: 2px solid #e5e7eb;
-      padding-bottom: 20px;
-    }
-    .header h1 {
-      color: #2563eb;
-      margin: 0 0 10px 0;
-      font-size: 28px;
-    }
-    .header p {
-      color: #666;
-      font-size: 18px;
-      margin: 0;
-    }
-    .content {
-      margin-bottom: 30px;
-    }
-    .content h2 {
-      color: #1e293b;
-      margin-bottom: 15px;
-    }
-    .cta-button {
-      display: inline-block;
-      background: #2563eb;
-      color: white !important;
-      padding: 16px 32px;
-      text-decoration: none;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 16px;
-      text-align: center;
-      margin: 20px 0;
-    }
-    .cta-button:hover {
-      background: #1d4ed8;
-    }
-    .footer {
-      text-align: center;
-      color: #666;
-      font-size: 14px;
-      border-top: 1px solid #e5e7eb;
-      padding-top: 20px;
-    }
-    @media (max-width: 600px) {
-      body { padding: 10px; }
-      .container { padding: 20px; }
-      .cta-button { display: block; margin: 20px 0; }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>${managerName}</h1>
-      <p>We'd love to hear about your experience!</p>
-    </div>
-    
-    <div class="content">
-      ${customerName ? `<p>Hi ${customerName},</p>` : '<p>Hello,</p>'}
-      
-      <p>Thank you for choosing ${managerName}. Your feedback is incredibly valuable to us and helps us continue providing excellent service.</p>
-      
-      <p><strong>Your review takes less than 2 minutes and would mean the world to us!</strong></p>
-      
-      <div style="text-align: center;">
-        <a href="${reviewUrl}" class="cta-button">
-          ⭐ Share Your Experience
-        </a>
-      </div>
-      
-      <p style="color: #666; font-size: 14px; margin-top: 20px;">
-        <em>This secure link is unique to you and will expire in 30 days.</em>
-      </p>
-    </div>
-    
-    <div class="footer">
-      <p>Thank you for choosing ${managerName}!</p>
-      <p style="margin-top: 10px;">
-        <em>If you have any questions, please don't hesitate to contact us.</em>
-      </p>
-    </div>
-  </div>
-</body>
-</html>`;
-  }
-}
-
-// Main handler function
 const handler = async (req: Request): Promise<Response> => {
-  let config: Config;
-  
-  try {
-    config = loadConfig();
-  } catch (error) {
-    console.error("Configuration error:", error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: "Service configuration error" 
-      }),
-      { 
-        status: 500, 
-        headers: { 
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "POST, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, ApiKey"
-        } 
-      }
-    );
-  }
-
-  const corsHeaders = getCorsHeaders(
-    req.headers.get('origin'), 
-    config.allowedOrigins
-  );
-
-  // Handle CORS preflight
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { 
-      status: 200, 
+      status: 200,
       headers: corsHeaders 
     });
   }
@@ -280,97 +27,330 @@ const handler = async (req: Request): Promise<Response> => {
   if (req.method !== "POST") {
     return new Response(
       JSON.stringify({ 
-        success: false, 
+        success: false,
         error: "Method not allowed" 
       }),
-      { 
-        status: 405, 
+      {
+        status: 405,
         headers: { 
-          ...corsHeaders, 
-          "Content-Type": "application/json",
+          "Content-Type": "application/json", 
+          ...corsHeaders,
           "Allow": "POST, OPTIONS"
-        } 
+        },
       }
     );
   }
 
   try {
-    // Parse and validate request
+    // Parse request body with error handling
     let requestData: ReviewEmailRequest;
     
     try {
       requestData = await req.json();
     } catch {
-      throw new ValidationError("Invalid JSON in request body");
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Invalid JSON in request body" 
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
-    validateInput(requestData);
+    const { customerEmail, customerName, trackingId, managerName, businessName = "Alpha Business Designs" } = requestData;
 
-    const trackingId = generateTrackingId();
-    const emailService = new EmailTemplateService(config);
-    const emailHtml = emailService.generateReviewEmail(requestData, trackingId);
+    if (!customerEmail || !customerName) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Missing required parameters: customerEmail and customerName" 
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
 
-    // Initialize Resend client
-    const resend = new Resend(config.resendApiKey);
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customerEmail)) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Invalid email format" 
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
 
-    // Send email with proper error handling
-    const emailResponse = await resend.emails.send({
-      from: `${requestData.managerName || "Alpha Business"} <onboarding@resend.dev>`,
-      to: [requestData.recipientEmail],
-      subject: `We'd love your feedback! - ${requestData.managerName || "Alpha Business Design"}`,
-      html: emailHtml,
+    // Get Resend API key
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Resend API key not configured" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Create tracking URL with UTM parameters
+    const baseUrl = Deno.env.get("FRONTEND_URL") || "https://yourdomain.com";
+    const reviewUrl = `${baseUrl}/review-form?utm_source=email&utm_campaign=review_request&tracking_id=${trackingId || 'none'}&customer=${encodeURIComponent(customerName)}`;
+
+    // Prepare email content
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>We'd love your feedback!</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background: #f9f9f9;
+          }
+          .container { 
+            background: #ffffff; 
+            padding: 30px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          }
+          .header { 
+            text-align: center; 
+            margin-bottom: 30px; 
+          }
+          .header h1 { 
+            color: #007bff; 
+            margin-bottom: 10px; 
+            font-size: 28px;
+          }
+          .header p { 
+            color: #666; 
+            font-size: 16px; 
+            margin: 0;
+          }
+          .content { 
+            margin-bottom: 30px; 
+          }
+          .content p { 
+            margin-bottom: 15px; 
+            font-size: 16px;
+          }
+          .button-container { 
+            text-align: center; 
+            margin: 30px 0; 
+          }
+          .button { 
+            display: inline-block; 
+            background: #007bff; 
+            color: white; 
+            padding: 15px 30px; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+          }
+          .button:hover { 
+            background: #0056b3; 
+          }
+          .footer { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            border-radius: 8px; 
+            text-align: center; 
+            font-size: 14px; 
+            color: #6c757d; 
+            margin-top: 30px;
+          }
+          .footer p { 
+            margin: 5px 0; 
+          }
+          .highlight { 
+            background: #e3f2fd; 
+            padding: 15px; 
+            border-radius: 6px; 
+            border-left: 4px solid #007bff; 
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>${businessName}</h1>
+            <p>We'd love your feedback!</p>
+          </div>
+          
+          <div class="content">
+            <p>Hello ${customerName},</p>
+            
+            <p>Thank you for choosing ${businessName}! We hope you had a great experience with our services.</p>
+            
+            <div class="highlight">
+              <p><strong>Your feedback matters to us!</strong> Please take just 2 minutes to share your experience and help us improve our services.</p>
+            </div>
+            
+            <p>Your review helps us:</p>
+            <ul>
+              <li>Improve our services for future customers</li>
+              <li>Recognize our team members who provided excellent service</li>
+              <li>Build trust with potential customers</li>
+            </ul>
+          </div>
+          
+          <div class="button-container">
+            <a href="${reviewUrl}" class="button">Leave a Review</a>
+          </div>
+          
+          <div class="footer">
+            <p><strong>Thank you for your time and feedback!</strong></p>
+            <p>If you have any questions or concerns, please don't hesitate to contact us.</p>
+            <p>Best regards,<br>The ${businessName} Team</p>
+            ${managerName ? `<p><em>Requested by: ${managerName}</em></p>` : ''}
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Send email using Resend with proper error handling
+    let emailResponse: Response;
+    try {
+      emailResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: `${businessName} <noreply@alphabusiness.com>`,
+          to: [customerEmail],
+          subject: `We'd love your feedback, ${customerName}!`,
+          html: emailHtml,
+        }),
+      });
+    } catch (fetchError) {
+      console.error("Network error sending review email:", fetchError);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Network error while sending email" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    if (!emailResponse.ok) {
+      let errorMessage = "Unknown error";
+      try {
+        const errorData = await emailResponse.json();
+        errorMessage = errorData.message || `HTTP ${emailResponse.status}`;
+      } catch {
+        errorMessage = `HTTP ${emailResponse.status} ${emailResponse.statusText}`;
+      }
+      
+      console.error("Resend API error:", errorMessage);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: `Resend API error: ${errorMessage}` 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    let emailData: any;
+    try {
+      emailData = await emailResponse.json();
+    } catch (parseError) {
+      console.error("Error parsing email response:", parseError);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Invalid response from email service" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
+    if (!emailData.id) {
+      console.error("No email ID in response:", emailData);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Failed to send email - no response ID received" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+    
+    console.log("Review email sent successfully:", {
+      customerEmail,
+      customerName,
+      trackingId,
+      managerName,
+      emailId: emailData.id
     });
 
-    // Check for Resend API errors
-    if (emailResponse.error) {
-      throw new Error(`Resend API error: ${emailResponse.error.message}`);
-    }
-
-    if (!emailResponse.data?.id) {
-      console.error("Resend response:", emailResponse);
-      throw new Error("Failed to send email - no response ID received");
-    }
-
-    console.log(`Review email sent successfully: ${emailResponse.data.id}, tracking: ${trackingId}`);
-
-    const response: ApiResponse = {
+    return new Response(JSON.stringify({ 
       success: true,
       data: {
-        id: emailResponse.data.id,
-        recipient: requestData.recipientEmail,
-        managerName: requestData.managerName || "Alpha Business Design"
+        id: emailData.id,
+        recipient: customerEmail,
+        customerName,
+        trackingId
       },
-      trackingId
-    };
-
-    return new Response(JSON.stringify(response), {
+      message: "Review email sent successfully" 
+    }), {
       status: 200,
       headers: {
         "Content-Type": "application/json",
         ...corsHeaders,
       },
     });
-
-  } catch (error) {
-    console.error("Handler error:", error);
-    
-    const statusCode = error instanceof ValidationError ? 400 : 500;
-    const errorMessage = error instanceof ValidationError 
-      ? error.message 
-      : "An unexpected error occurred";
-
-    const response: ApiResponse = {
-      success: false,
-      error: errorMessage
-    };
-
-    return new Response(JSON.stringify(response), {
-      status: statusCode,
-      headers: { 
-        "Content-Type": "application/json", 
-        ...corsHeaders 
-      },
-    });
+  } catch (error: any) {
+    console.error("Unexpected error in send-review-email:", error);
+    return new Response(
+      JSON.stringify({ 
+        success: false,
+        error: error.message || "An unexpected error occurred" 
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
   }
 };
 

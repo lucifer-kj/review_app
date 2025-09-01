@@ -20,6 +20,12 @@ const DashboardSettings = lazy(() => import("./pages/DashboardSettings"));
 const DashboardLayout = lazy(() => import("./pages/DashboardLayout"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+// Review flow pages
+const ReviewFormPage = lazy(() => import("./pages/ReviewFormPage"));
+const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
+const FeedbackThankYouPage = lazy(() => import("./pages/FeedbackThankYouPage"));
+const ReviewThankYouPage = lazy(() => import("./pages/ReviewThankYouPage"));
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -50,6 +56,12 @@ const App = () => (
                 
                 {/* Public customer review form */}
                 <Route path="/review" element={<Index />} />
+                
+                {/* Email-triggered review flow */}
+                <Route path="/review-form" element={<ReviewFormPage />} />
+                <Route path="/review/feedback" element={<FeedbackPage />} />
+                <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
+                <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
                 
                 {/* Catch-all route */}
                 <Route path="*" element={<NotFound />} />

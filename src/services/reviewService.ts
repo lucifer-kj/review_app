@@ -108,4 +108,36 @@ export class ReviewService {
       throw new Error(handleError(error, 'ReviewService.getReviewStats'));
     }
   }
+
+  static async sendReviewEmail(
+    customerEmail: string, 
+    customerName: string, 
+    options?: {
+      trackingId?: string;
+      managerName?: string;
+      businessName?: string;
+    }
+  ): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const { error } = await supabase.functions.invoke('send-review-email', {
+        body: {
+          customerEmail,
+          customerName,
+          trackingId: options?.trackingId,
+          managerName: options?.managerName,
+          businessName: options?.businessName
+        }
+      });
+
+      if (error) throw error;
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error sending review email:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to send review email' 
+      };
+    }
+  }
 }

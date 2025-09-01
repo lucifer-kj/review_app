@@ -34,7 +34,6 @@ VITE_APP_ENV=production
 #### **Supabase Environment Variables**
 Set in Supabase Dashboard → Settings → Edge Functions:
 ```bash
-RESEND_API_KEY=your_resend_api_key
 SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
@@ -68,7 +67,6 @@ Verify storage buckets:
 supabase functions deploy
 
 # Or deploy individually
-supabase functions deploy send-review-email
 supabase functions deploy submit-review
 supabase functions deploy generate-invoice-pdf
 supabase functions deploy send-invoice-email
@@ -145,7 +143,6 @@ netlify deploy --prod --dir=dist
    - And more...
 
 ### **Email Templates**
-- Review request emails: `supabase/functions/send-review-email/index.ts`
 - Invoice emails: `supabase/functions/send-invoice-email/index.ts`
 
 ## 🚀 Performance Optimizations

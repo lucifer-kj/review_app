@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReviewListSkeleton } from "@/components/ReviewSkeleton";
+import { SendReviewEmailDialog } from "@/components/SendReviewEmailDialog";
 import { useReviews } from "@/hooks/useReviews";
-import { Star, Search, Download, Filter, Eye, MessageSquare, ExternalLink } from "lucide-react";
+import { Star, Search, Download, Filter, Eye, MessageSquare, ExternalLink, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import type { Review, RatingFilter } from "@/types";
@@ -19,6 +20,7 @@ const DashboardReviews = () => {
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>("all");
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [showSendEmailDialog, setShowSendEmailDialog] = useState(false);
   const { toast } = useToast();
 
   const filteredReviews = useMemo(() => {
@@ -154,6 +156,14 @@ const DashboardReviews = () => {
             <div className="flex gap-2">
               <Button onClick={refetch} variant="outline" size="sm">
                 Refresh
+              </Button>
+              <Button 
+                onClick={() => setShowSendEmailDialog(true)} 
+                variant="default" 
+                size="sm"
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                Send Review Request
               </Button>
               <Button onClick={exportToCSV} variant="outline" size="sm">
                 <Download className="mr-2 h-4 w-4" />
@@ -313,6 +323,19 @@ const DashboardReviews = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Send Review Email Dialog */}
+      <SendReviewEmailDialog
+        open={showSendEmailDialog}
+        onOpenChange={setShowSendEmailDialog}
+        onSuccess={() => {
+          // Optionally refresh data or show success message
+          toast({
+            title: "Review Request Sent",
+            description: "The customer will receive an email with a link to leave a review.",
+          });
+        }}
+      />
     </div>
   );
 };

@@ -1,15 +1,11 @@
-import { useEffect, useState, Suspense, lazy } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { ReviewService } from "@/services/reviewService";
 import { InvoiceService } from "@/services/invoiceService";
 import { FileText, Receipt, Star, TrendingUp } from "lucide-react";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
 import type { DashboardStats } from "@/types";
-
-const SendReviewEmailDialog = lazy(() => import("@/components/SendReviewEmailDialog").then(module => ({ default: module.SendReviewEmailDialog })));
-const EmailTestDialog = lazy(() => import("@/components/EmailTestDialog").then(module => ({ default: module.EmailTestDialog })));
 
 const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
@@ -151,12 +147,6 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <Suspense fallback={<LoadingSpinner />}>
-                <SendReviewEmailDialog />
-              </Suspense>
-              <Suspense fallback={<LoadingSpinner />}>
-                <EmailTestDialog />
-              </Suspense>
               <button className="w-full text-left p-2 rounded-md hover:bg-accent text-sm">
                 Create new invoice
               </button>
