@@ -307,13 +307,19 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email with proper error handling
     const emailResponse = await resend.emails.send({
-      from: `${requestData.managerName || "Alpha Business"} <noreply@${new URL(config.frontendUrl).hostname}>`,
+      from: `${requestData.managerName || "Alpha Business"} <onboarding@resend.dev>`,
       to: [requestData.recipientEmail],
       subject: `We'd love your feedback! - ${requestData.managerName || "Alpha Business Design"}`,
       html: emailHtml,
     });
 
+    // Check for Resend API errors
+    if (emailResponse.error) {
+      throw new Error(`Resend API error: ${emailResponse.error.message}`);
+    }
+
     if (!emailResponse.data?.id) {
+      console.error("Resend response:", emailResponse);
       throw new Error("Failed to send email - no response ID received");
     }
 
