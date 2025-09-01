@@ -1,16 +1,12 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SendReviewEmailDialog } from "@/components/SendReviewEmailDialog";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { ReviewService } from "@/services/reviewService";
+import { InvoiceService } from "@/services/invoiceService";
 import { FileText, Receipt, Star, TrendingUp } from "lucide-react";
-
-interface DashboardStats {
-  totalReviews: number;
-  averageRating: number;
-  totalInvoices: number;
-  highRatingReviews: number;
-}
+import type { DashboardStats } from "@/types";
 
 const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
@@ -24,31 +20,16 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Get reviews stats
-        const { data: reviews, error: reviewsError } = await supabase
-          .from('reviews')
-          .select('rating');
-
-        if (reviewsError) throw reviewsError;
-
-        // Get invoices count
-        const { count: invoiceCount, error: invoicesError } = await supabase
-          .from('invoices')
-          .select('*', { count: 'exact', head: true });
-
-        if (invoicesError) throw invoicesError;
-
-        const totalReviews = reviews?.length || 0;
-        const averageRating = totalReviews > 0 
-          ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews 
-          : 0;
-        const highRatingReviews = reviews?.filter(r => r.rating >= 4).length || 0;
+        const [reviewStats, invoiceStats] = await Promise.all([
+          ReviewService.getReviewStats(),
+          InvoiceService.getInvoiceStats()
+        ]);
 
         setStats({
-          totalReviews,
-          averageRating: Math.round(averageRating * 10) / 10,
-          totalInvoices: invoiceCount || 0,
-          highRatingReviews
+          totalReviews: reviewStats.totalReviews,
+          averageRating: reviewStats.averageRating,
+          totalInvoices: invoiceStats.totalInvoices,
+          highRatingReviews: reviewStats.highRatingReviews
         });
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -61,11 +42,7 @@ const Dashboard = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

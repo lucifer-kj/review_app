@@ -5,6 +5,7 @@ import { SorryPage } from "@/components/SorryPage";
 import { FeedbackThankYou } from "@/components/FeedbackThankYou";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { APP_CONFIG } from "@/constants";
 
 interface ReviewData {
   name: string;
@@ -19,8 +20,8 @@ const Index = () => {
   const [reviewId, setReviewId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Updated Google Reviews URL
-  const GOOGLE_REVIEWS_URL = "https://g.page/r/CZEmfT3kD-k-EBM/review";
+  // Import constants
+  const { GOOGLE_REVIEWS_URL } = APP_CONFIG;
 
   const handleReviewSubmit = async (data: ReviewData) => {
     try {

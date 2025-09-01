@@ -1,63 +1,35 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ReviewListSkeleton } from "@/components/ReviewSkeleton";
+import { useReviews } from "@/hooks/useReviews";
 import { Star, Search, Download, Filter } from "lucide-react";
 import { format } from "date-fns";
-
-interface Review {
-  id: string;
-  name: string;
-  phone: string;
-  rating: number;
-  google_review: boolean;
-  redirect_opened: boolean;
-  created_at: string;
-  feedback: string | null;
-}
+import type { Review, RatingFilter } from "@/types";
 
 const DashboardReviews = () => {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { reviews, loading } = useReviews();
   const [searchTerm, setSearchTerm] = useState("");
-  const [ratingFilter, setRatingFilter] = useState<string>("all");
+  const [ratingFilter, setRatingFilter] = useState<RatingFilter>("all");
 
-  useEffect(() => {
-    const fetchReviews = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('reviews')
-          .select('*')
-          .order('created_at', { ascending: false });
+  const filteredReviews = useMemo(() => {
+    return reviews.filter((review) => {
+      const matchesSearch = 
+        review.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        review.phone.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesRating = 
+        ratingFilter === "all" || 
+        (ratingFilter === "high" && review.rating >= 4) ||
+        (ratingFilter === "low" && review.rating < 4);
 
-        if (error) throw error;
-        setReviews(data || []);
-      } catch (error) {
-        console.error('Error fetching reviews:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchReviews();
-  }, []);
-
-  const filteredReviews = reviews.filter((review) => {
-    const matchesSearch = 
-      review.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      review.phone.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesRating = 
-      ratingFilter === "all" || 
-      (ratingFilter === "high" && review.rating >= 4) ||
-      (ratingFilter === "low" && review.rating < 4);
-
-    return matchesSearch && matchesRating;
-  });
+      return matchesSearch && matchesRating;
+    });
+  }, [reviews, searchTerm, ratingFilter]);
 
   const exportToCSV = () => {
     const csvContent = [
@@ -82,11 +54,7 @@ const DashboardReviews = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <ReviewListSkeleton />;
   }
 
   return (

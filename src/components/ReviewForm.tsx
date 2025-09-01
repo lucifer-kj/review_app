@@ -9,7 +9,6 @@ interface ReviewFormProps {
 }
 
 export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
-  console.log("ReviewForm component loaded with email support");
   
   const [formData, setFormData] = useState({
     name: "",
