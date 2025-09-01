@@ -134,6 +134,42 @@ export type Database = {
         }
         Relationships: []
       }
+      business_settings: {
+        Row: {
+          id: string
+          google_business_url: string | null
+          business_name: string | null
+          business_email: string | null
+          business_phone: string | null
+          business_address: string | null
+          invoice_template_url: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          google_business_url?: string | null
+          business_name?: string | null
+          business_email?: string | null
+          business_phone?: string | null
+          business_address?: string | null
+          invoice_template_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          google_business_url?: string | null
+          business_name?: string | null
+          business_email?: string | null
+          business_phone?: string | null
+          business_address?: string | null
+          invoice_template_url?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

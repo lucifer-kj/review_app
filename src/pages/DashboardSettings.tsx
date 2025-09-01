@@ -21,27 +21,16 @@ import {
   ExternalLink,
   Trash2
 } from "lucide-react";
-
-interface BusinessSettings {
-  id?: string;
-  google_business_url: string;
-  business_name: string;
-  business_email: string;
-  business_phone: string;
-  business_address: string;
-  invoice_template_url: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import type { BusinessSettings } from "@/types";
 
 const DashboardSettings = () => {
   const [settings, setSettings] = useState<BusinessSettings>({
-    google_business_url: "",
-    business_name: "",
-    business_email: "",
-    business_phone: "",
-    business_address: "",
-    invoice_template_url: ""
+    google_business_url: null,
+    business_name: null,
+    business_email: null,
+    business_phone: null,
+    business_address: null,
+    invoice_template_url: null
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -243,7 +232,7 @@ const DashboardSettings = () => {
               <Label htmlFor="business-name">Business Name</Label>
               <Input
                 id="business-name"
-                value={settings.business_name}
+                value={settings.business_name || ""}
                 onChange={(e) => setSettings(prev => ({ ...prev, business_name: e.target.value }))}
                 placeholder="Alpha Business Designs"
               />
@@ -253,7 +242,7 @@ const DashboardSettings = () => {
               <Input
                 id="business-email"
                 type="email"
-                value={settings.business_email}
+                value={settings.business_email || ""}
                 onChange={(e) => setSettings(prev => ({ ...prev, business_email: e.target.value }))}
                 placeholder="contact@alphabusiness.com"
               />
@@ -263,7 +252,7 @@ const DashboardSettings = () => {
               <Input
                 id="business-phone"
                 type="tel"
-                value={settings.business_phone}
+                value={settings.business_phone || ""}
                 onChange={(e) => setSettings(prev => ({ ...prev, business_phone: e.target.value }))}
                 placeholder="+1 (555) 123-4567"
               />
@@ -272,7 +261,7 @@ const DashboardSettings = () => {
               <Label htmlFor="business-address">Business Address</Label>
               <Textarea
                 id="business-address"
-                value={settings.business_address}
+                value={settings.business_address || ""}
                 onChange={(e) => setSettings(prev => ({ ...prev, business_address: e.target.value }))}
                 placeholder="123 Business St, City, State 12345"
                 rows={3}
@@ -299,10 +288,10 @@ const DashboardSettings = () => {
             <div className="flex gap-2">
               <Input
                 id="google-business-url"
-                value={settings.google_business_url}
+                value={settings.google_business_url || ""}
                 onChange={(e) => setSettings(prev => ({ ...prev, google_business_url: e.target.value }))}
                 placeholder="https://www.google.com/maps/place/Your-Business/@lat,lng,zoom/data=..."
-                className={!validateGoogleBusinessUrl(settings.google_business_url) ? "border-destructive" : ""}
+                className={!validateGoogleBusinessUrl(settings.google_business_url || "") ? "border-destructive" : ""}
               />
               {settings.google_business_url && (
                 <Button
@@ -314,13 +303,13 @@ const DashboardSettings = () => {
                 </Button>
               )}
             </div>
-            {!validateGoogleBusinessUrl(settings.google_business_url) && settings.google_business_url && (
+            {!validateGoogleBusinessUrl(settings.google_business_url || "") && settings.google_business_url && (
               <div className="flex items-center gap-2 text-sm text-destructive">
                 <AlertCircle className="h-4 w-4" />
                 Please enter a valid Google Business Profile URL
               </div>
             )}
-            {validateGoogleBusinessUrl(settings.google_business_url) && settings.google_business_url && (
+            {validateGoogleBusinessUrl(settings.google_business_url || "") && settings.google_business_url && (
               <div className="flex items-center gap-2 text-sm text-green-600">
                 <CheckCircle className="h-4 w-4" />
                 Valid Google Business Profile URL

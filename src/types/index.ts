@@ -56,8 +56,31 @@ export interface ShareData {
 
 // Auth types
 export interface AuthState {
-  user: any | null;
-  session: any | null;
+  user: {
+    id: string;
+    email?: string;
+    phone?: string;
+    [key: string]: any;
+  } | null;
+  session: {
+    access_token: string;
+    refresh_token: string;
+    expires_at: number;
+    [key: string]: any;
+  } | null;
   loading: boolean;
   isAuthenticated: boolean;
+}
+
+// Business settings types
+export interface BusinessSettings {
+  id?: string;
+  google_business_url: string | null;
+  business_name: string | null;
+  business_email: string | null;
+  business_phone: string | null;
+  business_address: string | null;
+  invoice_template_url: string | null;
+  created_at?: string;
+  updated_at?: string;
 }

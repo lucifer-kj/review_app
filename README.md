@@ -1,22 +1,12 @@
-# Welcome to your Lovable project
+# Alpha Business Designs - Customer Review System
 
-## Project info
+## Project Overview
 
-**URL**: https://lovable.dev/projects/60cdc482-c5bd-4e7f-87d3-fb90032e8d29
+A comprehensive customer review and invoice management system built with modern web technologies.
 
-## How can I edit this code?
+## How to run this project locally
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/60cdc482-c5bd-4e7f-87d3-fb90032e8d29) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Clone this repository and follow these steps:
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
@@ -60,14 +50,35 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
-## How can I deploy this project?
+## How to deploy this project
 
-Simply open [Lovable](https://lovable.dev/projects/60cdc482-c5bd-4e7f-87d3-fb90032e8d29) and click on Share -> Publish.
+This project can be deployed to any static hosting service like Vercel, Netlify, or GitHub Pages.
 
-## Can I connect a custom domain to my Lovable project?
+### Build for production
 
-Yes, you can!
+```sh
+npm run build
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+The built files will be in the `dist` directory.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Deploy to Vercel
+
+```sh
+npx vercel --prod
+```
+
+### Deploy to Netlify
+
+```sh
+npx netlify deploy --prod --dir=dist
+```
+
+## Features
+
+- Customer review collection system
+- Invoice management and generation
+- Email integration with embedded forms
+- PWA support for mobile devices
+- Responsive design with Tailwind CSS
+- Type-safe development with TypeScript
