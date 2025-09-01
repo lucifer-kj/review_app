@@ -1,0 +1,245 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Alpha Business Designs - Professional Review System Design System */
+
+@layer base {
+  :root {
+    /* Core Brand Colors */
+    --background: 0 0% 100%; /* #FFFFFF */
+    --foreground: 0 0% 0%; /* #000000 */
+
+    /* Card & Surface Colors */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+
+    /* Primary Brand - Black */
+    --primary: 0 0% 0%; /* #000000 */
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Dark Gray */
+    --secondary: 0 0% 20%; /* #333333 */
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted Grays */
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 20%;
+
+    /* Accent - Light Gray for subtle highlights */
+    --accent: 0 0% 95%;
+    --accent-foreground: 0 0% 0%;
+
+    /* Status Colors */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    /* Interactive Elements */
+    --border: 0 0% 88%; /* #E0E0E0 */
+    --input: 0 0% 96%;
+    --ring: 0 0% 0%;
+
+    /* Star Rating Colors */
+    --star-empty: 0 0% 90%;
+    --star-filled: 45 100% 51%; /* Golden yellow */
+    --star-hover: 45 100% 47%;
+
+    /* Shadows & Effects */
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
+    --shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
+
+    /* Radius */
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+
+  /* Form styling */
+  input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--ring));
+  }
+}
+
+/* Professional Component Styles */
+@layer components {
+  /* Star Rating Component */
+  .star-rating {
+    @apply flex items-center gap-1;
+  }
+  
+  .star {
+    @apply w-8 h-8 cursor-pointer transition-all duration-200 ease-out;
+    color: hsl(var(--star-empty));
+  }
+  
+  .star:hover,
+  .star.active {
+    color: hsl(var(--star-filled));
+    transform: scale(1.1);
+  }
+  
+  .star.hover-active {
+    color: hsl(var(--star-hover));
+    transform: scale(1.05);
+  }
+
+  /* Professional Form Styles */
+  .form-container {
+    @apply bg-card border border-border rounded-lg p-8 shadow-lg max-w-md mx-auto;
+  }
+  
+  .form-field {
+    @apply space-y-2;
+  }
+  
+  .form-label {
+    @apply text-sm font-medium text-foreground;
+  }
+  
+  .form-input {
+    @apply w-full px-4 py-3 border border-border rounded-lg bg-input text-foreground placeholder:text-muted-foreground transition-all duration-200;
+  }
+  
+  .form-input:focus {
+    @apply border-ring shadow-sm;
+  }
+
+  /* Professional Buttons */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium transition-all duration-200 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+  
+  .btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  /* Thank You Page Styles */
+  .thank-you-container {
+    @apply text-center space-y-6 max-w-lg mx-auto;
+  }
+  
+  .thank-you-title {
+    @apply text-3xl font-bold text-foreground;
+  }
+  
+  .thank-you-message {
+    @apply text-lg text-muted-foreground leading-relaxed;
+  }
+
+  /* Professional Animation Classes */
+  .fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  .slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+  
+  .scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+}
+
+/* Professional Keyframe Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
