@@ -87,13 +87,13 @@ const DashboardReviews = () => {
     if (review.google_review) {
       window.open('https://g.page/r/CZEmfT3kD-k-EBM/review', '_blank');
     }
-  };
+  }
 
-        </LoadingWrapper>
-      </DashboardErrorBoundary>
-    );
-      <div className="flex justify-between items-center">
-        <div>
+  return (
+    <DashboardErrorBoundary componentName="DashboardReviews">
+      <LoadingWrapper loading={loading} error={error} className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
           <h1 className="text-3xl font-bold">Reviews</h1>
           <p className="text-muted-foreground">
             Manage and analyze customer feedback
@@ -122,7 +122,10 @@ const DashboardReviews = () => {
                 />
               </div>
             </div>
-            <Select value={ratingFilter} onValueChange={setRatingFilter}>
+            <Select
+              value={ratingFilter}
+              onValueChange={(value) => setRatingFilter(value as typeof ratingFilter)}
+            >
               <SelectTrigger className="w-[180px]">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Filter by rating" />
@@ -335,10 +338,9 @@ const DashboardReviews = () => {
               });
             }}
           />
-        </div>
       </LoadingWrapper>
     </DashboardErrorBoundary>
   );
-};
+}
 
 export default DashboardReviews;
