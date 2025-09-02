@@ -42,8 +42,8 @@ interface EnvironmentConfig {
  */
 const validateEnvironment = (): EnvironmentConfig => {
   const requiredVars = {
-    SUPABASE_URL: import.meta.env.SUPABASE_URL,
-    SUPABASE_ANON_KEY: import.meta.env.SUPABASE_ANON_KEY,
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
   };
 
   const missingVars = Object.entries(requiredVars)
@@ -59,8 +59,8 @@ const validateEnvironment = (): EnvironmentConfig => {
 
   return {
     supabase: {
-      url: import.meta.env.SUPABASE_URL!,
-      anonKey: import.meta.env.SUPABASE_ANON_KEY!,
+      url: import.meta.env.VITE_SUPABASE_URL!,
+      anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY!,
     },
     email: {
       domain: import.meta.env.VITE_EMAIL_DOMAIN || 'alphabusiness.com',

@@ -10,10 +10,12 @@
 
 Create a `.env` file in the root directory with the following variables:
 
+**Note**: Client-side environment variables (used in the browser) must be prefixed with `VITE_` for Vite applications. Server-side variables (used in Edge Functions) use the standard names without the `VITE_` prefix.
+
 ```bash
 # Supabase Configuration (REQUIRED)
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # Email Service Configuration (REQUIRED for email functions)
 RESEND_API_KEY=your_resend_api_key
@@ -69,14 +71,17 @@ The application will automatically validate required environment variables on st
 #### Vercel Deployment
 ```bash
 # Set environment variables in Vercel dashboard
-vercel env add SUPABASE_URL
-vercel env add SUPABASE_ANON_KEY
+vercel env add VITE_SUPABASE_URL
+vercel env add VITE_SUPABASE_ANON_KEY
 vercel env add RESEND_API_KEY
 ```
 
 #### Supabase Edge Functions
 ```bash
 # Set environment variables for Edge Functions
+# Note: Edge Functions use standard environment variable names (no VITE_ prefix)
+supabase secrets set SUPABASE_URL=your_supabase_project_url
+supabase secrets set SUPABASE_ANON_KEY=your_supabase_anon_key
 supabase secrets set RESEND_API_KEY=your_key
 supabase secrets set EMAIL_DOMAIN=yourdomain.com
 supabase secrets set FRONTEND_URL=https://yourdomain.com
