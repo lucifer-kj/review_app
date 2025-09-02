@@ -89,26 +89,26 @@ export default function FeedbackPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="form-container fade-in max-w-md w-full">
-        <div className="text-center mb-8">
+      <div className="form-container fade-in max-w-md w-full mx-auto">
+        <div className="text-center mb-6 sm:mb-8">
           <div className="flex items-center justify-center mb-4">
-            <Building2 className="w-10 h-10 text-primary" />
+            <Building2 className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
             We're Sorry, {name}
           </h1>
-          <p className="text-muted-foreground mb-4">
+          <p className="text-sm sm:text-base text-muted-foreground mb-4">
             We didn't meet your expectations this time.
           </p>
           <div className="bg-muted/30 rounded-lg p-4 mb-6">
-            <MessageCircle className="w-6 h-6 text-primary mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
+            <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-primary mx-auto mb-2" />
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Your feedback is valuable to us. Please let us know how we can improve our services.
             </p>
           </div>
         </div>
 
-        <form onSubmit={handleFeedbackSubmit} className="space-y-6">
+        <form onSubmit={handleFeedbackSubmit} className="space-y-4 sm:space-y-6">
           <div className="form-field">
             <label className="form-label">
               How can we improve? *
@@ -153,8 +153,8 @@ export default function FeedbackPage() {
           </div>
         </form>
 
-        <div className="text-center mt-6">
-          <p className="text-sm text-muted-foreground">
+        <div className="text-center mt-4 sm:mt-6">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Thank you for taking the time to help us improve
           </p>
         </div>

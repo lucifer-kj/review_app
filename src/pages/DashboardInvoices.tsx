@@ -173,26 +173,28 @@ const DashboardInvoices = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Invoices</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Invoices</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Manage and generate invoices for your customers
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={refetch} variant="outline" size="sm">
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button onClick={refetch} variant="outline" size="sm" className="flex-1 sm:flex-none">
             Refresh
           </Button>
-          <Button onClick={exportToCSV} variant="outline" size="sm">
+          <Button onClick={exportToCSV} variant="outline" size="sm" className="flex-1 sm:flex-none">
             <Download className="mr-2 h-4 w-4" />
-            Export CSV
+            <span className="hidden sm:inline">Export CSV</span>
+            <span className="sm:hidden">Export</span>
           </Button>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="flex-1 sm:flex-none">
                 <Plus className="mr-2 h-4 w-4" />
-                Create Invoice
+                <span className="hidden sm:inline">Create Invoice</span>
+                <span className="sm:hidden">Create</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -213,14 +215,14 @@ const DashboardInvoices = () => {
       {/* Filter Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Filter Invoices</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-lg sm:text-xl">Filter Invoices</CardTitle>
+          <CardDescription className="text-sm">
             Search and filter invoices to find what you need
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-4 flex-wrap">
-            <div className="flex-1 min-w-[200px]">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -232,7 +234,7 @@ const DashboardInvoices = () => {
               </div>
             </div>
             <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as InvoiceStatus | "all")}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -248,7 +250,7 @@ const DashboardInvoices = () => {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
@@ -310,10 +312,10 @@ const DashboardInvoices = () => {
 
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
-              <CardTitle>All Invoices ({filteredInvoices.length})</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg sm:text-xl">All Invoices ({filteredInvoices.length})</CardTitle>
+              <CardDescription className="text-sm">
                 {error && (
                   <span className="text-destructive">Error loading invoices. 
                     <Button variant="link" onClick={refetch} className="p-0 h-auto ml-1">
@@ -326,96 +328,103 @@ const DashboardInvoices = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Invoice #</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredInvoices.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      {searchTerm || statusFilter !== "all" 
-                        ? "No invoices found matching your filters" 
-                        : "No invoices found. Create your first invoice to get started."}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredInvoices.map((invoice) => (
-                    <TableRow key={invoice.id} className="hover:bg-muted/50">
-                      <TableCell className="font-medium">
-                        {invoice.invoice_number}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{invoice.customer_name}</div>
-                          <div className="text-sm text-muted-foreground">{invoice.customer_email}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {invoice.currency} {Number(invoice.total).toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusBadgeVariant(invoice.status)}>
-                          {invoice.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {invoice.due_date ? format(new Date(invoice.due_date), 'MMM dd, yyyy') : '-'}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(new Date(invoice.created_at), 'MMM dd, yyyy')}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleDownloadPDF(invoice)}
-                            title="Download PDF"
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleSendEmail(invoice)}
-                            title="Send Email"
-                          >
-                            <Mail className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleEditInvoice(invoice)}
-                            title="Edit Invoice"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleDeleteInvoice(invoice.id)}
-                            title="Delete Invoice"
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="min-w-full inline-block align-middle">
+              <div className="overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="px-2 sm:px-4">Invoice #</TableHead>
+                      <TableHead className="px-2 sm:px-4">Customer</TableHead>
+                      <TableHead className="px-2 sm:px-4">Amount</TableHead>
+                      <TableHead className="px-2 sm:px-4">Status</TableHead>
+                      <TableHead className="hidden sm:table-cell px-4">Due Date</TableHead>
+                      <TableHead className="hidden lg:table-cell px-4">Created</TableHead>
+                      <TableHead className="px-2 sm:px-4">Actions</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredInvoices.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          {searchTerm || statusFilter !== "all" 
+                            ? "No invoices found matching your filters" 
+                            : "No invoices found. Create your first invoice to get started."}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredInvoices.map((invoice) => (
+                        <TableRow key={invoice.id} className="hover:bg-muted/50">
+                          <TableCell className="font-medium px-2 sm:px-4 text-sm sm:text-base">
+                            {invoice.invoice_number}
+                          </TableCell>
+                          <TableCell className="px-2 sm:px-4">
+                            <div>
+                              <div className="font-medium text-sm sm:text-base">{invoice.customer_name}</div>
+                              <div className="text-xs sm:text-sm text-muted-foreground">{invoice.customer_email}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-2 sm:px-4 text-sm sm:text-base">
+                            {invoice.currency} {Number(invoice.total).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="px-2 sm:px-4">
+                            <Badge variant={getStatusBadgeVariant(invoice.status)} className="text-xs">
+                              {invoice.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell px-4 text-sm">
+                            {invoice.due_date ? format(new Date(invoice.due_date), 'MMM dd, yyyy') : '-'}
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell px-4 text-sm text-muted-foreground">
+                            {format(new Date(invoice.created_at), 'MMM dd, yyyy')}
+                          </TableCell>
+                          <TableCell className="px-2 sm:px-4">
+                            <div className="flex gap-1 flex-wrap">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleDownloadPDF(invoice)}
+                                title="Download PDF"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleSendEmail(invoice)}
+                                title="Send Email"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleEditInvoice(invoice)}
+                                title="Edit Invoice"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={() => handleDeleteInvoice(invoice.id)}
+                                title="Delete Invoice"
+                                className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

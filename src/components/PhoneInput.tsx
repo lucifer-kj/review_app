@@ -79,13 +79,13 @@ export const PhoneInput = ({
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <div className="flex">
+      <div className="flex flex-col sm:flex-row">
         {/* Country Selector */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           disabled={disabled}
-          className="form-input rounded-r-none border-r-0 flex items-center gap-2 px-3 py-2 w-[20%] bg-background hover:bg-accent/50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="form-input rounded-b-none sm:rounded-r-none sm:border-r-0 flex items-center justify-center sm:justify-start gap-2 px-3 py-2 w-full sm:w-[25%] bg-background hover:bg-accent/50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <span className="text-lg">{selectedCountry.flag}</span>
           <span className="text-sm font-medium">{selectedCountry.dialCode}</span>
@@ -100,7 +100,7 @@ export const PhoneInput = ({
           onChange={handlePhoneInputChange}
           placeholder={placeholder}
           disabled={disabled}
-          className="form-input rounded-l-none w-[80%]"
+          className="form-input rounded-t-none sm:rounded-l-none w-full sm:w-[75%]"
         />
       </div>
 

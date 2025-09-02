@@ -50,12 +50,12 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="w-60">
+    <Sidebar className="w-60 sm:w-64">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="flex items-center gap-2 px-2">
-            <Building2 className="h-5 w-5" />
-            <span>Alpha Business</span>
+            <Building2 className="h-5 w-5 flex-shrink-0" />
+            <span className="text-sm sm:text-base truncate">Alpha Business</span>
           </SidebarGroupLabel>
 
           <SidebarGroupContent>

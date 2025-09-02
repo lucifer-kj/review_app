@@ -156,27 +156,27 @@ export default function ReviewFormPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="form-container fade-in max-w-md w-full">
-        <div className="text-center mb-8">
+      <div className="form-container fade-in max-w-md w-full mx-auto">
+        <div className="text-center mb-6 sm:mb-8">
           <div className="flex items-center justify-center mb-4">
-            <Building2 className="w-10 h-10 text-primary" />
+            <Building2 className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
             {APP_CONFIG.NAME}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground">
             We'd love to hear about your experience
           </p>
           {utmSource === 'email' && (
             <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-700">
+              <p className="text-xs sm:text-sm text-blue-700">
                 📧 Thank you for responding to our review request!
               </p>
             </div>
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           <div className="form-field">
             <label className="form-label flex items-center gap-2">
               <User className="w-4 h-4" />
@@ -237,8 +237,8 @@ export default function ReviewFormPage() {
           </button>
         </form>
 
-        <div className="text-center mt-6">
-          <p className="text-sm text-muted-foreground">
+        <div className="text-center mt-4 sm:mt-6">
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Your feedback helps us improve our services
           </p>
         </div>

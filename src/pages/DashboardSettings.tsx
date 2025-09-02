@@ -194,8 +194,8 @@ const DashboardSettings = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold">Settings</h1>
+        <p className="text-muted-foreground text-sm sm:text-base">
           Configure your business settings and preferences
         </p>
       </div>
@@ -203,16 +203,16 @@ const DashboardSettings = () => {
       {/* Business Information */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Settings className="h-5 w-5" />
             Business Information
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Update your business details and contact information
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="business-name">Business Name</Label>
               <Input
@@ -259,18 +259,18 @@ const DashboardSettings = () => {
       {/* Google Business Integration */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Globe className="h-5 w-5" />
             Google Business Integration
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Configure your Google Business profile for review collection
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="google-business-url">Google Business Profile URL</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 id="google-business-url"
                 value={settings.google_business_url || ""}
@@ -283,6 +283,7 @@ const DashboardSettings = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => window.open(settings.google_business_url, '_blank')}
+                  className="w-full sm:w-auto"
                 >
                   <ExternalLink className="h-4 w-4" />
                 </Button>
@@ -302,8 +303,8 @@ const DashboardSettings = () => {
             )}
           </div>
           <div className="p-4 bg-muted rounded-lg">
-            <h4 className="font-medium mb-2">How to get your Google Business Profile URL:</h4>
-            <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+            <h4 className="font-medium mb-2 text-sm sm:text-base">How to get your Google Business Profile URL:</h4>
+            <ol className="text-xs sm:text-sm text-muted-foreground space-y-1 list-decimal list-inside">
               <li>Go to <a href="https://business.google.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Business</a></li>
               <li>Select your business profile</li>
               <li>Click on "View on Google Maps"</li>
@@ -316,18 +317,18 @@ const DashboardSettings = () => {
       {/* Invoice Template */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <FileText className="h-5 w-5" />
             Invoice Template
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Upload an ODT template file for invoice generation
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Template File (ODT format only)</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 type="file"
                 accept=".odt"
@@ -346,26 +347,28 @@ const DashboardSettings = () => {
 
           {settings.invoice_template_url && (
             <div className="p-4 border rounded-lg">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
-                  <span className="font-medium">Current Template</span>
-                  <Badge variant="secondary">ODT</Badge>
+                  <span className="font-medium text-sm sm:text-base">Current Template</span>
+                  <Badge variant="secondary" className="text-xs">ODT</Badge>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => window.open(settings.invoice_template_url, '_blank')}
+                    className="flex-1 sm:flex-none"
                   >
                     <Download className="h-4 w-4 mr-1" />
-                    Download
+                    <span className="hidden sm:inline">Download</span>
+                    <span className="sm:hidden">Download</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleRemoveTemplate}
-                    className="text-destructive hover:text-destructive"
+                    className="text-destructive hover:text-destructive flex-1 sm:flex-none"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -375,8 +378,8 @@ const DashboardSettings = () => {
           )}
 
           <div className="p-4 bg-muted rounded-lg">
-            <h4 className="font-medium mb-2">Template Requirements:</h4>
-            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+            <h4 className="font-medium mb-2 text-sm sm:text-base">Template Requirements:</h4>
+            <ul className="text-xs sm:text-sm text-muted-foreground space-y-1 list-disc list-inside">
               <li>File format: ODT (OpenDocument Text)</li>
               <li>Maximum file size: 10MB</li>
               <li>Use placeholders like {"{{customer_name}}"}, {"{{invoice_number}}"}, {"{{total}}"} for dynamic content</li>
@@ -388,7 +391,7 @@ const DashboardSettings = () => {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button onClick={handleSaveSettings} disabled={saving} size="lg">
+        <Button onClick={handleSaveSettings} disabled={saving} size="lg" className="w-full sm:w-auto">
           {saving ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

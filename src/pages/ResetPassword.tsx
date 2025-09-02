@@ -87,13 +87,13 @@ const ResetPassword = () => {
   if (success) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
+        <Card className="w-full max-w-md mx-auto">
+          <CardHeader className="text-center px-4 sm:px-6">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <CheckCircle className="w-12 h-12 text-green-500" />
+              <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-500" />
             </div>
-            <CardTitle className="text-green-600">Password Reset Complete!</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-green-600 text-lg sm:text-xl">Password Reset Complete!</CardTitle>
+            <CardDescription className="text-sm">
               Your password has been successfully updated. You will be redirected to the login page shortly.
             </CardDescription>
           </CardHeader>
@@ -104,19 +104,19 @@ const ResetPassword = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader className="text-center px-4 sm:px-6">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Building2 className="w-8 h-8 text-primary" />
-            <span className="text-xl font-bold">Alpha Business</span>
+            <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+            <span className="text-lg sm:text-xl font-bold">Alpha Business</span>
           </div>
-          <CardTitle>Reset Your Password</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-lg sm:text-xl">Reset Your Password</CardTitle>
+          <CardDescription className="text-sm">
             Enter your new password below
           </CardDescription>
         </CardHeader>
         
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">New Password</Label>
