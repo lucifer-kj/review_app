@@ -41,10 +41,9 @@ export function AppSidebar() {
         title: "Signed Out",
         description: "You have been successfully signed out.",
       });
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
-        description: error.message,
         variant: "destructive",
       });
     }

@@ -8,30 +8,49 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Building2, Loader2, Phone, Mail, ArrowLeft } from "lucide-react";
+import type { AuthError } from "@supabase/supabase-js";
+
+interface LoginFormData {
+  phone: string;
+  email: string;
+  password: string;
+  verificationCode: string;
+}
 
 const Login = () => {
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
+  const [formData, setFormData] = useState<LoginFormData>({
+    phone: "",
+    email: "",
+    password: "",
+    verificationCode: "",
+  });
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [signupMethod, setSignupMethod] = useState<'phone' | 'email'>('phone');
+  const [verificationAttempts, setVerificationAttempts] = useState(0);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     // Check if user is already logged in
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate("/"); // Redirect to root (dashboard)
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          navigate("/"); // Redirect to root (dashboard)
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
       }
     };
     checkUser();
   }, [navigate]);
+
+  const handleInputChange = (field: keyof LoginFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const handlePhoneSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,31 +59,33 @@ const Login = () => {
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
-          phone: phone,
-          password: password,
+          phone: formData.phone,
+          password: formData.password,
         });
         
         if (error) throw error;
         
         setShowVerification(true);
+        setVerificationAttempts(0);
         toast({
           title: "Verification Code Sent",
           description: "Please check your SMS for the verification code.",
         });
       } else {
         const { error } = await supabase.auth.signInWithPassword({
-          phone: phone,
-          password: password,
+          phone: formData.phone,
+          password: formData.password,
         });
         
         if (error) throw error;
         
         navigate("/"); // Redirect to root (dashboard)
       }
-    } catch (error: any) {
+    } catch (error) {
+      const authError = error as AuthError;
       toast({
         title: "Authentication Error",
-        description: error.message,
+        description: authError.message || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
@@ -79,8 +100,8 @@ const Login = () => {
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
-          email: email,
-          password: password,
+          email: formData.email,
+          password: formData.password,
         });
         
         if (error) throw error;
@@ -91,18 +112,19 @@ const Login = () => {
         });
       } else {
         const { error } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: password,
+          email: formData.email,
+          password: formData.password,
         });
         
         if (error) throw error;
         
         navigate("/"); // Redirect to root (dashboard)
       }
-    } catch (error: any) {
+    } catch (error) {
+      const authError = error as AuthError;
       toast({
         title: "Authentication Error",
-        description: error.message,
+        description: authError.message || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
@@ -115,19 +137,31 @@ const Login = () => {
     setLoading(true);
 
     try {
+      // Prevent too many verification attempts
+      if (verificationAttempts >= 3) {
+        toast({
+          title: "Too Many Attempts",
+          description: "Please request a new verification code.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase.auth.verifyOtp({
-        phone: phone,
-        token: verificationCode,
+        phone: formData.phone,
+        token: formData.verificationCode,
         type: 'sms'
       });
       
       if (error) throw error;
       
       navigate("/"); // Redirect to root (dashboard)
-    } catch (error: any) {
+    } catch (error) {
+      const authError = error as AuthError;
+      setVerificationAttempts(prev => prev + 1);
       toast({
         title: "Verification Error",
-        description: error.message,
+        description: authError.message || "Invalid verification code",
         variant: "destructive",
       });
     } finally {
@@ -140,7 +174,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       
@@ -151,10 +185,11 @@ const Login = () => {
         description: "Please check your email for password reset instructions.",
       });
       setShowPasswordReset(false);
-    } catch (error: any) {
+    } catch (error) {
+      const authError = error as AuthError;
       toast({
         title: "Reset Error",
-        description: error.message,
+        description: authError.message || "Failed to send reset email",
         variant: "destructive",
       });
     } finally {
@@ -172,12 +207,40 @@ const Login = () => {
       });
       
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error) {
+      const authError = error as AuthError;
       toast({
         title: "Google Sign In Error",
-        description: error.message,
+        description: authError.message || "Failed to sign in with Google",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signUp({
+        phone: formData.phone,
+        password: formData.password,
+      });
+      
+      if (error) throw error;
+      
+      setVerificationAttempts(0);
+      toast({
+        title: "Verification Code Resent",
+        description: "A new verification code has been sent to your phone.",
+      });
+    } catch (error) {
+      const authError = error as AuthError;
+      toast({
+        title: "Resend Error",
+        description: authError.message || "Failed to resend verification code",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -208,8 +271,8 @@ const Login = () => {
                 <Input
                   id="verification-code"
                   type="text"
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value)}
+                  value={formData.verificationCode}
+                  onChange={(e) => handleInputChange('verificationCode', e.target.value)}
                   placeholder="Enter 6-digit code"
                   maxLength={6}
                   required
@@ -223,9 +286,18 @@ const Login = () => {
                 type="button" 
                 variant="outline" 
                 className="w-full" 
+                onClick={handleResendVerification}
+                disabled={loading}
+              >
+                Resend Code
+              </Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="w-full" 
                 onClick={() => {
                   setShowVerification(false);
-                  setVerificationCode("");
+                  handleInputChange('verificationCode', "");
                 }}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -239,8 +311,8 @@ const Login = () => {
                 <Input
                   id="reset-email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="Enter your email"
                   required
                 />
@@ -255,7 +327,7 @@ const Login = () => {
                 className="w-full" 
                 onClick={() => {
                   setShowPasswordReset(false);
-                  setEmail("");
+                  handleInputChange('email', "");
                 }}
               >
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -304,8 +376,8 @@ const Login = () => {
                         <Input
                           id="phone"
                           type="tel"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
+                          value={formData.phone}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
                           placeholder="+1234567890"
                           required
                         />
@@ -315,8 +387,8 @@ const Login = () => {
                         <Input
                           id="password"
                           type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
+                          value={formData.password}
+                          onChange={(e) => handleInputChange('password', e.target.value)}
                           required
                         />
                       </div>
@@ -336,8 +408,8 @@ const Login = () => {
                         <Input
                           id="email"
                           type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          value={formData.email}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
                           placeholder="your@email.com"
                           required
                         />
@@ -347,8 +419,8 @@ const Login = () => {
                         <Input
                           id="password-email"
                           type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
+                          value={formData.password}
+                          onChange={(e) => handleInputChange('password', e.target.value)}
                           required
                         />
                       </div>
@@ -444,8 +516,8 @@ const Login = () => {
                         <Input
                           id="signup-phone"
                           type="tel"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
+                          value={formData.phone}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
                           placeholder="+1234567890"
                           required
                         />
@@ -455,8 +527,8 @@ const Login = () => {
                         <Input
                           id="signup-password"
                           type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
+                          value={formData.password}
+                          onChange={(e) => handleInputChange('password', e.target.value)}
                           required
                           minLength={6}
                         />
@@ -477,8 +549,8 @@ const Login = () => {
                         <Input
                           id="signup-email"
                           type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          value={formData.email}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
                           placeholder="your@email.com"
                           required
                         />
@@ -488,8 +560,8 @@ const Login = () => {
                         <Input
                           id="signup-password-email"
                           type="password"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
+                          value={formData.password}
+                          onChange={(e) => handleInputChange('password', e.target.value)}
                           required
                           minLength={6}
                         />

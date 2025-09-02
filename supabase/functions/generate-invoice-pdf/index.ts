@@ -1,5 +1,13 @@
+// deno-lint-ignore-file
+// @ts-ignore - Deno-specific imports
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Declare Deno namespace for TypeScript
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,11 +86,11 @@ const handler = async (req: Request): Promise<Response> => {
         ...corsHeaders,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error generating PDF:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Failed to generate PDF",
+        error: error instanceof Error ? error.message : "Failed to generate PDF",
         success: false 
       }),
       {

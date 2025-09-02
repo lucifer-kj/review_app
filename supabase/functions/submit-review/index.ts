@@ -1,5 +1,15 @@
+// deno-lint-ignore-file
+// @ts-ignore - Deno-specific imports
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// @ts-ignore - Deno-specific imports
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Declare Deno namespace for TypeScript
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,7 +50,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Validate rating is between 1-5
-    const ratingNum = parseInt(rating.toString());
+    const ratingNum = Number(rating);
     if (ratingNum < 1 || ratingNum > 5) {
       return new Response(
         JSON.stringify({ error: "Rating must be between 1 and 5" }),
@@ -97,12 +107,12 @@ const handler = async (req: Request): Promise<Response> => {
         ...corsHeaders,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error submitting review:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message || "Failed to submit review",
-        success: false 
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to submit review"
       }),
       {
         status: 500,

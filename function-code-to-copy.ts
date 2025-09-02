@@ -1,5 +1,15 @@
+// deno-lint-ignore-file
+// @ts-ignore - Deno-specific imports
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+// @ts-ignore - Deno-specific imports
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Declare Deno namespace for TypeScript
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +22,11 @@ interface ReviewEmailRequest {
   trackingId?: string;
   managerName?: string;
   businessName?: string;
+}
+
+interface EmailResponse {
+  id: string;
+  message?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -233,7 +248,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     // Send email using Resend with proper error handling
-    let emailResponse: Response;
+    let emailResponse: Response | null = null;
     try {
       emailResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -262,13 +277,17 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    if (!emailResponse.ok) {
+    if (!emailResponse || !emailResponse.ok) {
       let errorMessage = "Unknown error";
       try {
-        const errorData = await emailResponse.json();
-        errorMessage = errorData.message || `HTTP ${emailResponse.status}`;
+        if (emailResponse) {
+          const errorData = await emailResponse.json() as EmailResponse;
+          errorMessage = errorData.message || `HTTP ${emailResponse.status}`;
+        }
       } catch {
-        errorMessage = `HTTP ${emailResponse.status} ${emailResponse.statusText}`;
+        if (emailResponse) {
+          errorMessage = `HTTP ${emailResponse.status} ${emailResponse.statusText}`;
+        }
       }
       
       console.error("Resend API error:", errorMessage);
@@ -284,9 +303,9 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    let emailData: any;
+    let emailData: EmailResponse | null = null;
     try {
-      emailData = await emailResponse.json();
+      emailData = await emailResponse.json() as EmailResponse;
     } catch (parseError) {
       console.error("Error parsing email response:", parseError);
       return new Response(
@@ -301,7 +320,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
     
-    if (!emailData.id) {
+    if (!emailData || !emailData.id) {
       console.error("No email ID in response:", emailData);
       return new Response(
         JSON.stringify({ 
@@ -339,12 +358,12 @@ const handler = async (req: Request): Promise<Response> => {
         ...corsHeaders,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Unexpected error in send-review-email:", error);
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message || "An unexpected error occurred" 
+        error: error instanceof Error ? error.message : "An unexpected error occurred" 
       }),
       {
         status: 500,

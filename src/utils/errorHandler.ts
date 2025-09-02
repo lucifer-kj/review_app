@@ -1,7 +1,10 @@
 export const handleError = (error: unknown, context: string): string => {
   const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
   
-  console.error(`[${context}]`, error);
+  // Log error for debugging
+  if (process.env.NODE_ENV === 'development') {
+    console.error(`[${context}]`, error);
+  }
   
   // In production, send to error reporting service
   if (process.env.NODE_ENV === 'production') {

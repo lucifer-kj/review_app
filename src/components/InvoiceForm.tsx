@@ -9,12 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { Invoice } from "@/types";
+import { Calendar } from "@/components/ui/calendar";
 
 const invoiceSchema = z.object({
   customer_name: z.string().min(1, "Customer name is required"),
@@ -71,7 +71,7 @@ export const InvoiceForm = ({ onSuccess, invoice }: InvoiceFormProps) => {
         quantity: invoice.quantity,
         unit_price: invoice.unit_price,
         currency: invoice.currency,
-        status: invoice.status as any,
+        status: invoice.status as "draft" | "sent" | "paid" | "overdue",
         notes: invoice.notes || "",
       });
       
@@ -121,7 +121,7 @@ export const InvoiceForm = ({ onSuccess, invoice }: InvoiceFormProps) => {
         total: total,
         currency: data.currency,
         due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
-        status: data.status,
+        status: data.status as "draft" | "sent" | "paid" | "overdue",
         notes: data.notes || null,
         updated_at: new Date().toISOString()
       };
@@ -158,10 +158,10 @@ export const InvoiceForm = ({ onSuccess, invoice }: InvoiceFormProps) => {
       }
 
       onSuccess();
-    } catch (error: any) {
+    } catch {
       toast({
         title: "Error",
-        description: error.message,
+        description: "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
@@ -292,7 +292,7 @@ export const InvoiceForm = ({ onSuccess, invoice }: InvoiceFormProps) => {
           <Label htmlFor="status">Status</Label>
           <Select
             defaultValue="draft"
-            onValueChange={(value) => setValue("status", value as any)}
+            onValueChange={(value) => setValue("status", value as "draft" | "sent" | "paid" | "overdue")}
           >
             <SelectTrigger>
               <SelectValue />
@@ -317,7 +317,7 @@ export const InvoiceForm = ({ onSuccess, invoice }: InvoiceFormProps) => {
                   !dueDate && "text-muted-foreground"
                 )}
               >
-                <Calendar className="mr-2 h-4 w-4" />
+                <CalendarIcon className="mr-2 h-4 w-4" />
                 {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
               </Button>
             </PopoverTrigger>

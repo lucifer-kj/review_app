@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { LoadingWrapper } from "@/components/LoadingWrapper";
 import { ReviewService } from "@/services/reviewService";
 import { InvoiceService } from "@/services/invoiceService";
 import { FileText, Receipt, Star, TrendingUp } from "lucide-react";
@@ -19,17 +19,24 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [reviewStats, invoiceStats] = await Promise.all([
+        const [reviewStatsResponse, invoiceStatsResponse] = await Promise.all([
           ReviewService.getReviewStats(),
           InvoiceService.getInvoiceStats()
         ]);
 
-        setStats({
-          totalReviews: reviewStats.totalReviews,
-          averageRating: reviewStats.averageRating,
-          totalInvoices: invoiceStats.totalInvoices,
-          highRatingReviews: reviewStats.highRatingReviews
-        });
+        if (reviewStatsResponse.success && invoiceStatsResponse.success) {
+          setStats({
+            totalReviews: reviewStatsResponse.data!.totalReviews,
+            averageRating: reviewStatsResponse.data!.averageRating,
+            totalInvoices: invoiceStatsResponse.data!.totalInvoices,
+            highRatingReviews: reviewStatsResponse.data!.highRatingReviews
+          });
+        } else {
+          console.error('Error fetching stats:', {
+            reviewError: reviewStatsResponse.error,
+            invoiceError: invoiceStatsResponse.error
+          });
+        }
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
@@ -40,12 +47,8 @@ const Dashboard = () => {
     fetchStats();
   }, []);
 
-  if (loading) {
-    return <DashboardSkeleton />;
-  }
-
   return (
-    <div className="space-y-6">
+    <LoadingWrapper loading={loading} error={null} className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">
@@ -160,7 +163,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </LoadingWrapper>
   );
 };
 

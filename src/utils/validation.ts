@@ -78,19 +78,80 @@ export type InvoiceFormData = z.infer<typeof invoiceSchema>;
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type SignupFormData = z.infer<typeof signupSchema>;
 
-// Validation helper functions
-export const validateReview = (data: unknown) => {
-  return reviewSchema.safeParse(data);
+// Validation result type
+export interface ValidationResult<T> {
+  success: boolean;
+  data?: T;
+  errors?: Record<string, string>;
+}
+
+// Validation helper functions with better type safety
+export const validateReview = (data: unknown): ValidationResult<ReviewFormData> => {
+  const result = reviewSchema.safeParse(data);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return { 
+    success: false, 
+    errors: result.error.flatten().fieldErrors as Record<string, string>
+  };
 };
 
-export const validateInvoice = (data: unknown) => {
-  return invoiceSchema.safeParse(data);
+export const validateInvoice = (data: unknown): ValidationResult<InvoiceFormData> => {
+  const result = invoiceSchema.safeParse(data);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return { 
+    success: false, 
+    errors: result.error.flatten().fieldErrors as Record<string, string>
+  };
 };
 
-export const validateLogin = (data: unknown) => {
-  return loginSchema.safeParse(data);
+export const validateLogin = (data: unknown): ValidationResult<LoginFormData> => {
+  const result = loginSchema.safeParse(data);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return { 
+    success: false, 
+    errors: result.error.flatten().fieldErrors as Record<string, string>
+  };
 };
 
-export const validateSignup = (data: unknown) => {
-  return signupSchema.safeParse(data);
+export const validateSignup = (data: unknown): ValidationResult<SignupFormData> => {
+  const result = signupSchema.safeParse(data);
+  if (result.success) {
+    return { success: true, data: result.data };
+  }
+  return { 
+    success: false, 
+    errors: result.error.flatten().fieldErrors as Record<string, string>
+  };
+};
+
+// Utility functions for common validations
+export const isValidEmail = (email: string): boolean => {
+  return VALIDATION.EMAIL_REGEX.test(email);
+};
+
+export const isValidPhone = (phone: string): boolean => {
+  return VALIDATION.PHONE_REGEX.test(phone);
+};
+
+export const isValidPassword = (password: string): boolean => {
+  return password.length >= VALIDATION.MIN_PASSWORD_LENGTH;
+};
+
+// Sanitization functions
+export const sanitizeString = (input: string): string => {
+  return input.trim().replace(/[<>]/g, '');
+};
+
+export const sanitizeEmail = (email: string): string => {
+  return email.trim().toLowerCase();
+};
+
+export const sanitizePhone = (phone: string): string => {
+  return phone.replace(/\D/g, '');
 };

@@ -32,6 +32,51 @@ export const VALIDATION = {
   MAX_PHONE_LENGTH: 15,
 } as const;
 
+// Email Configuration
+export const EMAIL_CONFIG = {
+  DEFAULT_DOMAIN: "alphabusiness.com",
+  DEFAULT_FROM_NAME: "noreply",
+  SUBJECT_TEMPLATE: "We'd love your feedback, {customerName}!",
+  TEMPLATES: {
+    DEFAULT: "default",
+    MINIMAL: "minimal",
+    PROFESSIONAL: "professional",
+  },
+  COLORS: {
+    PRIMARY: "#007bff",
+    SECONDARY: "#6c757d",
+    SUCCESS: "#28a745",
+    WARNING: "#ffc107",
+    DANGER: "#dc3545",
+  },
+  BUTTON_TEXTS: {
+    LEAVE_REVIEW: "Leave a Review",
+    SHARE_FEEDBACK: "Share Feedback",
+    RATE_US: "Rate Us",
+  },
+} as const;
+
+// Security Configuration
+export const SECURITY_CONFIG = {
+  RATE_LIMIT: {
+    MAX_REQUESTS: 10,
+    WINDOW_MS: 60 * 1000, // 1 minute
+    BLOCK_DURATION_MS: 5 * 60 * 1000, // 5 minutes
+  },
+  // ✅ SECURE: Use environment-based origins instead of hardcoded values
+  ALLOWED_ORIGINS: import.meta.env.VITE_ALLOWED_ORIGINS?.split(',') || [
+    "http://localhost:3000",
+    "http://localhost:5173",
+  ],
+} as const;
+
+// Retry Configuration
+export const RETRY_CONFIG = {
+  MAX_RETRIES: 3,
+  RETRY_DELAY: 1000, // 1 second
+  BACKOFF_MULTIPLIER: 1, // Linear backoff
+} as const;
+
 // UI Constants
 export const UI = {
   SKELETON_COUNT: 5,

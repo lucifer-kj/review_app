@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from "@/hooks/use-toast";
 import { ReviewService } from "@/services/reviewService";
 import { Mail, Send, Loader2 } from "lucide-react";
+import { VALIDATION } from "@/constants";
 
 interface SendReviewEmailDialogProps {
   open: boolean;
@@ -53,9 +54,8 @@ export const SendReviewEmailDialog = ({
       return;
     }
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.customerEmail)) {
+    // Email validation using standard regex
+    if (!VALIDATION.EMAIL_REGEX.test(formData.customerEmail)) {
       toast({
         title: "Invalid Email",
         description: "Please enter a valid email address",
@@ -82,6 +82,16 @@ export const SendReviewEmailDialog = ({
           description: `Review request sent to ${formData.customerName} at ${formData.customerEmail}`,
         });
         
+        // Log success with additional details
+        console.log("Email sent successfully:", {
+          customerName: formData.customerName,
+          customerEmail: formData.customerEmail,
+          managerName: formData.managerName,
+          businessName: formData.businessName,
+          timestamp: new Date().toISOString(),
+          ...result.data
+        });
+        
         onSuccess?.();
         onOpenChange(false);
         
@@ -93,13 +103,54 @@ export const SendReviewEmailDialog = ({
           businessName: "Alpha Business Designs"
         });
       } else {
-        throw new Error(result.error || "Failed to send email");
+        // Enhanced error handling with specific error codes
+        const errorMessage = result.error || "Failed to send email";
+        const errorCode = result.code || "UNKNOWN_ERROR";
+        
+        console.error("Email send failed:", {
+          error: errorMessage,
+          code: errorCode,
+          customerName: formData.customerName,
+          customerEmail: formData.customerEmail,
+          timestamp: new Date().toISOString()
+        });
+        
+        throw new Error(`${errorMessage} (Code: ${errorCode})`);
       }
     } catch (error) {
       console.error('Error sending review email:', error);
+      
+      // Enhanced error messages based on error type
+      let errorTitle = "Failed to Send Email";
+      let errorDescription = "Please try again";
+      
+      if (error instanceof Error) {
+        const errorMessage = error.message;
+        
+        // Parse error codes for better user feedback
+        if (errorMessage.includes("RATE_LIMIT_EXCEEDED")) {
+          errorTitle = "Too Many Requests";
+          errorDescription = "Please wait a moment before trying again";
+        } else if (errorMessage.includes("INVALID_EMAIL")) {
+          errorTitle = "Invalid Email Address";
+          errorDescription = "Please check the email address and try again";
+        } else if (errorMessage.includes("NETWORK_ERROR")) {
+          errorTitle = "Network Error";
+          errorDescription = "Please check your connection and try again";
+        } else if (errorMessage.includes("RESEND_API_ERROR")) {
+          errorTitle = "Email Service Error";
+          errorDescription = "Our email service is temporarily unavailable. Please try again later";
+        } else if (errorMessage.includes("UNAUTHORIZED_ORIGIN")) {
+          errorTitle = "Access Denied";
+          errorDescription = "This action is not allowed from your current location";
+        } else {
+          errorDescription = errorMessage;
+        }
+      }
+      
       toast({
-        title: "Failed to Send Email",
-        description: error instanceof Error ? error.message : "Please try again",
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       });
     } finally {

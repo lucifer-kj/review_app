@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Building2, Loader2, CheckCircle } from "lucide-react";
+import type { AuthError } from "@supabase/supabase-js";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
@@ -71,10 +72,11 @@ const ResetPassword = () => {
         navigate("/login");
       }, 2000);
       
-    } catch (error: any) {
+    } catch (error) {
+      const authError = error as AuthError;
       toast({
         title: "Reset Error",
-        description: error.message,
+        description: authError.message || "Failed to update password",
         variant: "destructive",
       });
     } finally {
