@@ -9,7 +9,6 @@ import { LoadingSpinner } from "./components/LoadingSpinner";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 
 // Lazy load pages for better performance
-const Index = lazy(() => import("./pages/Index"));
 const Login = lazy(() => import("./pages/Login"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -24,6 +23,8 @@ const ReviewFormPage = lazy(() => import("./pages/ReviewFormPage"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const FeedbackThankYouPage = lazy(() => import("./pages/FeedbackThankYouPage"));
 const ReviewThankYouPage = lazy(() => import("./pages/ReviewThankYouPage"));
+const DynamicFormDemo = lazy(() => import("./pages/DynamicFormDemo"));
+const TemplateParserDemo = lazy(() => import("./pages/TemplateParserDemo"));
 
 const queryClient = new QueryClient();
 
@@ -52,14 +53,20 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               
-              {/* Public customer review form */}
-              <Route path="/review" element={<Index />} />
-              
-              {/* Email-triggered review flow */}
-              <Route path="/review-form" element={<ReviewFormPage />} />
-              <Route path="/review/feedback" element={<FeedbackPage />} />
-              <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
-              <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
+                              {/* Public customer review form */}
+                <Route path="/review" element={<ReviewFormPage />} />
+                
+                {/* Email-triggered review flow */}
+                <Route path="/review-form" element={<ReviewFormPage />} />
+                <Route path="/review/feedback" element={<FeedbackPage />} />
+                <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
+                <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
+                
+                {/* Dynamic Form Demo */}
+                <Route path="/dynamic-form-demo" element={<DynamicFormDemo />} />
+                
+                {/* Template Parser Demo */}
+                <Route path="/template-parser-demo" element={<TemplateParserDemo />} />
               
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />

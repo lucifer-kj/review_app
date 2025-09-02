@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { BusinessSettingsService } from "@/services/businessSettingsService";
 import { 
   Settings, 
   Link, 
@@ -40,17 +40,22 @@ const DashboardSettings = () => {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from('business_settings')
-        .select('*')
-        .single();
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        throw error;
-      }
-
-      if (data) {
-        setSettings(data);
+      const response = await BusinessSettingsService.getSettings();
+      
+      if (response.success && response.data) {
+        setSettings(response.data);
+        if (response.data.business_name === null) {
+          toast({
+            title: "Settings Initialized",
+            description: "Default settings created. You can now configure your business details.",
+          });
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to load settings. Using defaults.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -71,19 +76,20 @@ const DashboardSettings = () => {
   const handleSaveSettings = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('business_settings')
-        .upsert({
-          ...settings,
-          updated_at: new Date().toISOString()
+      const response = await BusinessSettingsService.updateSettings(settings);
+      
+      if (response.success) {
+        toast({
+          title: "Settings Saved",
+          description: "Your business settings have been updated successfully.",
         });
-
-      if (error) throw error;
-
-      toast({
-        title: "Settings Saved",
-        description: "Your business settings have been updated successfully.",
-      });
+      } else {
+        toast({
+          title: "Save Failed",
+          description: response.error || "Failed to save settings. Please try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Save Failed",
@@ -99,58 +105,30 @@ const DashboardSettings = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.name.toLowerCase().endsWith('.odt')) {
-      toast({
-        title: "Invalid File Type",
-        description: "Please upload only ODT files.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "File Too Large",
-        description: "Please upload files smaller than 10MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setUploading(true);
     setTemplateFile(file);
 
     try {
-      // Upload file to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `invoice-template-${Date.now()}.${fileExt}`;
+      const response = await BusinessSettingsService.uploadInvoiceTemplate(file);
       
-      const { data, error } = await supabase.storage
-        .from('invoice-templates')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
+      if (response.success && response.data) {
+        // Update settings with new template URL
+        setSettings(prev => ({
+          ...prev,
+          invoice_template_url: response.data.url
+        }));
+
+        toast({
+          title: "Template Uploaded",
+          description: "Invoice template has been uploaded successfully.",
         });
-
-      if (error) throw error;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('invoice-templates')
-        .getPublicUrl(fileName);
-
-      // Update settings with new template URL
-      setSettings(prev => ({
-        ...prev,
-        invoice_template_url: urlData.publicUrl
-      }));
-
-      toast({
-        title: "Template Uploaded",
-        description: "Invoice template has been uploaded successfully.",
-      });
+      } else {
+        toast({
+          title: "Upload Failed",
+          description: response.error || "Failed to upload template. Please try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error: any) {
       toast({
         title: "Upload Failed",
@@ -169,14 +147,21 @@ const DashboardSettings = () => {
       // Extract filename from URL
       const fileName = settings.invoice_template_url.split('/').pop();
       if (fileName) {
-        await supabase.storage
-          .from('invoice-templates')
-          .remove([fileName]);
+        const response = await BusinessSettingsService.deleteInvoiceTemplate(fileName);
+        
+        if (!response.success) {
+          toast({
+            title: "Remove Failed",
+            description: response.error || "Failed to remove template. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
       setSettings(prev => ({
         ...prev,
-        invoice_template_url: ""
+        invoice_template_url: null
       }));
 
       toast({
