@@ -12,8 +12,8 @@ Create a `.env` file in the root directory with the following variables:
 
 ```bash
 # Supabase Configuration (REQUIRED)
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # Email Service Configuration (REQUIRED for email functions)
 RESEND_API_KEY=your_resend_api_key
@@ -69,8 +69,8 @@ The application will automatically validate required environment variables on st
 #### Vercel Deployment
 ```bash
 # Set environment variables in Vercel dashboard
-vercel env add VITE_SUPABASE_URL
-vercel env add VITE_SUPABASE_ANON_KEY
+vercel env add SUPABASE_URL
+vercel env add SUPABASE_ANON_KEY
 vercel env add RESEND_API_KEY
 ```
 
