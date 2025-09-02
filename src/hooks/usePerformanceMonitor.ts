@@ -9,8 +9,12 @@ interface PerformanceMetrics {
 export const usePerformanceMonitor = (componentName: string) => {
   const startTime = useRef<number>(Date.now());
   const renderStartTime = useRef<number>(Date.now());
+  const isMounted = useRef<boolean>(false);
 
   useEffect(() => {
+    if (isMounted.current) return; // Prevent multiple executions
+    
+    isMounted.current = true;
     const loadTime = Date.now() - startTime.current;
     
     // Log performance metrics in development
@@ -27,6 +31,11 @@ export const usePerformanceMonitor = (componentName: string) => {
       //   timestamp: new Date().toISOString()
       // });
     }
+
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+    };
   }, [componentName]);
 
   const measureRender = (callback: () => void) => {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { InvoiceService } from "@/services/invoiceService";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Invoice = Tables<'invoices'>;
@@ -14,13 +14,13 @@ export const useInvoices = () => {
       setLoading(true);
       setError(null);
       
-      const { data, error: fetchError } = await supabase
-        .from('invoices')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (fetchError) throw fetchError;
-      setInvoices(data || []);
+      const response = await InvoiceService.getInvoices();
+      
+      if (response.success && response.data) {
+        setInvoices(response.data);
+      } else {
+        setError(response.error || 'Failed to fetch invoices');
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch invoices';
       setError(errorMessage);
@@ -32,17 +32,16 @@ export const useInvoices = () => {
 
   const createInvoice = useCallback(async (invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const { data, error: createError } = await supabase
-        .from('invoices')
-        .insert(invoiceData)
-        .select()
-        .single();
-
-      if (createError) throw createError;
+      const response = await InvoiceService.createInvoice(invoiceData);
       
-      // Refresh invoices list
-      await fetchInvoices();
-      return data;
+      if (response.success && response.data) {
+        // Refresh invoices list
+        await fetchInvoices();
+        return response.data;
+      } else {
+        setError(response.error || 'Failed to create invoice');
+        throw new Error(response.error || 'Failed to create invoice');
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create invoice';
       setError(errorMessage);
@@ -52,20 +51,36 @@ export const useInvoices = () => {
 
   const updateInvoice = useCallback(async (id: string, updates: Partial<Invoice>) => {
     try {
-      const { data, error: updateError } = await supabase
-        .from('invoices')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (updateError) throw updateError;
+      const response = await InvoiceService.updateInvoice(id, updates);
       
-      // Refresh invoices list
-      await fetchInvoices();
-      return data;
+      if (response.success && response.data) {
+        // Refresh invoices list
+        await fetchInvoices();
+        return response.data;
+      } else {
+        setError(response.error || 'Failed to update invoice');
+        throw new Error(response.error || 'Failed to update invoice');
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update invoice';
+      setError(errorMessage);
+      throw err;
+    }
+  }, [fetchInvoices]);
+
+  const deleteInvoice = useCallback(async (id: string) => {
+    try {
+      const response = await InvoiceService.deleteInvoice(id);
+      
+      if (response.success) {
+        // Refresh invoices list
+        await fetchInvoices();
+      } else {
+        setError(response.error || 'Failed to delete invoice');
+        throw new Error(response.error || 'Failed to delete invoice');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete invoice';
       setError(errorMessage);
       throw err;
     }
@@ -81,6 +96,7 @@ export const useInvoices = () => {
     error, 
     refetch: fetchInvoices,
     createInvoice,
-    updateInvoice 
+    updateInvoice,
+    deleteInvoice
   };
 };

@@ -8,6 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReviewListSkeleton } from "@/components/ReviewSkeleton";
 import { SendReviewEmailDialog } from "@/components/SendReviewEmailDialog";
+import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
+import { LoadingWrapper } from "@/components/LoadingWrapper";
 import { useReviews } from "@/hooks/useReviews";
 import { Star, Search, Download, Filter, Eye, MessageSquare, ExternalLink, Mail } from "lucide-react";
 import { format } from "date-fns";
@@ -87,12 +89,9 @@ const DashboardReviews = () => {
     }
   };
 
-  if (loading) {
-    return <ReviewListSkeleton />;
-  }
-
-  return (
-    <div className="space-y-6">
+        </LoadingWrapper>
+      </DashboardErrorBoundary>
+    );
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold">Reviews</h1>
@@ -324,19 +323,21 @@ const DashboardReviews = () => {
         </Dialog>
       )}
 
-      {/* Send Review Email Dialog */}
-      <SendReviewEmailDialog
-        open={showSendEmailDialog}
-        onOpenChange={setShowSendEmailDialog}
-        onSuccess={() => {
-          // Optionally refresh data or show success message
-          toast({
-            title: "Review Request Sent",
-            description: "The customer will receive an email with a link to leave a review.",
-          });
-        }}
-      />
-    </div>
+          {/* Send Review Email Dialog */}
+          <SendReviewEmailDialog
+            open={showSendEmailDialog}
+            onOpenChange={setShowSendEmailDialog}
+            onSuccess={() => {
+              // Optionally refresh data or show success message
+              toast({
+                title: "Review Request Sent",
+                description: "The customer will receive an email with a link to leave a review.",
+              });
+            }}
+          />
+        </div>
+      </LoadingWrapper>
+    </DashboardErrorBoundary>
   );
 };
 

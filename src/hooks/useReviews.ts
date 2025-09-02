@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { ReviewService } from "@/services/reviewService";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Review = Tables<'reviews'>;
@@ -14,13 +14,13 @@ export const useReviews = () => {
       setLoading(true);
       setError(null);
       
-      const { data, error: fetchError } = await supabase
-        .from('reviews')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (fetchError) throw fetchError;
-      setReviews(data || []);
+      const response = await ReviewService.getReviews();
+      
+      if (response.success && response.data) {
+        setReviews(response.data);
+      } else {
+        setError(response.error || 'Failed to fetch reviews');
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch reviews';
       setError(errorMessage);
@@ -32,17 +32,16 @@ export const useReviews = () => {
 
   const createReview = useCallback(async (reviewData: Omit<Review, 'id' | 'created_at'>) => {
     try {
-      const { data, error: createError } = await supabase
-        .from('reviews')
-        .insert(reviewData)
-        .select()
-        .single();
-
-      if (createError) throw createError;
+      const response = await ReviewService.createReview(reviewData);
       
-      // Refresh reviews list
-      await fetchReviews();
-      return data;
+      if (response.success && response.data) {
+        // Refresh reviews list
+        await fetchReviews();
+        return response.data;
+      } else {
+        setError(response.error || 'Failed to create review');
+        throw new Error(response.error || 'Failed to create review');
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create review';
       setError(errorMessage);
@@ -52,20 +51,36 @@ export const useReviews = () => {
 
   const updateReview = useCallback(async (id: string, updates: Partial<Review>) => {
     try {
-      const { data, error: updateError } = await supabase
-        .from('reviews')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (updateError) throw updateError;
+      const response = await ReviewService.updateReview(id, updates);
       
-      // Refresh reviews list
-      await fetchReviews();
-      return data;
+      if (response.success && response.data) {
+        // Refresh reviews list
+        await fetchReviews();
+        return response.data;
+      } else {
+        setError(response.error || 'Failed to update review');
+        throw new Error(response.error || 'Failed to update review');
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update review';
+      setError(errorMessage);
+      throw err;
+    }
+  }, [fetchReviews]);
+
+  const deleteReview = useCallback(async (id: string) => {
+    try {
+      const response = await ReviewService.deleteReview(id);
+      
+      if (response.success) {
+        // Refresh reviews list
+        await fetchReviews();
+      } else {
+        setError(response.error || 'Failed to delete review');
+        throw new Error(response.error || 'Failed to delete review');
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete review';
       setError(errorMessage);
       throw err;
     }
@@ -81,6 +96,7 @@ export const useReviews = () => {
     error, 
     refetch: fetchReviews,
     createReview,
-    updateReview 
+    updateReview,
+    deleteReview
   };
 };

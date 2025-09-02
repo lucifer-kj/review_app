@@ -18,7 +18,7 @@ import type { Invoice, InvoiceStatus } from "@/types";
 const InvoiceForm = lazy(() => import("@/components/InvoiceForm").then(module => ({ default: module.InvoiceForm })));
 
 const DashboardInvoices = () => {
-  const { invoices, loading, error, refetch } = useInvoices();
+  const { invoices, loading, error, refetch, deleteInvoice } = useInvoices();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -83,9 +83,7 @@ const DashboardInvoices = () => {
     }
 
     try {
-      // This would need to be implemented in the InvoiceService
-      // await InvoiceService.deleteInvoice(invoiceId);
-      refetch();
+      await deleteInvoice(invoiceId);
       toast({
         title: "Invoice Deleted",
         description: "Invoice has been deleted successfully.",
@@ -97,7 +95,7 @@ const DashboardInvoices = () => {
         variant: "destructive",
       });
     }
-  }, [refetch, toast]);
+  }, [deleteInvoice, toast]);
 
   const handleDownloadPDF = useCallback(async (invoice: Invoice) => {
     try {
