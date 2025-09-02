@@ -181,23 +181,23 @@ const DashboardInvoices = () => {
           </p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button onClick={refetch} variant="outline" size="sm" className="flex-1 sm:flex-none">
+          <Button onClick={refetch} variant="outline" size="sm" className="flex-1 sm:flex-none text-sm">
             Refresh
           </Button>
-          <Button onClick={exportToCSV} variant="outline" size="sm" className="flex-1 sm:flex-none">
+          <Button onClick={exportToCSV} variant="outline" size="sm" className="flex-1 sm:flex-none text-sm">
             <Download className="mr-2 h-4 w-4" />
             <span className="hidden sm:inline">Export CSV</span>
             <span className="sm:hidden">Export</span>
           </Button>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="flex-1 sm:flex-none">
+              <Button className="flex-1 sm:flex-none text-sm">
                 <Plus className="mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">Create Invoice</span>
                 <span className="sm:hidden">Create</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-0">
               <DialogHeader>
                 <DialogTitle>Create New Invoice</DialogTitle>
                 <DialogDescription>
@@ -214,13 +214,13 @@ const DashboardInvoices = () => {
 
       {/* Filter Section */}
       <Card>
-        <CardHeader>
+        <CardHeader className="px-4 sm:px-6">
           <CardTitle className="text-lg sm:text-xl">Filter Invoices</CardTitle>
           <CardDescription className="text-sm">
             Search and filter invoices to find what you need
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
@@ -229,12 +229,12 @@ const DashboardInvoices = () => {
                   placeholder="Search by customer, email, or invoice #..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 text-sm sm:text-base"
                 />
               </div>
             </div>
             <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as InvoiceStatus | "all")}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px] text-sm sm:text-base">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -311,7 +311,7 @@ const DashboardInvoices = () => {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
               <CardTitle className="text-lg sm:text-xl">All Invoices ({filteredInvoices.length})</CardTitle>
@@ -327,20 +327,20 @@ const DashboardInvoices = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-0 sm:px-6">
           <div className="overflow-x-auto -mx-4 sm:mx-0">
             <div className="min-w-full inline-block align-middle">
               <div className="overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="px-2 sm:px-4">Invoice #</TableHead>
-                      <TableHead className="px-2 sm:px-4">Customer</TableHead>
-                      <TableHead className="px-2 sm:px-4">Amount</TableHead>
-                      <TableHead className="px-2 sm:px-4">Status</TableHead>
-                      <TableHead className="hidden sm:table-cell px-4">Due Date</TableHead>
-                      <TableHead className="hidden lg:table-cell px-4">Created</TableHead>
-                      <TableHead className="px-2 sm:px-4">Actions</TableHead>
+                      <TableHead className="px-2 sm:px-4 text-xs sm:text-sm">Invoice #</TableHead>
+                      <TableHead className="px-2 sm:px-4 text-xs sm:text-sm">Customer</TableHead>
+                      <TableHead className="px-2 sm:px-4 text-xs sm:text-sm">Amount</TableHead>
+                      <TableHead className="px-2 sm:px-4 text-xs sm:text-sm">Status</TableHead>
+                      <TableHead className="hidden sm:table-cell px-4 text-xs sm:text-sm">Due Date</TableHead>
+                      <TableHead className="hidden lg:table-cell px-4 text-xs sm:text-sm">Created</TableHead>
+                      <TableHead className="px-2 sm:px-4 text-xs sm:text-sm">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -355,16 +355,16 @@ const DashboardInvoices = () => {
                     ) : (
                       filteredInvoices.map((invoice) => (
                         <TableRow key={invoice.id} className="hover:bg-muted/50">
-                          <TableCell className="font-medium px-2 sm:px-4 text-sm sm:text-base">
+                          <TableCell className="font-medium px-2 sm:px-4 text-xs sm:text-sm lg:text-base">
                             {invoice.invoice_number}
                           </TableCell>
                           <TableCell className="px-2 sm:px-4">
                             <div>
-                              <div className="font-medium text-sm sm:text-base">{invoice.customer_name}</div>
-                              <div className="text-xs sm:text-sm text-muted-foreground">{invoice.customer_email}</div>
+                              <div className="font-medium text-xs sm:text-sm lg:text-base truncate">{invoice.customer_name}</div>
+                              <div className="text-xs text-muted-foreground truncate">{invoice.customer_email}</div>
                             </div>
                           </TableCell>
-                          <TableCell className="px-2 sm:px-4 text-sm sm:text-base">
+                          <TableCell className="px-2 sm:px-4 text-xs sm:text-sm lg:text-base">
                             {invoice.currency} {Number(invoice.total).toFixed(2)}
                           </TableCell>
                           <TableCell className="px-2 sm:px-4">
@@ -372,10 +372,10 @@ const DashboardInvoices = () => {
                               {invoice.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="hidden sm:table-cell px-4 text-sm">
+                          <TableCell className="hidden sm:table-cell px-4 text-xs sm:text-sm">
                             {invoice.due_date ? format(new Date(invoice.due_date), 'MMM dd, yyyy') : '-'}
                           </TableCell>
-                          <TableCell className="hidden lg:table-cell px-4 text-sm text-muted-foreground">
+                          <TableCell className="hidden lg:table-cell px-4 text-xs sm:text-sm text-muted-foreground">
                             {format(new Date(invoice.created_at), 'MMM dd, yyyy')}
                           </TableCell>
                           <TableCell className="px-2 sm:px-4">
@@ -385,36 +385,36 @@ const DashboardInvoices = () => {
                                 size="sm" 
                                 onClick={() => handleDownloadPDF(invoice)}
                                 title="Download PDF"
-                                className="h-8 w-8 p-0"
+                                className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                               >
-                                <Download className="h-4 w-4" />
+                                <Download className="h-3 w-3 sm:h-4 sm:w-4" />
                               </Button>
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
                                 onClick={() => handleSendEmail(invoice)}
                                 title="Send Email"
-                                className="h-8 w-8 p-0"
+                                className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                               >
-                                <Mail className="h-4 w-4" />
+                                <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
                               </Button>
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
                                 onClick={() => handleEditInvoice(invoice)}
                                 title="Edit Invoice"
-                                className="h-8 w-8 p-0"
+                                className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                               >
-                                <Edit className="h-4 w-4" />
+                                <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                               </Button>
                               <Button 
                                 variant="ghost" 
                                 size="sm" 
                                 onClick={() => handleDeleteInvoice(invoice.id)}
                                 title="Delete Invoice"
-                                className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                                className="text-destructive hover:text-destructive h-7 w-7 sm:h-8 sm:w-8 p-0"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                               </Button>
                             </div>
                           </TableCell>
@@ -432,7 +432,7 @@ const DashboardInvoices = () => {
       {/* Edit Invoice Dialog */}
       {selectedInvoice && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-0">
             <DialogHeader>
               <DialogTitle>Edit Invoice</DialogTitle>
               <DialogDescription>

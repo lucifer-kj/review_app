@@ -120,7 +120,19 @@ export default function ReviewFormPage() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific database schema errors
+        if (error.message.includes('column "phone" does not exist')) {
+          console.error('Database schema error: phone column missing');
+          toast({
+            title: "System Error",
+            description: "Review system is being updated. Please try again in a few minutes.",
+            variant: "destructive",
+          });
+          return;
+        }
+        throw error;
+      }
 
       // Show success message
       toast({
@@ -142,11 +154,29 @@ export default function ReviewFormPage() {
           } 
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving review:', error);
+      
+      // Enhanced error handling for different device scenarios
+      let errorMessage = "Failed to submit review. Please try again.";
+      
+      if (error.message?.includes('column "phone" does not exist')) {
+        errorMessage = "Review system is being updated. Please try again in a few minutes.";
+      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        errorMessage = "Network error. Please check your connection and try again.";
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = "Request timed out. Please try again.";
+      } else if (error.message?.includes('rate limit') || error.message?.includes('too many requests')) {
+        errorMessage = "Too many requests. Please wait a moment and try again.";
+      } else if (error.message?.includes('unauthorized') || error.message?.includes('forbidden')) {
+        errorMessage = "Access denied. Please refresh the page and try again.";
+      } else if (error.message?.includes('database') || error.message?.includes('connection')) {
+        errorMessage = "Database connection issue. Please try again in a moment.";
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to submit review. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

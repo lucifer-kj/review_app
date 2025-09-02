@@ -202,7 +202,7 @@ const DashboardSettings = () => {
 
       {/* Business Information */}
       <Card>
-        <CardHeader>
+        <CardHeader className="px-4 sm:px-6">
           <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Settings className="h-5 w-5" />
             Business Information
@@ -211,45 +211,49 @@ const DashboardSettings = () => {
             Update your business details and contact information
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="business-name">Business Name</Label>
+              <Label htmlFor="business-name" className="text-sm">Business Name</Label>
               <Input
                 id="business-name"
                 value={settings.business_name || ""}
                 onChange={(e) => setSettings(prev => ({ ...prev, business_name: e.target.value }))}
                 placeholder="Alpha Business Designs"
+                className="text-sm sm:text-base"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="business-email">Business Email</Label>
+              <Label htmlFor="business-email" className="text-sm">Business Email</Label>
               <Input
                 id="business-email"
                 type="email"
                 value={settings.business_email || ""}
                 onChange={(e) => setSettings(prev => ({ ...prev, business_email: e.target.value }))}
                 placeholder="contact@alphabusiness.com"
+                className="text-sm sm:text-base"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="business-phone">Business Phone</Label>
+              <Label htmlFor="business-phone" className="text-sm">Business Phone</Label>
               <Input
                 id="business-phone"
                 type="tel"
                 value={settings.business_phone || ""}
                 onChange={(e) => setSettings(prev => ({ ...prev, business_phone: e.target.value }))}
                 placeholder="+1 (555) 123-4567"
+                className="text-sm sm:text-base"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="business-address">Business Address</Label>
+              <Label htmlFor="business-address" className="text-sm">Business Address</Label>
               <Textarea
                 id="business-address"
                 value={settings.business_address || ""}
                 onChange={(e) => setSettings(prev => ({ ...prev, business_address: e.target.value }))}
                 placeholder="123 Business St, City, State 12345"
                 rows={3}
+                className="text-sm sm:text-base"
               />
             </div>
           </div>
@@ -258,7 +262,7 @@ const DashboardSettings = () => {
 
       {/* Google Business Integration */}
       <Card>
-        <CardHeader>
+        <CardHeader className="px-4 sm:px-6">
           <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Globe className="h-5 w-5" />
             Google Business Integration
@@ -267,23 +271,23 @@ const DashboardSettings = () => {
             Configure your Google Business profile for review collection
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 sm:px-6">
           <div className="space-y-2">
-            <Label htmlFor="google-business-url">Google Business Profile URL</Label>
+            <Label htmlFor="google-business-url" className="text-sm">Google Business Profile URL</Label>
             <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 id="google-business-url"
                 value={settings.google_business_url || ""}
                 onChange={(e) => setSettings(prev => ({ ...prev, google_business_url: e.target.value }))}
                 placeholder="https://www.google.com/maps/place/Your-Business/@lat,lng,zoom/data=..."
-                className={!validateGoogleBusinessUrl(settings.google_business_url || "") ? "border-destructive" : ""}
+                className={`text-sm sm:text-base ${!validateGoogleBusinessUrl(settings.google_business_url || "") ? "border-destructive" : ""}`}
               />
               {settings.google_business_url && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => window.open(settings.google_business_url, '_blank')}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto text-sm"
                 >
                   <ExternalLink className="h-4 w-4" />
                 </Button>
@@ -316,7 +320,7 @@ const DashboardSettings = () => {
 
       {/* Invoice Template */}
       <Card>
-        <CardHeader>
+        <CardHeader className="px-4 sm:px-6">
           <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <FileText className="h-5 w-5" />
             Invoice Template
@@ -325,16 +329,16 @@ const DashboardSettings = () => {
             Upload an ODT template file for invoice generation
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 sm:px-6">
           <div className="space-y-2">
-            <Label>Template File (ODT format only)</Label>
+            <Label className="text-sm">Template File (ODT format only)</Label>
             <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 type="file"
                 accept=".odt"
                 onChange={handleFileUpload}
                 disabled={uploading}
-                className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 text-sm sm:text-base"
               />
               {uploading && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -358,7 +362,7 @@ const DashboardSettings = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => window.open(settings.invoice_template_url, '_blank')}
-                    className="flex-1 sm:flex-none"
+                    className="flex-1 sm:flex-none text-sm"
                   >
                     <Download className="h-4 w-4 mr-1" />
                     <span className="hidden sm:inline">Download</span>
@@ -368,7 +372,7 @@ const DashboardSettings = () => {
                     variant="outline"
                     size="sm"
                     onClick={handleRemoveTemplate}
-                    className="text-destructive hover:text-destructive flex-1 sm:flex-none"
+                    className="text-destructive hover:text-destructive flex-1 sm:flex-none text-sm"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -391,7 +395,7 @@ const DashboardSettings = () => {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button onClick={handleSaveSettings} disabled={saving} size="lg" className="w-full sm:w-auto">
+        <Button onClick={handleSaveSettings} disabled={saving} size="lg" className="w-full sm:w-auto text-sm sm:text-base">
           {saving ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
