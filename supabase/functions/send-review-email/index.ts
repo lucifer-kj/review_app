@@ -218,7 +218,9 @@ const getAllowedOrigins = () => {
   return [
     "http://localhost:3000",
     "http://localhost:5173", 
-    "https://invoice-ffn1bujwq-arifs-projects-8194d925.vercel.app"
+    "http://localhost:4173",
+    "https://invoice-app-iota-livid.vercel.app",
+    "https://alpha-business.vercel.app"
   ];
 };
 

@@ -13,7 +13,9 @@ declare const Deno: {
 
 const getCorsHeaders = (origin: string) => ({
   "Access-Control-Allow-Origin": origin,
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-requested-with",
+  "Access-Control-Max-Age": "86400",
   "Vary": "Origin",
 });
 
@@ -38,15 +40,34 @@ interface ReviewSubmission {
 
 const handler = async (req: Request): Promise<Response> => {
   const origin = req.headers.get("Origin") || "*";
-  const allowedOrigins = (Deno.env.get("ALLOWED_ORIGINS") || "")
-    .split(",")
-    .map((o) => o.trim())
-    .filter(Boolean);
-  const isOriginAllowed = origin === "*" || allowedOrigins.length === 0 || allowedOrigins.includes(origin);
-  const corsHeaders = getCorsHeaders(isOriginAllowed ? origin : "");
+  
+  // Define allowed origins - include your Vercel domain
+  const allowedOrigins = [
+    "https://invoice-app-iota-livid.vercel.app",
+    "https://alpha-business.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:4173"
+  ];
+  
+  // Check if origin is allowed
+  const isOriginAllowed = allowedOrigins.includes(origin) || origin === "*";
+  const corsHeaders = getCorsHeaders(isOriginAllowed ? origin : allowedOrigins[0]);
 
+  // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    });
+  }
+
+  // Only allow POST requests
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 
   if (!isOriginAllowed) {

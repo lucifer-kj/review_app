@@ -94,7 +94,11 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
       const endpoint = `${import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '')}/functions/v1/submit-review`;
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+        },
         body: JSON.stringify({
           name: data.name.trim(),
           phone: data.phone.trim(),
@@ -114,45 +118,6 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
 
       const result = await response.json();
       const insertedData = { id: result.reviewId } as { id: string };
-
-      if (error) {
-        console.error('Supabase error:', error);
-        
-        // Handle specific database schema errors
-        if (error.message.includes('column "phone" does not exist')) {
-          console.error('Database schema error: phone column missing');
-          toast({
-            title: "System Error",
-            description: "Review system is being updated. Please try again in a few minutes.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        // Handle RLS policy errors
-        if (error.message.includes('row-level security policy') || error.message.includes('RLS')) {
-          console.error('RLS policy error:', error);
-          toast({
-            title: "Access Error",
-            description: "Review system is not properly configured. Please contact support.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        // Handle authentication errors
-        if (error.message.includes('401') || error.message.includes('unauthorized')) {
-          console.error('Authentication error:', error);
-          toast({
-            title: "Configuration Error",
-            description: "Review system is not properly configured. Please contact support.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        throw error;
-      }
 
       analytics.track('review_submit_success', { rating: prefilled.rating || data.rating });
       console.log('Review submitted successfully:', insertedData);
