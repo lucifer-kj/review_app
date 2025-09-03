@@ -46,7 +46,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   };
 
   const getValidationRules = () => {
-    const rules: any = {};
+    const rules: Record<string, unknown> = {};
 
     if (required) {
       rules.required = validation?.message || `${label || name} is required`;

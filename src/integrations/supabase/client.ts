@@ -41,6 +41,6 @@ export const supabasePublic = createClient<Database>(env.supabase.url, env.supab
 
 // Helper function to check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
-  return env.supabase.url !== 'https://elhbthnvwcqewjpwulhq.supabase.co' || 
+  return env.supabase.url !== 'https://elhbthnvwcqewjpwulhq.supabase.co' && 
          env.supabase.anonKey !== 'placeholder_key';
 };

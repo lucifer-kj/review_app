@@ -89,7 +89,11 @@ export class ReviewService extends BaseService {
     const response = await this.executeQuery<{ rating: number }[]>(query, 'ReviewService.getReviewStats');
     
     if (!response.success || !response.data) {
-      return response as any;
+      return response as ServiceResponse<{
+        totalReviews: number;
+        averageRating: number;
+        highRatingReviews: number;
+      }>;
     }
 
     const reviews = response.data;
@@ -118,7 +122,7 @@ export class ReviewService extends BaseService {
       managerName?: string;
       businessName?: string;
     }
-  ): Promise<{ success: boolean; data?: any; error?: string }> {
+  ): Promise<{ success: boolean; data?: unknown; error?: string }> {
     try {
       const { data, error } = await supabase.functions.invoke('send-review-email', {
         body: {

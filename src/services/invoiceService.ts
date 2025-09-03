@@ -89,7 +89,11 @@ export class InvoiceService extends BaseService {
     const response = await this.executeQuery<{ total: number; status: string }[]>(query, 'InvoiceService.getInvoiceStats');
     
     if (!response.success || !response.data) {
-      return response as any;
+      return response as ServiceResponse<{
+        totalInvoices: number;
+        totalRevenue: number;
+        pendingInvoices: number;
+      }>;
     }
 
     const invoices = response.data;

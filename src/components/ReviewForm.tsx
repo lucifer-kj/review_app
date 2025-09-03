@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Building2, User, Phone, Star, Send } from "lucide-react";
 import { PhoneInput } from "./PhoneInput";
 import { Label } from "./ui/label";
+import { Button } from "./ui/button";
 
 interface ReviewFormProps {
   onSubmit: (data: { name: string; phone: string; countryCode: string; rating: number }) => void;
@@ -47,8 +48,9 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
   }, [customerName, oneTapRating]);
 
   const validatePhone = (phone: string) => {
-    const phoneRegex = /^\d{8,15}$/;
-    return phoneRegex.test(phone.replace(/[^\d]/g, ''));
+    // Remove all non-digit characters and check if it's between 7-15 digits
+    const cleanPhone = phone.replace(/[^\d]/g, '');
+    return cleanPhone.length >= 7 && cleanPhone.length <= 15;
   };
 
   const capitalizeWords = (str: string) => {
@@ -93,7 +95,7 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
     if (!validatePhone(formData.phone)) {
       toast({
         title: "Invalid Phone",
-        description: "Please enter a valid phone number (8-15 digits)",
+        description: "Please enter a valid phone number (7-15 digits)",
         variant: "destructive",
       });
       return;
@@ -218,10 +220,10 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
             )}
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={isSubmitting}
-            className="btn-primary w-full scale-in flex items-center justify-center gap-3"
+            className="w-full scale-in flex items-center justify-center gap-3"
             aria-describedby="submit-status"
           >
             {isSubmitting ? (
@@ -235,7 +237,7 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
                 Submit Review
               </>
             )}
-          </button>
+          </Button>
           
           {isSubmitting && (
             <div id="submit-status" className="text-center text-sm text-muted-foreground flex items-center justify-center gap-2" role="status" aria-live="polite">

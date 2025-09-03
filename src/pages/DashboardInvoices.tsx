@@ -23,7 +23,7 @@ const InvoiceForm = lazy(() => import("@/components/InvoiceForm").then(module =>
 
 const DashboardInvoices = () => {
   const [params, setParams] = useQueryParams<{ search?: string; status?: InvoiceStatus | 'all'; page?: string }>();
-  const [persistedFilters, setPersistedFilters] = useSessionStorage<{ search?: string; status?: InvoiceStatus | 'all' }>("invoices.filters", { search: params.search || "", status: (params.status as any) || "all" });
+  const [persistedFilters, setPersistedFilters] = useSessionStorage<{ search?: string; status?: InvoiceStatus | 'all' }>("invoices.filters", { search: params.search || "", status: (params.status as InvoiceStatus | 'all') || "all" });
   const [searchTerm, setSearchTerm] = useState(persistedFilters.search || "");
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">(persistedFilters.status || "all");
   const debouncedSearch = useDebouncedValue(searchTerm, 300);
@@ -103,10 +103,10 @@ const DashboardInvoices = () => {
         title: "PDF Downloaded",
         description: `Invoice ${invoice.invoice_number} has been downloaded as PDF.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Download Failed",
-        description: error.message || "Failed to download invoice PDF. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to download invoice PDF. Please try again.",
         variant: "destructive",
       });
     }

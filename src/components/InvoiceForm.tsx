@@ -96,7 +96,7 @@ export const InvoiceForm = ({ onSuccess, invoice }: InvoiceFormProps) => {
         quantity: typeof draft.quantity === 'number' ? draft.quantity : 1,
         unit_price: typeof draft.unit_price === 'number' ? draft.unit_price : 0,
         currency: draft.currency || "USD",
-        status: (draft.status as any) || "draft",
+        status: (draft.status as "draft" | "sent" | "paid" | "overdue") || "draft",
         notes: draft.notes || "",
       });
       if (draft.due_date_str) {

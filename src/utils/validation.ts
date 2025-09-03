@@ -8,7 +8,7 @@ export const reviewSchema = z.object({
     .max(VALIDATION.MAX_NAME_LENGTH, `Name must be less than ${VALIDATION.MAX_NAME_LENGTH} characters`)
     .regex(/^[a-zA-Z\s]+$/, "Name can only contain letters and spaces"),
   phone: z.string()
-    .min(8, "Phone number must be at least 8 digits")
+    .min(7, "Phone number must be at least 7 digits")
     .max(VALIDATION.MAX_PHONE_LENGTH, `Phone number must be less than ${VALIDATION.MAX_PHONE_LENGTH} digits`)
     .regex(VALIDATION.PHONE_REGEX, "Phone number must contain only digits"),
   countryCode: z.string()

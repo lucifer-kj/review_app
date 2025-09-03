@@ -70,34 +70,22 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
         rating: data.rating,
         source: sanitizedUtmParams.utmSource || 'direct',
       });
-      console.log('Submitting review with data:', {
-        name: data.name.trim(),
-        phone: data.phone.trim(),
-        country_code: data.countryCode,
-        rating: data.rating,
-        google_review: data.rating >= 4,
-        redirect_opened: false,
-        metadata: {
-          trackingId: sanitizedUtmParams.trackingId,
-          utmSource: sanitizedUtmParams.utmSource || 'direct',
-          source: 'email_form',
-          submitted_at: new Date().toISOString(),
-          form_version: 'email_triggered',
-          utm_campaign: searchParams.get('utm_campaign'),
-          utm_medium: searchParams.get('utm_medium'),
-          utm_term: searchParams.get('utm_term'),
-          utm_content: searchParams.get('utm_content'),
-        }
-      });
 
       // Prefer calling hardened edge function for submission
-      const endpoint = `${import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '')}/functions/v1/submit-review`;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase configuration is missing');
+      }
+      
+      const endpoint = `${supabaseUrl.replace(/\/$/, '')}/functions/v1/submit-review`;
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+          'Authorization': `Bearer ${supabaseKey}`,
+          'apikey': supabaseKey
         },
         body: JSON.stringify({
           name: data.name.trim(),
@@ -120,7 +108,6 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
       const insertedData = { id: result.reviewId } as { id: string };
 
       analytics.track('review_submit_success', { rating: prefilled.rating || data.rating });
-      console.log('Review submitted successfully:', insertedData);
 
       // Show success message
       toast({
@@ -145,26 +132,30 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
           } 
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving review:', error);
       
       // Enhanced error handling for different device scenarios
       let errorMessage = "Failed to submit review. Please try again.";
       
-      if (error.message?.includes('column "phone" does not exist')) {
+      const errorMessageStr = error instanceof Error ? error.message : String(error);
+      
+      if (errorMessageStr.includes('column "phone" does not exist')) {
         errorMessage = "Review system is being updated. Please try again in a few minutes.";
-      } else if (error.message?.includes('row-level security policy') || error.message?.includes('RLS')) {
+      } else if (errorMessageStr.includes('row-level security policy') || errorMessageStr.includes('RLS')) {
         errorMessage = "Review system is not properly configured. Please contact support.";
-      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+      } else if (errorMessageStr.includes('network') || errorMessageStr.includes('fetch') || errorMessageStr.includes('CORS')) {
         errorMessage = "Network error. Please check your connection and try again.";
-      } else if (error.message?.includes('timeout')) {
+      } else if (errorMessageStr.includes('timeout')) {
         errorMessage = "Request timed out. Please try again.";
-      } else if (error.message?.includes('rate limit') || error.message?.includes('too many requests')) {
+      } else if (errorMessageStr.includes('rate limit') || errorMessageStr.includes('too many requests')) {
         errorMessage = "Too many requests. Please wait a moment and try again.";
-      } else if (error.message?.includes('unauthorized') || error.message?.includes('forbidden') || error.message?.includes('401')) {
+      } else if (errorMessageStr.includes('unauthorized') || errorMessageStr.includes('forbidden') || errorMessageStr.includes('401')) {
         errorMessage = "Review system is not properly configured. Please contact support.";
-      } else if (error.message?.includes('database') || error.message?.includes('connection')) {
+      } else if (errorMessageStr.includes('database') || errorMessageStr.includes('connection')) {
         errorMessage = "Database connection issue. Please try again in a moment.";
+      } else if (errorMessageStr.includes('Supabase configuration is missing')) {
+        errorMessage = "Review system is not properly configured. Please contact support.";
       }
       
       toast({

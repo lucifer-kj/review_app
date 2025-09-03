@@ -21,7 +21,7 @@ import {
 
 const TemplateParserDemo: React.FC = () => {
   const [currentSchema, setCurrentSchema] = useState<InvoiceFormSchema | null>(null);
-  const [submittedData, setSubmittedData] = useState<any>(null);
+  const [submittedData, setSubmittedData] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Example templates for testing
@@ -88,10 +88,9 @@ const TemplateParserDemo: React.FC = () => {
 
   const handleSchemaGenerated = (schema: InvoiceFormSchema) => {
     setCurrentSchema(schema);
-    console.log('Schema generated from template:', schema);
   };
 
-  const handleFormSubmit = async (data: any) => {
+  const handleFormSubmit = async (data: Record<string, unknown>) => {
     setLoading(true);
     
     // Simulate API call
@@ -99,19 +98,15 @@ const TemplateParserDemo: React.FC = () => {
     
     setSubmittedData(data);
     setLoading(false);
-    
-    console.log('Form submitted with data:', data);
   };
 
   const testParser = () => {
-    console.log('Running parser tests...');
     testPlaceholderParser();
   };
 
   const generateSchemaFromTemplate = (template: string) => {
     const schema = parseTemplatePlaceholders(template);
     setCurrentSchema(schema);
-    console.log('Generated schema from template:', schema);
   };
 
   const downloadTemplate = (name: string, content: string) => {

@@ -25,7 +25,7 @@ export const SHARE_CONFIG = {
 
 // Form Validation
 export const VALIDATION = {
-  PHONE_REGEX: /^\d{8,15}$/,
+  PHONE_REGEX: /^\d{7,15}$/,
   EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   MIN_PASSWORD_LENGTH: 6,
   MAX_NAME_LENGTH: 100,
@@ -43,11 +43,11 @@ export const EMAIL_CONFIG = {
     PROFESSIONAL: "professional",
   },
   COLORS: {
-    PRIMARY: "#007bff",
-    SECONDARY: "#6c757d",
-    SUCCESS: "#28a745",
-    WARNING: "#ffc107",
-    DANGER: "#dc3545",
+    PRIMARY: "oklch(0.55 0.15 240)",
+    SECONDARY: "oklch(0.60 0.02 0)",
+    SUCCESS: "oklch(0.75 0.15 142)",
+    WARNING: "oklch(0.85 0.15 85)",
+    DANGER: "oklch(0.65 0.20 25)",
   },
   BUTTON_TEXTS: {
     LEAVE_REVIEW: "Leave a Review",

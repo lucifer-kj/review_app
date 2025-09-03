@@ -25,7 +25,7 @@ export const DynamicInvoiceForm: React.FC<DynamicInvoiceFormProps> = ({
 }) => {
   // Generate Zod schema from the form schema
   const generateZodSchema = () => {
-    const zodSchema: Record<string, any> = {};
+    const zodSchema: Record<string, z.ZodTypeAny> = {};
 
     Object.entries(schema).forEach(([fieldName, fieldConfig]) => {
       if (typeof fieldConfig === 'string') {
@@ -46,7 +46,7 @@ export const DynamicInvoiceForm: React.FC<DynamicInvoiceFormProps> = ({
         }
       } else if (fieldConfig.type === 'array') {
         // Array field
-        const itemSchema: Record<string, any> = {};
+        const itemSchema: Record<string, z.ZodTypeAny> = {};
         fieldConfig.items.forEach(item => {
           switch (item.type) {
             case 'string':
@@ -79,7 +79,6 @@ export const DynamicInvoiceForm: React.FC<DynamicInvoiceFormProps> = ({
   const handleSubmit = (data: InvoiceFormValues) => {
     // Process the data before submitting
     const processedData = processFormData(data);
-    console.log('Form submitted with data:', processedData);
     onSubmit(processedData);
   };
 

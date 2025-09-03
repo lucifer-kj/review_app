@@ -90,10 +90,10 @@ const DashboardSettings = () => {
           variant: "destructive",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Save Failed",
-        description: error.message || "Failed to save settings. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save settings. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -129,10 +129,10 @@ const DashboardSettings = () => {
           variant: "destructive",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Upload Failed",
-        description: error.message || "Failed to upload template. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to upload template. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -168,10 +168,10 @@ const DashboardSettings = () => {
         title: "Template Removed",
         description: "Invoice template has been removed successfully.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Remove Failed",
-        description: error.message || "Failed to remove template. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to remove template. Please try again.",
         variant: "destructive",
       });
     }

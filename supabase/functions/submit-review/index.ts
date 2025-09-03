@@ -14,7 +14,7 @@ declare const Deno: {
 const getCorsHeaders = (origin: string) => ({
   "Access-Control-Allow-Origin": origin,
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-requested-with",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-requested-with, accept",
   "Access-Control-Max-Age": "86400",
   "Vary": "Origin",
 });
@@ -56,7 +56,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
-    return new Response(null, { 
+    return new Response("", { 
       status: 200,
       headers: corsHeaders 
     });

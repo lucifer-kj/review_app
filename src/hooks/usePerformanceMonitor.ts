@@ -50,7 +50,7 @@ export const usePerformanceMonitor = (componentName: string) => {
 
   const getMemoryUsage = (): number | undefined => {
     if ('memory' in performance) {
-      const memory = (performance as any).memory;
+      const memory = (performance as { memory: { usedJSHeapSize: number } }).memory;
       return memory.usedJSHeapSize / 1024 / 1024; // MB
     }
     return undefined;

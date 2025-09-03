@@ -60,13 +60,13 @@ export interface AuthState {
     id: string;
     email?: string;
     phone?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   } | null;
   session: {
     access_token: string;
     refresh_token: string;
     expires_at: number;
-    [key: string]: any;
+    [key: string]: unknown;
   } | null;
   loading: boolean;
   isAuthenticated: boolean;

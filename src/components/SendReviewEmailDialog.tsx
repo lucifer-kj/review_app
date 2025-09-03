@@ -82,15 +82,7 @@ export const SendReviewEmailDialog = ({
           description: `Review request sent to ${formData.customerName} at ${formData.customerEmail}`,
         });
         
-        // Log success with additional details
-        console.log("Email sent successfully:", {
-          customerName: formData.customerName,
-          customerEmail: formData.customerEmail,
-          managerName: formData.managerName,
-          businessName: formData.businessName,
-          timestamp: new Date().toISOString(),
-          ...result.data
-        });
+
         
         onSuccess?.();
         onOpenChange(false);
@@ -107,18 +99,11 @@ export const SendReviewEmailDialog = ({
         const errorMessage = result.error || "Failed to send email";
         const errorCode = result.code || "UNKNOWN_ERROR";
         
-        console.error("Email send failed:", {
-          error: errorMessage,
-          code: errorCode,
-          customerName: formData.customerName,
-          customerEmail: formData.customerEmail,
-          timestamp: new Date().toISOString()
-        });
+
         
         throw new Error(`${errorMessage} (Code: ${errorCode})`);
       }
     } catch (error) {
-      console.error('Error sending review email:', error);
       
       // Enhanced error messages based on error type
       let errorTitle = "Failed to Send Email";

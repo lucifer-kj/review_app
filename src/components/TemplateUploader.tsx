@@ -142,10 +142,8 @@ export const TemplateUploader: React.FC<TemplateUploaderProps> = ({
     if (!generatedSchema) return;
     
     const stats = getSchemaStats(generatedSchema);
-    console.log('Generated Schema:', generatedSchema);
-    console.log('Schema Statistics:', stats);
     
-    alert(`Schema Preview:\n\nTotal Fields: ${stats.totalFields}\nArray Fields: ${stats.arrayFields}\nString Fields: ${stats.stringFields}\nNumber Fields: ${stats.numberFields}\nDate Fields: ${stats.dateFields}\nEmail Fields: ${stats.emailFields}\n\nCheck console for full schema.`);
+    alert(`Schema Preview:\n\nTotal Fields: ${stats.totalFields}\nArray Fields: ${stats.arrayFields}\nString Fields: ${stats.stringFields}\nNumber Fields: ${stats.numberFields}\nDate Fields: ${stats.dateFields}\nEmail Fields: ${stats.emailFields}`);
   };
 
   return (

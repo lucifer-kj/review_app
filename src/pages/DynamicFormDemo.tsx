@@ -9,7 +9,7 @@ import { parseTemplateToSchema } from '@/utils/schemaParser';
 import { FileText, Code, Play, Download } from 'lucide-react';
 
 const DynamicFormDemo: React.FC = () => {
-  const [submittedData, setSubmittedData] = useState<any>(null);
+  const [submittedData, setSubmittedData] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Example templates
@@ -80,7 +80,7 @@ const DynamicFormDemo: React.FC = () => {
     `
   };
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: Record<string, unknown>) => {
     setLoading(true);
     
     // Simulate API call
@@ -88,15 +88,13 @@ const DynamicFormDemo: React.FC = () => {
     
     setSubmittedData(data);
     setLoading(false);
-    
-    console.log('Form submitted:', data);
   };
 
   const generateSchemaFromTemplate = (template: string): InvoiceFormSchema => {
     return parseTemplateToSchema(template);
   };
 
-  const downloadJSON = (data: any) => {
+  const downloadJSON = (data: Record<string, unknown>) => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

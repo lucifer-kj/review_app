@@ -21,7 +21,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({ field, className = '
   const watchedItems = watch(field.name) || [];
 
   const addItem = () => {
-    const defaultItem: Record<string, any> = {};
+    const defaultItem: Record<string, string | number> = {};
     field.items.forEach(item => {
       defaultItem[item.name] = item.type === 'number' ? 0 : '';
     });
@@ -136,7 +136,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({ field, className = '
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-semibold">Total Items: {fields.length}</span>
                     <span className="text-lg font-semibold text-primary">
-                      ${watchedItems.reduce((sum: number, item: any) => sum + (item.total || 0), 0).toFixed(2)}
+                      ${watchedItems.reduce((sum: number, item: Record<string, unknown>) => sum + (typeof item.total === 'number' ? item.total : 0), 0).toFixed(2)}
                     </span>
                   </div>
                 </CardContent>

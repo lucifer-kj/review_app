@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { LoadingWrapper } from "@/components/LoadingWrapper";
 import { MagicCard } from "@/components/ui/magic-card";
 import { BarChart3, FileText, Star, Receipt, Plus, Eye, Download } from "lucide-react";
@@ -54,10 +55,10 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="flex gap-3">
-            <button className="btn-primary flex items-center gap-2">
+            <Button className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               New Invoice
-            </button>
+            </Button>
           </div>
         </div>
 

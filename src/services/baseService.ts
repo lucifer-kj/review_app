@@ -65,7 +65,7 @@ export abstract class BaseService {
     table: string,
     params: {
       select?: string;
-      filters?: Record<string, any>;
+      filters?: Record<string, unknown>;
       sort?: SortParams;
       pagination?: PaginationParams;
     } = {}
@@ -109,7 +109,7 @@ export abstract class BaseService {
   }
 
   protected static async executeQuery<T>(
-    query: any,
+    query: unknown,
     context: string
   ): Promise<ServiceResponse<T>> {
     try {
@@ -121,7 +121,7 @@ export abstract class BaseService {
   }
 
   protected static async executeMutation<T>(
-    mutation: any,
+    mutation: unknown,
     context: string
   ): Promise<ServiceResponse<T>> {
     try {
