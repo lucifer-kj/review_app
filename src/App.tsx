@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
+import { useRouteProgress } from "@/hooks/useRouteProgress";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 // Lazy load pages for better performance
 const Login = lazy(() => import("./pages/Login"));
@@ -28,15 +30,20 @@ const TemplateParserDemo = lazy(() => import("./pages/TemplateParserDemo"));
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <AppErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Suspense fallback={<LoadingSpinner size="lg" className="min-h-screen" />}>
-            <Routes>
+const App = () => {
+  const { ProgressBar } = useRouteProgress();
+  const reduced = useReducedMotion();
+
+  return (
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <ProgressBar />
+            <Suspense fallback={<LoadingSpinner size={reduced ? "md" : "lg"} className="min-h-screen" />}>
+              <Routes>
               {/* Dashboard routes - protected */}
               <Route path="/" element={
                 <ProtectedRoute>
@@ -67,12 +74,13 @@ const App = () => (
               
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </AppErrorBoundary>
-);
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
+  );
+};
 
 export default App;

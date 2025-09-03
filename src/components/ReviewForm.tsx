@@ -34,13 +34,17 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
 
   const customerName = sanitizeInput(searchParams.get('customer'));
   const utmSource = sanitizeInput(searchParams.get('utm_source'));
+  const oneTapRating = Number(sanitizeInput(searchParams.get('rating')) || 0);
 
   // Pre-fill name if provided in URL
   useEffect(() => {
     if (customerName) {
       setFormData(prev => ({ ...prev, name: decodeURIComponent(customerName) }));
     }
-  }, [customerName]);
+    if (oneTapRating && oneTapRating >= 1 && oneTapRating <= 5) {
+      setFormData(prev => ({ ...prev, rating: oneTapRating }));
+    }
+  }, [customerName, oneTapRating]);
 
   const validatePhone = (phone: string) => {
     const phoneRegex = /^\d{8,15}$/;

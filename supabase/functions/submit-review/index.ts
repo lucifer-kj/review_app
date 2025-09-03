@@ -11,10 +11,16 @@ declare const Deno: {
   };
 };
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+const getCorsHeaders = (origin: string) => ({
+  "Access-Control-Allow-Origin": origin,
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+  "Vary": "Origin",
+});
+
+// Simple in-memory rate limiting per IP
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_MAX = 20; // requests
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -31,12 +37,44 @@ interface ReviewSubmission {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  const origin = req.headers.get("Origin") || "*";
+  const allowedOrigins = (Deno.env.get("ALLOWED_ORIGINS") || "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const isOriginAllowed = origin === "*" || allowedOrigins.length === 0 || allowedOrigins.includes(origin);
+  const corsHeaders = getCorsHeaders(isOriginAllowed ? origin : "");
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (!isOriginAllowed) {
+    return new Response(JSON.stringify({ error: "Unauthorized origin" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
+  // Rate limit
+  const ip = req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "unknown";
+  const now = Date.now();
+  const existing = rateLimitStore.get(ip);
+  if (!existing || now > existing.resetTime) {
+    rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+  } else {
+    existing.count += 1;
+    if (existing.count > RATE_LIMIT_MAX) {
+      return new Response(JSON.stringify({ error: "Too many requests" }), {
+        status: 429,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+  }
+
   try {
-    const { name, phone, countryCode, rating, trackingId, managerName }: ReviewSubmission = await req.json();
+    const body = await req.json();
+    const { name, phone, countryCode, rating, trackingId, managerName, sig, ts }: ReviewSubmission & { sig?: string; ts?: string } = body;
 
     // Validate required fields
     if (!name || !phone || !rating) {
@@ -59,6 +97,31 @@ const handler = async (req: Request): Promise<Response> => {
           headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
+    }
+
+    // Optional: verify HMAC signature for prefilled one-tap links
+    if (sig && ts) {
+      try {
+        const secret = Deno.env.get("REVIEW_LINK_SECRET") || "";
+        if (secret) {
+          const enc = new TextEncoder();
+          const key = await crypto.subtle.importKey(
+            "raw",
+            enc.encode(secret),
+            { name: "HMAC", hash: "SHA-256" },
+            false,
+            ["verify"]
+          );
+          const payload = `name=${name}&phone=${phone}&countryCode=${countryCode}&rating=${rating}&trackingId=${trackingId || ""}&ts=${ts}`;
+          const sigBytes = Uint8Array.from(atob(sig), c => c.charCodeAt(0));
+          const verified = await crypto.subtle.verify("HMAC", key, sigBytes, enc.encode(payload));
+          if (!verified) {
+            console.warn("Invalid signature for review submission");
+          }
+        }
+      } catch (e) {
+        console.warn("Signature verification failed:", e);
+      }
     }
 
     // Save review to database

@@ -7,7 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { InvoiceListSkeleton } from "@/components/InvoiceSkeleton";
-import { useInvoices } from "@/hooks/useInvoices";
+import { useInvoicesQuery } from "@/hooks/useInvoicesQuery";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useQueryParams } from "@/hooks/useQueryParams";
+import { useSessionStorage } from "@/hooks/useSessionStorage";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Plus, Receipt, Eye, Search, Download, Filter, Edit, Trash2, FileText, DollarSign, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -18,27 +22,22 @@ import type { Invoice, InvoiceStatus } from "@/types";
 const InvoiceForm = lazy(() => import("@/components/InvoiceForm").then(module => ({ default: module.InvoiceForm })));
 
 const DashboardInvoices = () => {
-  const { invoices, loading, error, refetch, deleteInvoice } = useInvoices();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">("all");
+  const [params, setParams] = useQueryParams<{ search?: string; status?: InvoiceStatus | 'all'; page?: string }>();
+  const [persistedFilters, setPersistedFilters] = useSessionStorage<{ search?: string; status?: InvoiceStatus | 'all' }>("invoices.filters", { search: params.search || "", status: (params.status as any) || "all" });
+  const [searchTerm, setSearchTerm] = useState(persistedFilters.search || "");
+  const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">(persistedFilters.status || "all");
+  const debouncedSearch = useDebouncedValue(searchTerm, 300);
+  const page = Number(params.page || 1);
+  const { data, isLoading: loading, error, refetch } = useInvoicesQuery({ search: debouncedSearch, status: statusFilter, page });
+  const invoices = data?.rows || [];
+  const total = data?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(total / 20));
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  const filteredInvoices = useMemo(() => {
-    return invoices.filter((invoice) => {
-      const matchesSearch = 
-        invoice.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.customer_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = 
-        statusFilter === "all" || invoice.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [invoices, searchTerm, statusFilter]);
+  const filteredInvoices = invoices;
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -228,12 +227,21 @@ const DashboardInvoices = () => {
                 <Input
                   placeholder="Search by customer, email, or invoice #..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setPersistedFilters({ search: e.target.value, status: statusFilter });
+                    setParams({ search: e.target.value || undefined, page: '1' });
+                  }}
                   className="pl-9 text-sm sm:text-base"
                 />
               </div>
             </div>
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as InvoiceStatus | "all")}>
+            <Select value={statusFilter} onValueChange={(value) => {
+              const v = value as InvoiceStatus | 'all';
+              setStatusFilter(v);
+              setPersistedFilters({ search: searchTerm, status: v });
+              setParams({ status: v === 'all' ? undefined : v, page: '1' });
+            }}>
               <SelectTrigger className="w-full sm:w-[180px] text-sm sm:text-base">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Filter by status" />
@@ -314,7 +322,7 @@ const DashboardInvoices = () => {
         <CardHeader className="px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <div>
-              <CardTitle className="text-lg sm:text-xl">All Invoices ({filteredInvoices.length})</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">All Invoices ({total})</CardTitle>
               <CardDescription className="text-sm">
                 {error && (
                   <span className="text-destructive">Error loading invoices. 
@@ -425,6 +433,15 @@ const DashboardInvoices = () => {
                 </Table>
               </div>
             </div>
+          </div>
+          <div className="flex justify-end items-center gap-2 px-4 sm:px-0 mt-4">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setParams({ page: String(page - 1 || 1) })}>
+              Prev
+            </Button>
+            <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setParams({ page: String(page + 1) })}>
+              Next
+            </Button>
           </div>
         </CardContent>
       </Card>

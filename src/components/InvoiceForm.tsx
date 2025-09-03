@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { Invoice } from "@/types";
 import { Calendar } from "@/components/ui/calendar";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 const invoiceSchema = z.object({
   customer_name: z.string().min(1, "Customer name is required"),
@@ -42,6 +43,8 @@ export const InvoiceForm = ({ onSuccess, invoice }: InvoiceFormProps) => {
   const [dueDate, setDueDate] = useState<Date>();
   const { toast } = useToast();
   const isEditing = !!invoice;
+  type DraftData = Partial<InvoiceFormData> & { due_date_str?: string };
+  const [draft, setDraft] = useLocalStorage<DraftData>("invoice-form-draft", {});
 
   const {
     register,
@@ -81,9 +84,42 @@ export const InvoiceForm = ({ onSuccess, invoice }: InvoiceFormProps) => {
     }
   }, [invoice, reset]);
 
+  // Hydrate from localStorage draft when creating new
+  useEffect(() => {
+    if (!isEditing && draft && Object.keys(draft).length > 0) {
+      reset({
+        customer_name: draft.customer_name || "",
+        customer_email: draft.customer_email || "",
+        customer_address: draft.customer_address || "",
+        customer_phone: draft.customer_phone || "",
+        item_description: draft.item_description || "",
+        quantity: typeof draft.quantity === 'number' ? draft.quantity : 1,
+        unit_price: typeof draft.unit_price === 'number' ? draft.unit_price : 0,
+        currency: draft.currency || "USD",
+        status: (draft.status as any) || "draft",
+        notes: draft.notes || "",
+      });
+      if (draft.due_date_str) {
+        const parsed = new Date(draft.due_date_str);
+        if (!isNaN(parsed.getTime())) setDueDate(parsed);
+      }
+    }
+  }, [isEditing, draft, reset]);
+
   const quantity = watch("quantity") || 1;
   const unitPrice = watch("unit_price") || 0;
   const total = quantity * unitPrice;
+
+  // Persist draft while creating
+  const values = watch();
+  useEffect(() => {
+    if (!isEditing) {
+      setDraft({
+        ...(values as DraftData),
+        due_date_str: dueDate ? format(dueDate, 'yyyy-MM-dd') : undefined,
+      });
+    }
+  }, [values, dueDate, isEditing, setDraft]);
 
   // Generate invoice number
   const generateInvoiceNumber = () => {
@@ -158,6 +194,9 @@ export const InvoiceForm = ({ onSuccess, invoice }: InvoiceFormProps) => {
       }
 
       onSuccess();
+      if (!isEditing) {
+        setDraft({});
+      }
     } catch {
       toast({
         title: "Error",

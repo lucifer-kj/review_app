@@ -24,7 +24,9 @@ export default function ReviewThankYouPage() {
   };
 
   const handleGoogleReview = () => {
-    window.open(APP_CONFIG.GOOGLE_REVIEWS_URL, '_blank');
+    // Add simple tracking parameter when redirecting to Google review
+    const url = `${APP_CONFIG.GOOGLE_REVIEWS_URL}`;
+    window.open(url, '_blank');
   };
 
   return (

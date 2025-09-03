@@ -10,35 +10,31 @@ import { ReviewListSkeleton } from "@/components/ReviewSkeleton";
 import { SendReviewEmailDialog } from "@/components/SendReviewEmailDialog";
 import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
 import { LoadingWrapper } from "@/components/LoadingWrapper";
-import { useReviews } from "@/hooks/useReviews";
+import { useReviewsQuery } from "@/hooks/useReviewsQuery";
+import { useQueryParams } from "@/hooks/useQueryParams";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useSessionStorage } from "@/hooks/useSessionStorage";
 import { Star, Search, Download, Filter, Eye, MessageSquare, ExternalLink, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import type { Review, RatingFilter } from "@/types";
 
 const DashboardReviews = () => {
-  const { reviews, loading, error, refetch } = useReviews();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [ratingFilter, setRatingFilter] = useState<RatingFilter>("all");
+  const [params, setParams] = useQueryParams<{ search?: string; rating?: RatingFilter; page?: string }>();
+  const [persistedFilters, setPersistedFilters] = useSessionStorage<{ search?: string; rating?: RatingFilter }>("reviews.filters", { search: params.search || "", rating: (params.rating as RatingFilter) || "all" });
+  const [searchTerm, setSearchTerm] = useState(persistedFilters.search || "");
+  const [ratingFilter, setRatingFilter] = useState<RatingFilter>(persistedFilters.rating || "all");
+  const debouncedSearch = useDebouncedValue(searchTerm, 300);
+  const page = Number(params.page || 1);
+  const { data, isLoading, error, refetch } = useReviewsQuery({ search: debouncedSearch, rating: ratingFilter, page });
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [showSendEmailDialog, setShowSendEmailDialog] = useState(false);
   const { toast } = useToast();
 
-  const filteredReviews = useMemo(() => {
-    return reviews.filter((review) => {
-      const matchesSearch = 
-        review.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.phone.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesRating = 
-        ratingFilter === "all" || 
-        (ratingFilter === "high" && review.rating >= 4) ||
-        (ratingFilter === "low" && review.rating < 4);
-
-      return matchesSearch && matchesRating;
-    });
-  }, [reviews, searchTerm, ratingFilter]);
+  const filteredReviews = data?.rows || [];
+  const total = data?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(total / 20));
 
   const exportToCSV = useCallback(() => {
     try {
@@ -116,14 +112,23 @@ const DashboardReviews = () => {
                   <Input
                     placeholder="Search by name or phone..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setPersistedFilters({ search: e.target.value, rating: ratingFilter });
+                      setParams({ search: e.target.value || undefined, page: '1' });
+                    }}
                     className="pl-9 text-sm sm:text-base"
                   />
                 </div>
               </div>
               <Select
                 value={ratingFilter}
-                onValueChange={(value) => setRatingFilter(value as typeof ratingFilter)}
+                onValueChange={(value) => {
+                  const v = value as typeof ratingFilter;
+                  setRatingFilter(v);
+                  setPersistedFilters({ search: searchTerm, rating: v });
+                  setParams({ rating: v === 'all' ? undefined : v, page: '1' });
+                }}
               >
                 <SelectTrigger className="w-full sm:w-[180px] text-sm sm:text-base">
                   <Filter className="mr-2 h-4 w-4" />
@@ -143,7 +148,7 @@ const DashboardReviews = () => {
           <CardHeader className="px-4 sm:px-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <CardTitle className="text-lg sm:text-xl">Reviews ({filteredReviews.length})</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">Reviews ({total})</CardTitle>
                 <CardDescription className="text-sm">
                   {error && (
                     <span className="text-destructive">Error loading reviews. 
@@ -276,6 +281,15 @@ const DashboardReviews = () => {
                   </Table>
                 </div>
               </div>
+            </div>
+            <div className="flex justify-end items-center gap-2 px-4 sm:px-0 mt-4">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setParams({ page: String(page - 1 || 1) })}>
+                Prev
+              </Button>
+              <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setParams({ page: String(page + 1) })}>
+                Next
+              </Button>
             </div>
           </CardContent>
         </Card>

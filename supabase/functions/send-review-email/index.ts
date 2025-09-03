@@ -390,9 +390,38 @@ const handler = async (req: Request): Promise<Response> => {
       return errorResponse;
     }
 
-    // Create tracking URL with UTM parameters
+    // Create tracking URL with UTM parameters and signed one-tap rating support
     const baseUrl = Deno.env.get("FRONTEND_URL") || "https://yourdomain.com";
-    const reviewUrl = `${baseUrl}/review?utm_source=email&utm_campaign=review_request&tracking_id=${trackingId || 'none'}&customer=${encodeURIComponent(sanitizedCustomerName)}`;
+    const nowTs = Math.floor(Date.now() / 1000);
+    const countryCode = "+1";
+    const phone = ""; // Not known in email-only flow
+    const secret = Deno.env.get("REVIEW_LINK_SECRET") || "";
+
+    const buildSignedUrl = async (rating: number) => {
+      const params = new URLSearchParams({
+        utm_source: "email",
+        utm_campaign: "review_request",
+        tracking_id: String(trackingId || "none"),
+        customer: sanitizedCustomerName,
+        name: sanitizedCustomerName,
+        phone,
+        countryCode,
+        rating: String(rating),
+        ts: String(nowTs)
+      });
+      if (!secret) {
+        return `${baseUrl}/review?${params.toString()}`;
+      }
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      const payload = `name=${sanitizedCustomerName}&phone=${phone}&countryCode=${countryCode}&rating=${rating}&trackingId=${trackingId || 'none'}&ts=${nowTs}`;
+      const sigBuf = await crypto.subtle.sign("HMAC", key, enc.encode(payload));
+      const sig = btoa(String.fromCharCode(...new Uint8Array(sigBuf)));
+      params.set("sig", sig);
+      return `${baseUrl}/review?${params.toString()}`;
+    };
+
+    const reviewUrl = await buildSignedUrl(5);
 
     // Get email template configuration
     const emailTemplate = Deno.env.get("EMAIL_TEMPLATE") || "default";
