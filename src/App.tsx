@@ -30,57 +30,63 @@ const TemplateParserDemo = lazy(() => import("./pages/TemplateParserDemo"));
 
 const queryClient = new QueryClient();
 
-const App = () => {
+const RouterContent = () => {
   const { ProgressBar } = useRouteProgress();
   const reduced = useReducedMotion();
 
   return (
-    <AppErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <ProgressBar />
-            <Suspense fallback={<LoadingSpinner size={reduced ? "md" : "lg"} className="min-h-screen" />}>
-              <Routes>
-              {/* Dashboard routes - protected */}
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <DashboardLayout />
-                </ProtectedRoute>
-              }>
-                <Route index element={<Dashboard />} />
-                <Route path="reviews" element={<DashboardReviews />} />
-                <Route path="invoices" element={<DashboardInvoices />} />
-                <Route path="settings" element={<DashboardSettings />} />
-              </Route>
-              
-              {/* Authentication routes */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              
-                              {/* Public customer review form */}
-                <Route path="/review" element={<ReviewFormPage />} />
-                <Route path="/review/feedback" element={<FeedbackPage />} />
-                <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
-                <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
-                
-                {/* Dynamic Form Demo */}
-                <Route path="/dynamic-form-demo" element={<DynamicFormDemo />} />
-                
-                {/* Template Parser Demo */}
-                <Route path="/template-parser-demo" element={<TemplateParserDemo />} />
-              
-              {/* Catch-all route */}
-              <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </AppErrorBoundary>
+    <>
+      <ProgressBar />
+      <Suspense fallback={<LoadingSpinner size={reduced ? "md" : "lg"} className="min-h-screen" />}>
+        <Routes>
+          {/* Dashboard routes - protected */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Dashboard />} />
+            <Route path="reviews" element={<DashboardReviews />} />
+            <Route path="invoices" element={<DashboardInvoices />} />
+            <Route path="settings" element={<DashboardSettings />} />
+          </Route>
+          
+          {/* Authentication routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          
+          {/* Public customer review form */}
+          <Route path="/review" element={<ReviewFormPage />} />
+          <Route path="/review/feedback" element={<FeedbackPage />} />
+          <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
+          <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
+          
+          {/* Dynamic Form Demo */}
+          <Route path="/dynamic-form-demo" element={<DynamicFormDemo />} />
+          
+          {/* Template Parser Demo */}
+          <Route path="/template-parser-demo" element={<TemplateParserDemo />} />
+          
+          {/* Catch-all route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
+    </>
   );
 };
+
+const App = () => (
+  <AppErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <RouterContent />
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </AppErrorBoundary>
+);
 
 export default App;
