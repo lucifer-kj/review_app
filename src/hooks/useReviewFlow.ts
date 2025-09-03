@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { supabasePublic, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { supabasePublic } from "@/integrations/supabase/client";
 import { APP_CONFIG } from "@/constants";
 import { useAnalytics } from "@/hooks/useAnalytics";
 
@@ -54,15 +54,7 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
     setIsSubmitting(true);
 
     try {
-      // Check if Supabase is properly configured
-      if (!isSupabaseConfigured()) {
-        toast({
-          title: "Configuration Error",
-          description: "Review system is not properly configured. Please contact support.",
-          variant: "destructive",
-        });
-        return;
-      }
+      // Environment variables are available since you have a .env file
 
       analytics.track('review_submit_attempt', {
         rating: data.rating,
