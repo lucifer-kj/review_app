@@ -74,10 +74,10 @@
     --space-2xl: 3rem;
     --space-3xl: 4rem;
 
-    /* Animation Durations */
+    /* Animation Durations - Reduced for more professional feel */
     --duration-fast: 150ms;
-    --duration-normal: 250ms;
-    --duration-slow: 350ms;
+    --duration-normal: 200ms;
+    --duration-slow: 300ms;
 
     /* Animation Easing */
     --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
@@ -227,64 +227,61 @@
     outline-offset: 2px;
   }
 
-  /* Skip link for keyboard users */
-  .skip-link {
-    position: absolute;
-    top: -40px;
-    left: 6px;
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-    padding: 8px;
-    text-decoration: none;
-    border-radius: 4px;
-    z-index: 1000;
-  }
-
-  .skip-link:focus {
-    top: 6px;
-  }
-}
-
-/* Enhanced Professional Component Styles */
-@layer components {
-  /* Enhanced Star Rating Component */
+  /* Star Rating Component - Professional styling */
   .star-rating {
     @apply flex items-center gap-1;
   }
 
   .star-button {
-    @apply bg-transparent border-none p-0 cursor-pointer transition-all duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-full hover:scale-110 active:scale-95;
+    @apply bg-transparent border-none p-0 cursor-pointer transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded;
   }
 
   .star {
-    @apply w-8 h-8 transition-all duration-300 ease-out;
-    color: hsl(var(--star-empty));
+    @apply transition-all duration-200 ease-out;
   }
 
-  .star:hover,
   .star.active {
-    color: hsl(var(--star-filled));
-    transform: scale(1.1);
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    @apply text-star-filled;
   }
 
   .star.hover-active {
-    color: hsl(var(--star-hover));
-    transform: scale(1.05);
+    @apply text-star-hover;
   }
 
   .star.focused {
     color: hsl(var(--star-filled));
-    transform: scale(1.1);
+    transform: scale(1.05);
+  }
+
+  /* Skip link for accessibility */
+  .skip-link {
+    @apply absolute -top-10 left-6 z-50 bg-primary text-primary-foreground px-4 py-2 rounded-md focus:top-4;
+  }
+
+  /* Enhanced spacing utilities */
+  .space-section {
+    @apply space-y-8;
+  }
+
+  .space-content {
+    @apply space-y-6;
+  }
+
+  .space-form {
+    @apply space-y-6;
+  }
+
+  .space-card {
+    @apply space-y-4;
   }
 
   /* Enhanced Professional Form Styles */
   .form-container {
-    @apply bg-card border border-border rounded-xl p-6 sm:p-8 lg:p-10 shadow-lg max-w-md mx-auto backdrop-blur-sm;
+    @apply bg-card border border-border rounded-xl p-8 sm:p-10 lg:p-12 shadow-lg max-w-md mx-auto backdrop-blur-sm;
   }
 
   .form-field {
-    @apply space-y-3;
+    @apply space-y-4;
   }
 
   .form-label {
@@ -292,20 +289,20 @@
   }
 
   .form-input {
-    @apply w-full px-4 py-3 border border-border rounded-lg bg-input text-foreground placeholder:text-muted-foreground transition-all duration-300 text-sm sm:text-base focus:border-ring focus:shadow-md focus:shadow-ring/20;
+    @apply w-full px-4 py-3 border border-border rounded-lg bg-input text-foreground placeholder:text-muted-foreground transition-all duration-200 text-sm sm:text-base focus:border-ring focus:shadow-sm;
   }
 
   .form-input:focus {
-    @apply border-ring shadow-md shadow-ring/20 transform scale-[1.02];
+    @apply border-ring shadow-sm;
   }
 
-  /* Enhanced Professional Buttons */
+  /* Enhanced Professional Buttons - Reduced animations */
   .btn-primary {
-    @apply bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold transition-all duration-300 hover:opacity-90 hover:shadow-lg hover:shadow-primary/20 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-sm sm:text-base transform hover:scale-[1.02] active:scale-[0.98];
+    @apply bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold transition-all duration-200 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-sm sm:text-base;
   }
 
   .btn-primary:disabled {
-    @apply opacity-50 cursor-not-allowed transform-none;
+    @apply opacity-50 cursor-not-allowed;
   }
 
   /* Enhanced Thank You Page Styles */
@@ -321,34 +318,34 @@
     @apply text-lg text-muted-foreground leading-relaxed;
   }
 
-  /* Enhanced Professional Animation Classes */
+  /* Enhanced Professional Animation Classes - Reduced for professional feel */
   .fade-in {
-    animation: fadeIn 0.6s ease-out;
+    animation: fadeIn 0.4s ease-out;
   }
 
   .slide-up {
-    animation: slideUp 0.5s ease-out;
+    animation: slideUp 0.3s ease-out;
   }
 
   .scale-in {
-    animation: scaleIn 0.4s ease-out;
+    animation: scaleIn 0.3s ease-out;
   }
 
   .bounce-in {
-    animation: bounceIn 0.6s ease-out;
+    animation: bounceIn 0.4s ease-out;
   }
 
   .slide-in-left {
-    animation: slideInLeft 0.5s ease-out;
+    animation: slideInLeft 0.3s ease-out;
   }
 
   .slide-in-right {
-    animation: slideInRight 0.5s ease-out;
+    animation: slideInRight 0.3s ease-out;
   }
 
   /* Enhanced Mobile-first responsive utilities */
   .mobile-container {
-    @apply px-4 sm:px-6 lg:px-8 xl:px-12;
+    @apply px-6 sm:px-8 lg:px-12 xl:px-16;
   }
 
   .mobile-text {
@@ -361,223 +358,150 @@
 
   /* Enhanced Mobile table improvements */
   .mobile-table {
-    @apply overflow-x-auto -mx-4 sm:mx-0 rounded-lg;
+    @apply overflow-x-auto -mx-6 sm:mx-0 rounded-lg;
   }
 
   .mobile-table-container {
     @apply min-w-full inline-block align-middle;
   }
 
-  /* Enhanced Card Styles */
+  /* Enhanced Card Styles - Reduced hover effects */
   .card-enhanced {
-    @apply bg-card border border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-300 hover:scale-[1.02] hover:border-border/80;
+    @apply bg-card border border-border rounded-xl shadow-sm transition-all duration-200;
   }
 
   .card-enhanced:hover {
-    @apply shadow-lg shadow-black/5;
+    @apply shadow-md;
   }
 
-  /* Enhanced Navigation Styles */
-  .nav-item {
-    @apply transition-all duration-300 ease-out hover:scale-105 active:scale-95;
+  /* Enhanced Interactive Elements - Professional hover states */
+  .interactive-hover {
+    @apply transition-all duration-200 ease-out hover:bg-accent/50;
   }
 
-  .nav-item:hover {
-    @apply shadow-sm;
+  .interactive-lift {
+    @apply transition-all duration-200 ease-out hover:shadow-md;
   }
 
-  /* Enhanced Loading States */
+  .interactive-glow {
+    @apply transition-all duration-200 ease-out hover:shadow-sm hover:shadow-primary/10;
+  }
+
+  /* Loading skeleton */
   .loading-skeleton {
     @apply animate-pulse bg-muted rounded-lg;
   }
 
-  .loading-shimmer {
-    @apply relative overflow-hidden bg-muted rounded-lg;
+  /* Enhanced spacing for better visual hierarchy */
+  .section-spacing {
+    @apply py-8 sm:py-12 lg:py-16;
   }
 
-  .loading-shimmer::after {
-    content: '';
-    @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent;
-    animation: shimmer 1.5s infinite;
+  .content-spacing {
+    @apply py-6 sm:py-8 lg:py-10;
   }
 
-  /* Enhanced Focus States */
-  .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background;
+  .card-spacing {
+    @apply p-6 sm:p-8;
   }
 
-  /* Enhanced Hover Effects */
-  .hover-lift {
-    @apply transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-1;
+  /* Professional hover states - minimal and subtle */
+  .hover-subtle {
+    @apply transition-colors duration-200 hover:bg-accent/30;
   }
 
-  .hover-glow {
-    @apply transition-all duration-300 ease-out hover:shadow-lg hover:shadow-primary/20;
+  .hover-elevate {
+    @apply transition-all duration-200 hover:shadow-md;
   }
 
-  /* Enhanced Spacing Utilities */
-  .space-section {
-    @apply space-y-6 sm:space-y-8 lg:space-y-10;
-  }
-
-  .space-content {
-    @apply space-y-4 sm:space-y-6;
-  }
-
-  .space-items {
-    @apply space-y-2 sm:space-y-3;
-  }
-
-  /* Enhanced Border Radius */
-  .rounded-enhanced {
-    @apply rounded-xl;
-  }
-
-  .rounded-card {
-    @apply rounded-lg sm:rounded-xl;
-  }
-
-  .rounded-button {
-    @apply rounded-lg sm:rounded-xl;
-  }
-
-  /* Enhanced Typography */
-  .text-enhanced {
-    @apply tracking-wide;
-  }
-
-  .text-heading {
-    @apply font-bold tracking-tight;
-  }
-
-  .text-body {
-    @apply leading-relaxed;
+  .hover-emphasize {
+    @apply transition-colors duration-200 hover:text-primary;
   }
 }
 
-/* Enhanced Professional Keyframe Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes bounceIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.3);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-  70% {
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-/* Enhanced Mobile-specific breakpoint utilities */
-@media (max-width: 640px) {
-  .mobile-hidden {
-    display: none;
+@layer utilities {
+  /* Animation keyframes - Reduced for professional feel */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
-  .mobile-full-width {
-    width: 100%;
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
-  .mobile-text-center {
-    text-align: center;
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
-  .mobile-padding {
-    @apply px-4 py-6;
+  @keyframes bounceIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+    70% {
+      transform: scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
-  .mobile-margin {
-    @apply mx-4 my-6;
-  }
-}
-
-/* Enhanced Desktop-specific utilities */
-@media (min-width: 1024px) {
-  .desktop-container {
-    @apply max-w-7xl mx-auto;
-  }
-
-  .desktop-padding {
-    @apply px-8 py-12;
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
 
-  .desktop-grid {
-    @apply grid-cols-1 lg:grid-cols-2 xl:grid-cols-3;
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
-}
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
+  @keyframes slideInFromBottom {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

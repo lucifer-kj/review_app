@@ -4,6 +4,7 @@ import { StarRating } from "./StarRating";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, User, Phone, Star, Send } from "lucide-react";
 import { PhoneInput } from "./PhoneInput";
+import { Label } from "./ui/label";
 
 interface ReviewFormProps {
   onSubmit: (data: { name: string; phone: string; countryCode: string; rating: number }) => void;
@@ -58,6 +59,10 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^\d]/g, '');
     setFormData(prev => ({ ...prev, phone: value }));
+  };
+
+  const handleRatingChange = (rating: number) => {
+    setFormData(prev => ({ ...prev, rating }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,53 +175,40 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
             )}
           </div>
 
-          <div className="form-field">
-            <label className="form-label flex items-center gap-3" htmlFor="phone-input">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Phone className="w-4 h-4 text-green-600" aria-hidden="true" />
-              </div>
-              Phone Number *
-            </label>
+          {/* Phone Field */}
+          <div className="space-y-3">
+            <Label className="form-label flex items-center gap-2 text-base font-medium" htmlFor="phone-input">
+              <Phone className="w-5 h-5" aria-hidden="true" />
+              Phone Number
+            </Label>
             <PhoneInput
               value={formData.phone}
               countryCode={formData.countryCode}
               onPhoneChange={(phone) => setFormData(prev => ({ ...prev, phone }))}
               onCountryChange={(countryCode) => setFormData(prev => ({ ...prev, countryCode }))}
               disabled={isSubmitting}
-              placeholder="1234567890"
-              aria-required="true"
               aria-describedby="phone-error"
-              aria-invalid={!formData.phone.trim() && isSubmitting}
             />
-            {!formData.phone.trim() && isSubmitting && (
-              <div id="phone-error" className="text-red-500 text-sm mt-2 flex items-center gap-2" role="alert">
-                <div className="w-1 h-1 bg-red-500 rounded-full"></div>
-                Phone number is required
-              </div>
-            )}
           </div>
 
-          <div className="form-field">
-            <label className="form-label flex items-center gap-3" htmlFor="rating-input">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Star className="w-4 h-4 text-yellow-600" aria-hidden="true" />
-              </div>
-              How would you rate your experience? *
-            </label>
-            <div className="flex justify-center py-6">
+          {/* Rating Field */}
+          <div className="space-y-3">
+            <Label className="form-label flex items-center gap-2 text-base font-medium" htmlFor="rating-input">
+              <Star className="w-5 h-5" aria-hidden="true" />
+              Rate Your Experience *
+            </Label>
+            <div className="flex justify-center">
               <StarRating
                 rating={formData.rating}
-                onRatingChange={(rating) => 
-                  setFormData(prev => ({ ...prev, rating }))
-                }
+                onRatingChange={handleRatingChange}
+                size={32}
                 aria-required="true"
                 aria-describedby="rating-error"
                 aria-invalid={formData.rating === 0 && isSubmitting}
               />
             </div>
             {formData.rating === 0 && isSubmitting && (
-              <div id="rating-error" className="text-red-500 text-sm mt-2 text-center flex items-center justify-center gap-2" role="alert">
-                <div className="w-1 h-1 bg-red-500 rounded-full"></div>
+              <div id="rating-error" className="text-red-500 text-sm text-center" role="alert">
                 Please select a rating
               </div>
             )}

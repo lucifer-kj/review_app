@@ -245,29 +245,29 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader className="text-center px-4 sm:px-6">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-            <span className="text-lg sm:text-xl font-bold">Alpha Business</span>
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <Card className="w-full max-w-md mx-auto shadow-lg border border-border">
+        <CardHeader className="text-center px-8 pt-8 pb-6">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <Building2 className="w-8 h-8 text-primary" />
+            <span className="text-xl font-bold">Alpha Business</span>
           </div>
-          <CardTitle className="text-lg sm:text-xl">
+          <CardTitle className="text-xl mb-2">
             {showVerification ? "Verify Phone Number" : 
              showPasswordReset ? "Reset Password" : "Welcome Back"}
           </CardTitle>
-          <CardDescription className="text-sm">
+          <CardDescription className="text-sm text-muted-foreground">
             {showVerification ? "Enter the code sent to your phone" :
              showPasswordReset ? "Enter your email to reset password" :
              "Sign in to your account"}
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="px-4 sm:px-6">
+        <CardContent className="px-8 pb-6">
           {showVerification ? (
-            <form onSubmit={handleVerification} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="verification-code">Verification Code</Label>
+            <form onSubmit={handleVerification} className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="verification-code" className="text-sm font-medium">Verification Code</Label>
                 <Input
                   id="verification-code"
                   type="text"
@@ -276,16 +276,17 @@ const Login = () => {
                   placeholder="Enter 6-digit code"
                   maxLength={6}
                   required
+                  className="h-11"
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full h-11" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Verify & Sign In
               </Button>
               <Button 
                 type="button" 
                 variant="outline" 
-                className="w-full" 
+                className="w-full h-11" 
                 onClick={handleResendVerification}
                 disabled={loading}
               >
@@ -294,7 +295,7 @@ const Login = () => {
               <Button 
                 type="button" 
                 variant="outline" 
-                className="w-full" 
+                className="w-full h-11" 
                 onClick={() => {
                   setShowVerification(false);
                   handleInputChange('verificationCode', "");
@@ -305,9 +306,9 @@ const Login = () => {
               </Button>
             </form>
           ) : showPasswordReset ? (
-            <form onSubmit={handlePasswordReset} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="reset-email">Email Address</Label>
+            <form onSubmit={handlePasswordReset} className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="reset-email" className="text-sm font-medium">Email Address</Label>
                 <Input
                   id="reset-email"
                   type="email"
@@ -315,16 +316,17 @@ const Login = () => {
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   placeholder="Enter your email"
                   required
+                  className="h-11"
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full h-11" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Send Reset Link
               </Button>
               <Button 
                 type="button" 
                 variant="outline" 
-                className="w-full" 
+                className="w-full h-11" 
                 onClick={() => {
                   setShowPasswordReset(false);
                   handleInputChange('email', "");
@@ -336,291 +338,295 @@ const Login = () => {
             </form>
           ) : (
             <Tabs value={isSignUp ? "signup" : "signin"} onValueChange={(value) => setIsSignUp(value === "signup")}>
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-2 mb-8">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="signin" className="mt-6">
-                <div className="space-y-4">
-                  {/* Sign-in Method Selection */}
-                  <div className="space-y-2">
-                    <Label>Sign in with</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        variant={signupMethod === 'phone' ? 'default' : 'outline'}
-                        onClick={() => setSignupMethod('phone')}
-                        className="w-full"
-                      >
-                        <Phone className="mr-2 h-4 w-4" />
-                        Phone
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={signupMethod === 'email' ? 'default' : 'outline'}
-                        onClick={() => setSignupMethod('email')}
-                        className="w-full"
-                      >
-                        <Mail className="mr-2 h-4 w-4" />
-                        Email
-                      </Button>
-                    </div>
+              <TabsContent value="signin" className="space-y-6">
+                {/* Sign-in Method Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Sign in with</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      type="button"
+                      variant={signupMethod === 'phone' ? 'default' : 'outline'}
+                      onClick={() => setSignupMethod('phone')}
+                      className="w-full h-11"
+                    >
+                      <Phone className="mr-2 h-4 w-4" />
+                      Phone
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={signupMethod === 'email' ? 'default' : 'outline'}
+                      onClick={() => setSignupMethod('email')}
+                      className="w-full h-11"
+                    >
+                      <Mail className="mr-2 h-4 w-4" />
+                      Email
+                    </Button>
                   </div>
-
-                  {/* Phone Sign-in Form */}
-                  {signupMethod === 'phone' && (
-                    <form onSubmit={handlePhoneSubmit} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          value={formData.phone}
-                          onChange={(e) => handleInputChange('phone', e.target.value)}
-                          placeholder="+1234567890"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="password">Password</Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          value={formData.password}
-                          onChange={(e) => handleInputChange('password', e.target.value)}
-                          required
-                        />
-                      </div>
-                      <Button type="submit" className="w-full" disabled={loading}>
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        <Phone className="mr-2 h-4 w-4" />
-                        Sign In with Phone
-                      </Button>
-                    </form>
-                  )}
-
-                  {/* Email Sign-in Form */}
-                  {signupMethod === 'email' && (
-                    <form onSubmit={handleEmailSubmit} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email Address</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                          placeholder="your@email.com"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="password-email">Password</Label>
-                        <Input
-                          id="password-email"
-                          type="password"
-                          value={formData.password}
-                          onChange={(e) => handleInputChange('password', e.target.value)}
-                          required
-                        />
-                      </div>
-                      <Button type="submit" className="w-full" disabled={loading}>
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        <Mail className="mr-2 h-4 w-4" />
-                        Sign In with Email
-                      </Button>
-                    </form>
-                  )}
-                  
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => setShowPasswordReset(true)}
-                  >
-                    Reset Password
-                  </Button>
-                  
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">
-                        Or continue with
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleGoogleSignIn}
-                  >
-                    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                      <path
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        fill="#34A853"
-                      />
-                      <path
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        fill="#EA4335"
-                      />
-                    </svg>
-                    Continue with Google
-                  </Button>
                 </div>
+
+                {/* Phone Sign-in Form */}
+                {signupMethod === 'phone' && (
+                  <form onSubmit={handlePhoneSubmit} className="space-y-6">
+                    <div className="space-y-3">
+                      <Label htmlFor="phone" className="text-sm font-medium">Phone Number</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        placeholder="+1234567890"
+                        required
+                        className="h-11"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        required
+                        className="h-11"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full h-11" disabled={loading}>
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Phone className="mr-2 h-4 w-4" />
+                      Sign In with Phone
+                    </Button>
+                  </form>
+                )}
+
+                {/* Email Sign-in Form */}
+                {signupMethod === 'email' && (
+                  <form onSubmit={handleEmailSubmit} className="space-y-6">
+                    <div className="space-y-3">
+                      <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        placeholder="your@email.com"
+                        required
+                        className="h-11"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <Label htmlFor="password-email" className="text-sm font-medium">Password</Label>
+                      <Input
+                        id="password-email"
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        required
+                        className="h-11"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full h-11" disabled={loading}>
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Mail className="mr-2 h-4 w-4" />
+                      Sign In with Email
+                    </Button>
+                  </form>
+                )}
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full h-11"
+                  onClick={() => setShowPasswordReset(true)}
+                >
+                  Reset Password
+                </Button>
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-11"
+                  onClick={handleGoogleSignIn}
+                >
+                  <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                  Continue with Google
+                </Button>
               </TabsContent>
               
-              <TabsContent value="signup" className="mt-6">
-                <div className="space-y-4">
-                  {/* Signup Method Selection */}
-                  <div className="space-y-2">
-                    <Label>Sign up with</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        type="button"
-                        variant={signupMethod === 'phone' ? 'default' : 'outline'}
-                        onClick={() => setSignupMethod('phone')}
-                        className="w-full"
-                      >
-                        <Phone className="mr-2 h-4 w-4" />
-                        Phone
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={signupMethod === 'email' ? 'default' : 'outline'}
-                        onClick={() => setSignupMethod('email')}
-                        className="w-full"
-                      >
-                        <Mail className="mr-2 h-4 w-4" />
-                        Email
-                      </Button>
-                    </div>
+              <TabsContent value="signup" className="space-y-6">
+                {/* Signup Method Selection */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Sign up with</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button
+                      type="button"
+                      variant={signupMethod === 'phone' ? 'default' : 'outline'}
+                      onClick={() => setSignupMethod('phone')}
+                      className="w-full h-11"
+                    >
+                      <Phone className="mr-2 h-4 w-4" />
+                      Phone
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={signupMethod === 'email' ? 'default' : 'outline'}
+                      onClick={() => setSignupMethod('email')}
+                      className="w-full h-11"
+                    >
+                      <Mail className="mr-2 h-4 w-4" />
+                      Email
+                    </Button>
                   </div>
-
-                  {/* Phone Signup Form */}
-                  {signupMethod === 'phone' && (
-                    <form onSubmit={handlePhoneSubmit} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-phone">Phone Number</Label>
-                        <Input
-                          id="signup-phone"
-                          type="tel"
-                          value={formData.phone}
-                          onChange={(e) => handleInputChange('phone', e.target.value)}
-                          placeholder="+1234567890"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-password">Password</Label>
-                        <Input
-                          id="signup-password"
-                          type="password"
-                          value={formData.password}
-                          onChange={(e) => handleInputChange('password', e.target.value)}
-                          required
-                          minLength={6}
-                        />
-                      </div>
-                      <Button type="submit" className="w-full" disabled={loading}>
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        <Phone className="mr-2 h-4 w-4" />
-                        Create Account with Phone
-                      </Button>
-                    </form>
-                  )}
-
-                  {/* Email Signup Form */}
-                  {signupMethod === 'email' && (
-                    <form onSubmit={handleEmailSubmit} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-email">Email Address</Label>
-                        <Input
-                          id="signup-email"
-                          type="email"
-                          value={formData.email}
-                          onChange={(e) => handleInputChange('email', e.target.value)}
-                          placeholder="your@email.com"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-password-email">Password</Label>
-                        <Input
-                          id="signup-password-email"
-                          type="password"
-                          value={formData.password}
-                          onChange={(e) => handleInputChange('password', e.target.value)}
-                          required
-                          minLength={6}
-                        />
-                      </div>
-                      <Button type="submit" className="w-full" disabled={loading}>
-                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        <Mail className="mr-2 h-4 w-4" />
-                        Create Account with Email
-                      </Button>
-                    </form>
-                  )}
-
-                  {/* Divider */}
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-background px-2 text-muted-foreground">
-                        Or continue with
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Google Signup */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleGoogleSignIn}
-                  >
-                    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                      <path
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        fill="#34A853"
-                      />
-                      <path
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        fill="#EA4335"
-                      />
-                    </svg>
-                    Continue with Google
-                  </Button>
                 </div>
+
+                {/* Phone Signup Form */}
+                {signupMethod === 'phone' && (
+                  <form onSubmit={handlePhoneSubmit} className="space-y-6">
+                    <div className="space-y-3">
+                      <Label htmlFor="signup-phone" className="text-sm font-medium">Phone Number</Label>
+                      <Input
+                        id="signup-phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        placeholder="+1234567890"
+                        required
+                        className="h-11"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <Label htmlFor="signup-password" className="text-sm font-medium">Password</Label>
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        required
+                        minLength={6}
+                        className="h-11"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full h-11" disabled={loading}>
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Phone className="mr-2 h-4 w-4" />
+                      Create Account with Phone
+                    </Button>
+                  </form>
+                )}
+
+                {/* Email Signup Form */}
+                {signupMethod === 'email' && (
+                  <form onSubmit={handleEmailSubmit} className="space-y-6">
+                    <div className="space-y-3">
+                      <Label htmlFor="signup-email" className="text-sm font-medium">Email Address</Label>
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        placeholder="your@email.com"
+                        required
+                        className="h-11"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <Label htmlFor="signup-password-email" className="text-sm font-medium">Password</Label>
+                      <Input
+                        id="signup-password-email"
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        required
+                        minLength={6}
+                        className="h-11"
+                      />
+                    </div>
+                    <Button type="submit" className="w-full h-11" disabled={loading}>
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <Mail className="mr-2 h-4 w-4" />
+                      Create Account with Email
+                    </Button>
+                  </form>
+                )}
+
+                {/* Divider */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+
+                {/* Google Signup */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-11"
+                  onClick={handleGoogleSignIn}
+                >
+                  <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                  Continue with Google
+                </Button>
               </TabsContent>
             </Tabs>
           )}
         </CardContent>
         
-        <CardFooter className="text-center px-4 sm:px-6">
-          <p className="text-xs sm:text-sm text-muted-foreground">
+        <CardFooter className="text-center px-8 pb-8">
+          <p className="text-xs text-muted-foreground">
             Need help? Contact support at help@alphabusiness.com
           </p>
         </CardFooter>

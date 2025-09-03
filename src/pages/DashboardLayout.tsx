@@ -13,12 +13,12 @@ const DashboardLayout = () => {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
-          <header className="h-14 flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
-            <div className="flex items-center gap-2 sm:gap-3">
+          <header className="h-16 flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
+            <div className="flex items-center gap-3">
               <SidebarTrigger />
-              <div className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary" />
-                <span className="font-semibold text-sm sm:text-base">Alpha Business Designs</span>
+              <div className="flex items-center gap-3">
+                <Building2 className="h-6 w-6 text-primary" />
+                <span className="font-semibold text-base">Alpha Business Designs</span>
               </div>
             </div>
             <div className="flex-shrink-0">
@@ -27,7 +27,7 @@ const DashboardLayout = () => {
               </Suspense>
             </div>
           </header>
-          <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">
+          <main className="flex-1 p-6 sm:p-8 lg:p-10 overflow-x-hidden">
             <Outlet />
           </main>
         </div>
