@@ -30,7 +30,9 @@ export function AppSidebar() {
 
   const isActive = (path: string) => currentPath === path;
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive ? "bg-accent text-accent-foreground" : "hover:bg-accent/50";
+    isActive 
+      ? "bg-accent text-accent-foreground shadow-sm shadow-accent/20 scale-105" 
+      : "hover:bg-accent/50 hover:scale-105 hover:shadow-sm transition-all duration-300";
 
   const handleLogout = async () => {
     try {
@@ -50,33 +52,47 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar className="w-60 sm:w-64">
-      <SidebarContent>
+    <Sidebar className="w-60 sm:w-64 border-r border-border/50 bg-sidebar/50 backdrop-blur-sm">
+      <SidebarContent className="p-4">
         <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center gap-2 px-2">
-            <Building2 className="h-5 w-5 flex-shrink-0" />
-            <span className="text-sm sm:text-base truncate">Alpha Business</span>
+          <SidebarGroupLabel className="flex items-center gap-3 px-3 py-4 mb-4">
+            <div className="flex items-center justify-center w-10 h-10 bg-primary rounded-xl shadow-sm">
+              <Building2 className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm sm:text-base font-bold text-foreground tracking-wide">Alpha Business</span>
+              <span className="text-xs text-muted-foreground">Professional Solutions</span>
+            </div>
           </SidebarGroupLabel>
 
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-2">
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end className={getNavCls}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                    <NavLink 
+                      to={item.url} 
+                      end 
+                      className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all duration-300 ${getNavCls}`}
+                    >
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
+                      <span className="text-sm">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
               
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleLogout} className="text-destructive hover:bg-destructive/10">
-                  <LogOut className="h-4 w-4" />
-                  <span>Sign Out</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <div className="pt-4 mt-4 border-t border-border/50">
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    onClick={handleLogout} 
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-destructive hover:bg-destructive/10 hover:scale-105 hover:shadow-sm transition-all duration-300"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    <span className="text-sm">Sign Out</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </div>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { StarRating } from "./StarRating";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, User } from "lucide-react";
+import { Building2, User, Phone, Star, Send } from "lucide-react";
 import { PhoneInput } from "./PhoneInput";
 
 interface ReviewFormProps {
@@ -117,31 +117,37 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="form-container fade-in">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <Building2 className="w-10 h-10 text-primary" aria-hidden="true" />
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 flex items-center justify-center p-4">
+      <div className="form-container fade-in max-w-lg w-full">
+        <div className="text-center mb-8 space-y-6">
+          <div className="flex items-center justify-center mb-6">
+            <div className="p-4 bg-primary rounded-2xl shadow-lg">
+              <Building2 className="w-12 h-12 text-primary-foreground" aria-hidden="true" />
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">
-            Alpha Business Designs
-          </h1>
-          <p className="text-muted-foreground">
-            We'd love to hear about your experience
-          </p>
+          <div className="space-y-3">
+            <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
+              Alpha Business Designs
+            </h1>
+            <p className="text-lg text-muted-foreground text-body max-w-md mx-auto">
+              We'd love to hear about your experience with our services
+            </p>
+          </div>
           {utmSource === 'email' && (
-            <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg" role="status" aria-live="polite">
-              <p className="text-sm text-blue-700">
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm" role="status" aria-live="polite">
+              <p className="text-sm text-blue-700 font-medium">
                 📧 Thank you for responding to our review request!
               </p>
             </div>
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6" role="form" aria-label="Review submission form">
+        <form onSubmit={handleSubmit} className="space-y-8" role="form" aria-label="Review submission form">
           <div className="form-field">
-            <label className="form-label flex items-center gap-2" htmlFor="name-input">
-              <User className="w-4 h-4" aria-hidden="true" />
+            <label className="form-label flex items-center gap-3" htmlFor="name-input">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <User className="w-4 h-4 text-blue-600" aria-hidden="true" />
+              </div>
               Full Name *
             </label>
             <input
@@ -157,14 +163,18 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
               aria-invalid={!formData.name.trim() && isSubmitting}
             />
             {!formData.name.trim() && isSubmitting && (
-              <div id="name-error" className="text-red-500 text-sm mt-1" role="alert">
+              <div id="name-error" className="text-red-500 text-sm mt-2 flex items-center gap-2" role="alert">
+                <div className="w-1 h-1 bg-red-500 rounded-full"></div>
                 Name is required
               </div>
             )}
           </div>
 
           <div className="form-field">
-            <label className="form-label" htmlFor="phone-input">
+            <label className="form-label flex items-center gap-3" htmlFor="phone-input">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Phone className="w-4 h-4 text-green-600" aria-hidden="true" />
+              </div>
               Phone Number *
             </label>
             <PhoneInput
@@ -179,17 +189,21 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
               aria-invalid={!formData.phone.trim() && isSubmitting}
             />
             {!formData.phone.trim() && isSubmitting && (
-              <div id="phone-error" className="text-red-500 text-sm mt-1" role="alert">
+              <div id="phone-error" className="text-red-500 text-sm mt-2 flex items-center gap-2" role="alert">
+                <div className="w-1 h-1 bg-red-500 rounded-full"></div>
                 Phone number is required
               </div>
             )}
           </div>
 
           <div className="form-field">
-            <label className="form-label" htmlFor="rating-input">
+            <label className="form-label flex items-center gap-3" htmlFor="rating-input">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Star className="w-4 h-4 text-yellow-600" aria-hidden="true" />
+              </div>
               How would you rate your experience? *
             </label>
-            <div className="flex justify-center py-4">
+            <div className="flex justify-center py-6">
               <StarRating
                 rating={formData.rating}
                 onRatingChange={(rating) => 
@@ -201,7 +215,8 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
               />
             </div>
             {formData.rating === 0 && isSubmitting && (
-              <div id="rating-error" className="text-red-500 text-sm mt-1 text-center" role="alert">
+              <div id="rating-error" className="text-red-500 text-sm mt-2 text-center flex items-center justify-center gap-2" role="alert">
+                <div className="w-1 h-1 bg-red-500 rounded-full"></div>
                 Please select a rating
               </div>
             )}
@@ -210,14 +225,25 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="btn-primary w-full scale-in"
+            className="btn-primary w-full scale-in flex items-center justify-center gap-3"
             aria-describedby="submit-status"
           >
-            {isSubmitting ? "Submitting..." : "Submit Review"}
+            {isSubmitting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Submitting...
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4" />
+                Submit Review
+              </>
+            )}
           </button>
           
           {isSubmitting && (
-            <div id="submit-status" className="text-center text-sm text-muted-foreground" role="status" aria-live="polite">
+            <div id="submit-status" className="text-center text-sm text-muted-foreground flex items-center justify-center gap-2" role="status" aria-live="polite">
+              <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse"></div>
               Please wait while we submit your review...
             </div>
           )}

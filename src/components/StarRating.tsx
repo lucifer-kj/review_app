@@ -13,7 +13,7 @@ interface StarRatingProps {
 export const StarRating = ({ 
   rating, 
   onRatingChange, 
-  size = 32,
+  size = 36,
   "aria-required": ariaRequired,
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid
@@ -77,36 +77,57 @@ export const StarRating = ({
       aria-describedby={ariaDescribedby}
       aria-invalid={ariaInvalid}
     >
-      {[1, 2, 3, 4, 5].map((starValue) => {
-        const isActive = starValue <= (hoverRating || rating);
-        const isHovered = hoverRating > 0 && starValue <= hoverRating;
-        const isSelected = starValue === rating;
-        
-        return (
-          <button
-            key={starValue}
-            id={`star-${starValue}`}
-            type="button"
-            className="star-button"
-            onClick={() => handleStarClick(starValue)}
-            onMouseEnter={() => handleStarHover(starValue)}
-            onMouseLeave={handleStarLeave}
-            onKeyDown={(e) => handleKeyDown(e, starValue)}
-            onFocus={() => setFocusedStar(starValue)}
-            onBlur={() => setFocusedStar(0)}
-            aria-label={`${starValue} star${starValue > 1 ? 's' : ''} - ${getRatingText(starValue)}`}
-            aria-checked={isSelected}
-            tabIndex={0}
-          >
-            <Star
-              size={size}
-              className={`star ${isActive ? 'active' : ''} ${isHovered ? 'hover-active' : ''} ${focusedStar === starValue ? 'focused' : ''}`}
-              fill={isActive ? 'currentColor' : 'none'}
-              aria-hidden="true"
-            />
-          </button>
-        );
-      })}
+      <div className="flex items-center gap-2">
+        {[1, 2, 3, 4, 5].map((starValue) => {
+          const isActive = starValue <= (hoverRating || rating);
+          const isHovered = hoverRating > 0 && starValue <= hoverRating;
+          const isSelected = starValue === rating;
+          
+          return (
+            <button
+              key={starValue}
+              id={`star-${starValue}`}
+              type="button"
+              className="star-button group"
+              onClick={() => handleStarClick(starValue)}
+              onMouseEnter={() => handleStarHover(starValue)}
+              onMouseLeave={handleStarLeave}
+              onKeyDown={(e) => handleKeyDown(e, starValue)}
+              onFocus={() => setFocusedStar(starValue)}
+              onBlur={() => setFocusedStar(0)}
+              aria-label={`${starValue} star${starValue > 1 ? 's' : ''} - ${getRatingText(starValue)}`}
+              aria-checked={isSelected}
+              tabIndex={0}
+            >
+              <Star
+                size={size}
+                className={`star transition-all duration-300 ease-out ${
+                  isActive ? 'active' : ''
+                } ${
+                  isHovered ? 'hover-active' : ''
+                } ${
+                  focusedStar === starValue ? 'focused' : ''
+                } ${
+                  isSelected ? 'scale-110' : 'group-hover:scale-105'
+                }`}
+                fill={isActive ? 'currentColor' : 'none'}
+                aria-hidden="true"
+              />
+            </button>
+          );
+        })}
+      </div>
+      
+      {(hoverRating > 0 || rating > 0) && (
+        <div className="mt-4 text-center">
+          <p className="text-sm font-medium text-foreground">
+            {getRatingText(hoverRating || rating)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {hoverRating || rating} star{hoverRating !== 1 && rating !== 1 ? 's' : ''}
+          </p>
+        </div>
+      )}
       
       <div className="sr-only" aria-live="polite">
         {rating > 0 ? `Selected: ${rating} star${rating > 1 ? 's' : ''} - ${getRatingText(rating)}` : 'No rating selected'}
