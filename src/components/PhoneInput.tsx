@@ -15,6 +15,9 @@ interface PhoneInputProps {
   onCountryChange: (countryCode: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  "aria-required"?: boolean;
+  "aria-describedby"?: string;
+  "aria-invalid"?: boolean;
 }
 
 const countries: Country[] = [
@@ -39,12 +42,16 @@ export const PhoneInput = ({
   onPhoneChange,
   onCountryChange,
   disabled = false,
-  placeholder = "1234567890"
+  placeholder = "1234567890",
+  "aria-required": ariaRequired,
+  "aria-describedby": ariaDescribedby,
+  "aria-invalid": ariaInvalid
 }: PhoneInputProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const selectedCountry = countries.find(c => c.dialCode === countryCode) || countries[0];
 
@@ -77,19 +84,42 @@ export const PhoneInput = ({
     onPhoneChange(cleanValue);
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      setIsOpen(false);
+      setSearchQuery("");
+      inputRef.current?.focus();
+    }
+  };
+
+  const handleCountryButtonKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      setIsOpen(!isOpen);
+      if (!isOpen) {
+        setTimeout(() => searchRef.current?.focus(), 100);
+      }
+    }
+  };
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef} onKeyDown={handleKeyDown}>
       <div className="flex flex-col sm:flex-row">
         {/* Country Selector */}
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
+          onKeyDown={handleCountryButtonKeyDown}
           disabled={disabled}
           className="form-input rounded-b-none sm:rounded-r-none sm:border-r-0 flex items-center justify-center sm:justify-start gap-2 px-3 py-2 w-full sm:w-[25%] bg-background hover:bg-accent/50 disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label={`Select country. Currently selected: ${selectedCountry.country} (${selectedCountry.dialCode})`}
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+          aria-describedby="country-dropdown"
         >
-          <span className="text-lg">{selectedCountry.flag}</span>
+          <span className="text-lg" aria-hidden="true">{selectedCountry.flag}</span>
           <span className="text-sm font-medium">{selectedCountry.dialCode}</span>
-          <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
         </button>
 
         {/* Phone Input */}
@@ -101,28 +131,39 @@ export const PhoneInput = ({
           placeholder={placeholder}
           disabled={disabled}
           className="form-input rounded-t-none sm:rounded-l-none w-full sm:w-[75%]"
+          aria-required={ariaRequired}
+          aria-describedby={ariaDescribedby}
+          aria-invalid={ariaInvalid}
+          aria-label="Phone number"
         />
       </div>
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-60 overflow-hidden">
+        <div 
+          id="country-dropdown"
+          className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-50 max-h-60 overflow-hidden"
+          role="listbox"
+          aria-label="Country selection"
+        >
           {/* Search */}
           <div className="p-2 border-b border-border">
             <div className="relative">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
               <input
+                ref={searchRef}
                 type="text"
                 placeholder="Search for countries"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-2 py-1 text-sm bg-background border border-input rounded-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                aria-label="Search countries"
               />
             </div>
           </div>
 
           {/* Country List */}
-          <div className="overflow-y-auto max-h-48">
+          <div className="overflow-y-auto max-h-48" role="listbox">
             {filteredCountries.map((country) => (
               <button
                 key={country.code}
@@ -131,8 +172,11 @@ export const PhoneInput = ({
                 className={`w-full px-3 py-2 text-left hover:bg-accent flex items-center gap-3 ${
                   selectedCountry.code === country.code ? 'bg-accent' : ''
                 }`}
+                role="option"
+                aria-selected={selectedCountry.code === country.code}
+                aria-label={`${country.country} (${country.dialCode})`}
               >
-                <span className="text-lg">{country.flag}</span>
+                <span className="text-lg" aria-hidden="true">{country.flag}</span>
                 <span className="text-sm">{country.country}</span>
                 <span className="text-sm text-muted-foreground ml-auto">
                   {country.dialCode}
@@ -140,7 +184,7 @@ export const PhoneInput = ({
               </button>
             ))}
             {filteredCountries.length === 0 && (
-              <div className="px-3 py-2 text-sm text-muted-foreground">
+              <div className="px-3 py-2 text-sm text-muted-foreground" role="status" aria-live="polite">
                 No countries found
               </div>
             )}

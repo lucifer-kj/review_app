@@ -55,9 +55,6 @@ const App = () => (
               
                               {/* Public customer review form */}
                 <Route path="/review" element={<ReviewFormPage />} />
-                
-                {/* Email-triggered review flow */}
-                <Route path="/review-form" element={<ReviewFormPage />} />
                 <Route path="/review/feedback" element={<FeedbackPage />} />
                 <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
                 <Route path="/review/thank-you" element={<ReviewThankYouPage />} />

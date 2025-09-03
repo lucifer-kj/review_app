@@ -25,7 +25,7 @@ export default function FeedbackPage() {
   // Redirect if no state data
   useEffect(() => {
     if (!state || !name || !reviewId) {
-      navigate('/review-form');
+      navigate('/review');
     }
   }, [state, name, reviewId, navigate]);
 
@@ -80,7 +80,7 @@ export default function FeedbackPage() {
   };
 
   const handleGoBack = () => {
-    navigate('/review-form');
+    navigate('/review');
   };
 
   if (!state || !name || !reviewId) {

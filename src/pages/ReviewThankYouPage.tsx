@@ -16,7 +16,7 @@ export default function ReviewThankYouPage() {
   const { name, rating } = state || {};
 
   const handleNewReview = () => {
-    navigate('/review-form');
+    navigate('/review');
   };
 
   const handleGoHome = () => {
