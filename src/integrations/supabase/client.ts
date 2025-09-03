@@ -9,5 +9,20 @@ export const supabase = createClient<Database>(env.supabase.url, env.supabase.an
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+  },
+  // Enable public access for review form submissions
+  db: {
+    schema: 'public'
+  }
+});
+
+// Create a public client for unauthenticated operations
+export const supabasePublic = createClient<Database>(env.supabase.url, env.supabase.anonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+  db: {
+    schema: 'public'
   }
 });

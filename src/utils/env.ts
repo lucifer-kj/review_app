@@ -41,26 +41,23 @@ interface EnvironmentConfig {
  * Validate required environment variables
  */
 const validateEnvironment = (): EnvironmentConfig => {
-  const requiredVars = {
-    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
-    VITE_SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY,
-  };
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-  const missingVars = Object.entries(requiredVars)
-    .filter(([_, value]) => !value)
-    .map(([key]) => key);
-
-  if (missingVars.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missingVars.join(', ')}\n` +
-      'Please check your .env file and ensure all required variables are set.'
+  // Check if Supabase variables are missing
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn(
+      'Missing Supabase environment variables. Please create a .env file with:\n' +
+      'VITE_SUPABASE_URL=your_supabase_project_url\n' +
+      'VITE_SUPABASE_ANON_KEY=your_supabase_anon_key\n\n' +
+      'For now, using placeholder values. Review form submissions will not work.'
     );
   }
 
   return {
     supabase: {
-      url: import.meta.env.VITE_SUPABASE_URL!,
-      anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY!,
+      url: supabaseUrl || 'https://placeholder.supabase.co',
+      anonKey: supabaseAnonKey || 'placeholder_key',
     },
     email: {
       domain: import.meta.env.VITE_EMAIL_DOMAIN || 'alphabusiness.com',

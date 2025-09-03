@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabasePublic } from "@/integrations/supabase/client";
 import { Building2, MessageCircle, Send, ArrowLeft } from "lucide-react";
 
 interface LocationState {
@@ -44,8 +44,8 @@ export default function FeedbackPage() {
     setIsSubmitting(true);
 
     try {
-      // Update the review with feedback
-      const { error } = await supabase
+      // Update the review with feedback using public client
+      const { error } = await supabasePublic
         .from('reviews')
         .update({ 
           feedback: feedback.trim(),

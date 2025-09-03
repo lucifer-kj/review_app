@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabasePublic } from "@/integrations/supabase/client";
 import { APP_CONFIG } from "@/constants";
 
 interface ReviewFormData {
@@ -47,8 +47,22 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
     setIsSubmitting(true);
 
     try {
-      // Save review to database with tracking information
-      const { data: insertedData, error } = await supabase
+      // Check if Supabase is properly configured
+      // Since supabaseUrl is protected and not available in APP_CONFIG, check configuration using a public property
+      if (
+        !APP_CONFIG.GOOGLE_REVIEWS_URL ||
+        APP_CONFIG.GOOGLE_REVIEWS_URL.includes('placeholder')
+      ) {
+        toast({
+          title: "Configuration Error",
+          description: "Review system is not properly configured. Please contact support.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Save review to database with tracking information using public client
+      const { data: insertedData, error } = await supabasePublic
         .from('reviews')
         .insert({
           name: data.name.trim(),
@@ -83,6 +97,18 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
           });
           return;
         }
+        
+        // Handle authentication errors
+        if (error.message.includes('401') || error.message.includes('unauthorized')) {
+          console.error('Authentication error:', error);
+          toast({
+            title: "Configuration Error",
+            description: "Review system is not properly configured. Please contact support.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw error;
       }
 
@@ -120,8 +146,8 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
         errorMessage = "Request timed out. Please try again.";
       } else if (error.message?.includes('rate limit') || error.message?.includes('too many requests')) {
         errorMessage = "Too many requests. Please wait a moment and try again.";
-      } else if (error.message?.includes('unauthorized') || error.message?.includes('forbidden')) {
-        errorMessage = "Access denied. Please refresh the page and try again.";
+      } else if (error.message?.includes('unauthorized') || error.message?.includes('forbidden') || error.message?.includes('401')) {
+        errorMessage = "Review system is not properly configured. Please contact support.";
       } else if (error.message?.includes('database') || error.message?.includes('connection')) {
         errorMessage = "Database connection issue. Please try again in a moment.";
       }
