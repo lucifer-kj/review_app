@@ -57,6 +57,26 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
         return;
       }
 
+      console.log('Submitting review with data:', {
+        name: data.name.trim(),
+        phone: data.phone.trim(),
+        country_code: data.countryCode,
+        rating: data.rating,
+        google_review: data.rating >= 4,
+        redirect_opened: false,
+        metadata: {
+          trackingId: sanitizedUtmParams.trackingId,
+          utmSource: sanitizedUtmParams.utmSource || 'direct',
+          source: 'email_form',
+          submitted_at: new Date().toISOString(),
+          form_version: 'email_triggered',
+          utm_campaign: searchParams.get('utm_campaign'),
+          utm_medium: searchParams.get('utm_medium'),
+          utm_term: searchParams.get('utm_term'),
+          utm_content: searchParams.get('utm_content'),
+        }
+      });
+
       // Save review to database with tracking information using public client
       const { data: insertedData, error } = await supabasePublic
         .from('reviews')
@@ -83,12 +103,25 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
         .single();
 
       if (error) {
+        console.error('Supabase error:', error);
+        
         // Handle specific database schema errors
         if (error.message.includes('column "phone" does not exist')) {
           console.error('Database schema error: phone column missing');
           toast({
             title: "System Error",
             description: "Review system is being updated. Please try again in a few minutes.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Handle RLS policy errors
+        if (error.message.includes('row-level security policy') || error.message.includes('RLS')) {
+          console.error('RLS policy error:', error);
+          toast({
+            title: "Access Error",
+            description: "Review system is not properly configured. Please contact support.",
             variant: "destructive",
           });
           return;
@@ -107,6 +140,8 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
         
         throw error;
       }
+
+      console.log('Review submitted successfully:', insertedData);
 
       // Show success message
       toast({
@@ -136,6 +171,8 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
       
       if (error.message?.includes('column "phone" does not exist')) {
         errorMessage = "Review system is being updated. Please try again in a few minutes.";
+      } else if (error.message?.includes('row-level security policy') || error.message?.includes('RLS')) {
+        errorMessage = "Review system is not properly configured. Please contact support.";
       } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
         errorMessage = "Network error. Please check your connection and try again.";
       } else if (error.message?.includes('timeout')) {

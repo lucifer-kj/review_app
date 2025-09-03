@@ -13,14 +13,21 @@ export const supabase = createClient<Database>(env.supabase.url, env.supabase.an
   // Enable public access for review form submissions
   db: {
     schema: 'public'
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'supabase-js/2.0.0'
+    }
   }
 });
 
 // Create a public client for unauthenticated operations
+// This client is specifically for anonymous users submitting reviews
 export const supabasePublic = createClient<Database>(env.supabase.url, env.supabase.anonKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false,
+    detectSessionInUrl: false,
   },
   db: {
     schema: 'public'
