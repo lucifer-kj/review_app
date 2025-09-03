@@ -69,41 +69,34 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
         source: sanitizedUtmParams.utmSource || 'direct',
       });
 
-      // Use the edge function for submission
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      // Simple direct database insert - no Edge Function needed!
+      const finalRating = prefilled.rating || data.rating;
       
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Supabase configuration is missing');
-      }
-      
-      const endpoint = `${supabaseUrl.replace(/\/$/, '')}/functions/v1/submit-review`;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseKey}`,
-          'apikey': supabaseKey
-        },
-        body: JSON.stringify({
+      const { data: insertedData, error } = await supabasePublic
+        .from('reviews')
+        .insert({
           name: data.name.trim(),
           phone: data.phone.trim(),
-          countryCode: data.countryCode,
-          rating: prefilled.rating || data.rating,
-          trackingId: sanitizedUtmParams.trackingId,
-          managerName: undefined,
+          country_code: data.countryCode || '+1',
+          rating: finalRating,
+          google_review: finalRating >= 4,
+          redirect_opened: false,
+          metadata: {
+            trackingId: sanitizedUtmParams.trackingId,
+            managerName: undefined,
+            source: 'email_form',
+            submitted_at: new Date().toISOString()
+          }
         })
-      });
+        .select()
+        .single();
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || `Request failed: ${response.status}`);
+      if (error) {
+        console.error("Database error:", error);
+        throw error;
       }
 
-      const result = await response.json();
-      const insertedData = { id: result.reviewId } as { id: string };
-
-      analytics.track('review_submit_success', { rating: prefilled.rating || data.rating });
+      analytics.track('review_submit_success', { rating: finalRating });
 
       // Show success message
       toast({
@@ -112,7 +105,6 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
       });
 
       // Handle conditional redirect based on rating
-      const finalRating = prefilled.rating || data.rating;
       if (finalRating >= 4) {
         // Redirect directly to Google Reviews for ratings 4 and above
         analytics.track('review_redirect_google', { rating: finalRating });
