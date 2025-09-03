@@ -48,7 +48,7 @@ const validateEnvironment = (): EnvironmentConfig => {
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn(
       'Missing Supabase environment variables. Please create a .env file with:\n' +
-      'VITE_SUPABASE_URL=your_supabase_project_url\n' +
+      'VITE_SUPABASE_URL=https://elhbthnvwcqewjpwulhq.supabase.co\n' +
       'VITE_SUPABASE_ANON_KEY=your_supabase_anon_key\n\n' +
       'For now, using placeholder values. Review form submissions will not work.'
     );
@@ -56,7 +56,7 @@ const validateEnvironment = (): EnvironmentConfig => {
 
   return {
     supabase: {
-      url: supabaseUrl || 'https://placeholder.supabase.co',
+      url: supabaseUrl || 'https://elhbthnvwcqewjpwulhq.supabase.co',
       anonKey: supabaseAnonKey || 'placeholder_key',
     },
     email: {
@@ -74,6 +74,7 @@ const validateEnvironment = (): EnvironmentConfig => {
       allowedOrigins: import.meta.env.VITE_ALLOWED_ORIGINS?.split(',') || [
         'http://localhost:3000',
         'http://localhost:5173',
+        'http://localhost:8081',
         window.location.origin,
       ],
     },

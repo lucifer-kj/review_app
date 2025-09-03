@@ -24,5 +24,16 @@ export const supabasePublic = createClient<Database>(env.supabase.url, env.supab
   },
   db: {
     schema: 'public'
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'supabase-js/2.0.0'
+    }
   }
 });
+
+// Helper function to check if Supabase is properly configured
+export const isSupabaseConfigured = () => {
+  return env.supabase.url !== 'https://elhbthnvwcqewjpwulhq.supabase.co' || 
+         env.supabase.anonKey !== 'placeholder_key';
+};

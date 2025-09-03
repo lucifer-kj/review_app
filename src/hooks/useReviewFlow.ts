@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { supabasePublic } from "@/integrations/supabase/client";
+import { supabasePublic, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { APP_CONFIG } from "@/constants";
 
 interface ReviewFormData {
@@ -48,11 +48,7 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
 
     try {
       // Check if Supabase is properly configured
-      // Since supabaseUrl is protected and not available in APP_CONFIG, check configuration using a public property
-      if (
-        !APP_CONFIG.GOOGLE_REVIEWS_URL ||
-        APP_CONFIG.GOOGLE_REVIEWS_URL.includes('placeholder')
-      ) {
+      if (!isSupabaseConfigured()) {
         toast({
           title: "Configuration Error",
           description: "Review system is not properly configured. Please contact support.",

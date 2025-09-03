@@ -1,23 +1,35 @@
-# Environment Variables Setup Guide
+# Environment Setup Guide
 
-## 🔧 Quick Fix for Current Error
+This guide will help you set up the environment variables needed for the Alpha Business Designs review system.
 
-The application is currently failing because it's looking for environment variables with the `VITE_` prefix. Here's how to fix it:
+## Prerequisites
 
-### 1. Create/Update Your `.env` File
+- A Supabase project (already created: `elhbthnvwcqewjpwulhq`)
+- Access to your Supabase dashboard
 
-Create a `.env` file in your project root with these variables:
+## Step 1: Get Your Supabase Credentials
+
+1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
+2. Select your project: `elhbthnvwcqewjpwulhq`
+3. Navigate to **Settings** → **API**
+4. Copy the following values:
+   - **Project URL**: `https://elhbthnvwcqewjpwulhq.supabase.co`
+   - **anon public** key (starts with `eyJ...`)
+
+## Step 2: Create Environment File
+
+Create a `.env` file in your project root with the following content:
 
 ```bash
-# Supabase Configuration (REQUIRED)
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+# Supabase Configuration
+VITE_SUPABASE_URL=https://elhbthnvwcqewjpwulhq.supabase.co
+VITE_SUPABASE_ANON_KEY=your_actual_supabase_anon_key_here
 
 # Email Service Configuration (Resend)
 RESEND_API_KEY=your_resend_api_key
 
 # Email Configuration
-EMAIL_DOMAIN=yourdomain.com
+EMAIL_DOMAIN=alphabusiness.com
 EMAIL_FROM_NAME=noreply
 EMAIL_TEMPLATE=default
 EMAIL_PRIMARY_COLOR=#007bff
@@ -25,10 +37,10 @@ EMAIL_BUTTON_TEXT=Leave a Review
 EMAIL_TITLE=We'd love your feedback!
 
 # Frontend Configuration
-VITE_FRONTEND_URL=https://yourdomain.com
+VITE_FRONTEND_URL=http://localhost:8081
 
 # Security Configuration
-VITE_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173,https://yourdomain.com
+VITE_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:8081
 
 # Optional: Error Tracking (Sentry)
 VITE_SENTRY_DSN=your_sentry_dsn
@@ -37,88 +49,56 @@ VITE_SENTRY_DSN=your_sentry_dsn
 VITE_GA_TRACKING_ID=your_ga_tracking_id
 ```
 
-### 2. For Vercel Deployment
+## Step 3: Run Database Migrations
 
-Set these environment variables in your Vercel dashboard:
-
-```bash
-vercel env add VITE_SUPABASE_URL
-vercel env add VITE_SUPABASE_ANON_KEY
-vercel env add RESEND_API_KEY
-```
-
-## 📋 Environment Variables Explained
-
-### Client-Side Variables (Browser)
-These variables are accessible in the browser and **MUST** be prefixed with `VITE_`:
-
-- `VITE_SUPABASE_URL` - Your Supabase project URL
-- `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
-- `VITE_FRONTEND_URL` - Your frontend application URL
-- `VITE_ALLOWED_ORIGINS` - Comma-separated list of allowed origins
-- `VITE_SENTRY_DSN` - Sentry error tracking DSN
-- `VITE_GA_TRACKING_ID` - Google Analytics tracking ID
-
-### Server-Side Variables (Edge Functions)
-These variables are used in Supabase Edge Functions and use **standard names**:
-
-- `SUPABASE_URL` - Your Supabase project URL
-- `SUPABASE_ANON_KEY` - Your Supabase anonymous key
-- `RESEND_API_KEY` - Resend email service API key
-- `EMAIL_DOMAIN` - Your email domain
-- `FRONTEND_URL` - Your frontend application URL
-
-## 🚀 Getting Your Supabase Credentials
-
-1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
-2. Select your project
-3. Go to Settings → API
-4. Copy the following values:
-   - **Project URL** → Use as `VITE_SUPABASE_URL`
-   - **anon public** key → Use as `VITE_SUPABASE_ANON_KEY`
-
-## 🔧 Setting Up Edge Functions
-
-For Supabase Edge Functions, set these secrets:
+The database schema needs to be updated to support the review form. Run the following command:
 
 ```bash
-supabase secrets set SUPABASE_URL=your_supabase_project_url
-supabase secrets set SUPABASE_ANON_KEY=your_supabase_anon_key
-supabase secrets set RESEND_API_KEY=your_resend_api_key
-supabase secrets set EMAIL_DOMAIN=yourdomain.com
-supabase secrets set FRONTEND_URL=https://yourdomain.com
+npx supabase db push
 ```
 
-## ✅ Verification Steps
+This will apply the migration that adds the `phone` and `country_code` columns to the `reviews` table.
 
-1. **Local Development**:
+## Step 4: Verify Configuration
+
+1. Restart your development server:
    ```bash
-   # Start the development server
    npm run dev
    ```
-   The app should load without environment variable errors.
 
-2. **Production Deployment**:
-   - Set environment variables in your hosting platform
-   - Deploy the application
-   - Check that the app loads correctly
+2. Navigate to `http://localhost:8081/review`
+3. Try submitting a test review
+4. Check the browser console for any errors
 
-## 🚨 Common Issues
+## Troubleshooting
 
-### Issue: "Missing required environment variables"
-**Solution**: Ensure your `.env` file exists and contains the required variables with `VITE_` prefix.
+### 401 Unauthorized Error
+- Ensure your Supabase anon key is correct
+- Check that the database migrations have been applied
+- Verify RLS policies allow public access
 
-### Issue: "401 Unauthorized" errors
-**Solution**: Check that your Supabase credentials are correct and the project is active.
+### Database Schema Errors
+- Run `npx supabase db push` to apply migrations
+- Check that the `reviews` table has the correct columns
 
-### Issue: Edge Functions not working
-**Solution**: Ensure server-side environment variables are set without the `VITE_` prefix.
+### Environment Variables Not Loading
+- Ensure the `.env` file is in the project root
+- Restart the development server after creating the file
+- Check that variable names start with `VITE_`
 
-## 📞 Need Help?
+## Security Notes
 
-If you're still experiencing issues:
+- Never commit your `.env` file to version control
+- The anon key is safe to use in the frontend (it's designed for public access)
+- RLS policies ensure data security at the database level
 
-1. Check that your `.env` file is in the project root
-2. Verify that Supabase credentials are correct
-3. Restart your development server after adding environment variables
-4. Check the browser console for specific error messages
+## Next Steps
+
+Once the environment is configured:
+
+1. Test the review form submission
+2. Set up email notifications (optional)
+3. Configure Google Reviews integration
+4. Deploy to production
+
+For production deployment, update the `VITE_FRONTEND_URL` and `VITE_ALLOWED_ORIGINS` to match your production domain.
