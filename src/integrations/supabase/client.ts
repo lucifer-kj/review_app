@@ -3,14 +3,13 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { env } from '@/utils/env';
 
-// ✅ SECURE: Use centralized environment configuration
+// Main Supabase client
 export const supabase = createClient<Database>(env.supabase.url, env.supabase.anonKey, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
   },
-  // Enable public access for review form submissions
   db: {
     schema: 'public'
   },
@@ -21,8 +20,7 @@ export const supabase = createClient<Database>(env.supabase.url, env.supabase.an
   }
 });
 
-// Create a public client for unauthenticated operations
-// This client is specifically for anonymous users submitting reviews
+// Public client for unauthenticated operations
 export const supabasePublic = createClient<Database>(env.supabase.url, env.supabase.anonKey, {
   auth: {
     persistSession: false,

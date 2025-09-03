@@ -45,11 +45,9 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
     customerName: sanitizeInput(searchParams.get('customer')),
   };
 
-  // One-tap: prefill rating and signature from URL if present
+  // One-tap: prefill rating from URL if present
   const prefilled = {
     rating: Number(sanitizeInput(searchParams.get('rating')) || 0),
-    sig: sanitizeInput(searchParams.get('sig')),
-    ts: sanitizeInput(searchParams.get('ts'))
   };
 
   const handleReviewSubmit = async (data: ReviewFormData): Promise<void> => {
@@ -71,7 +69,7 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
         source: sanitizedUtmParams.utmSource || 'direct',
       });
 
-      // Prefer calling hardened edge function for submission
+      // Use the edge function for submission
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
@@ -94,8 +92,6 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
           rating: prefilled.rating || data.rating,
           trackingId: sanitizedUtmParams.trackingId,
           managerName: undefined,
-          sig: prefilled.sig || undefined,
-          ts: prefilled.ts || undefined,
         })
       });
 
@@ -135,7 +131,7 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
     } catch (error: unknown) {
       console.error('Error saving review:', error);
       
-      // Enhanced error handling for different device scenarios
+      // Simplified error handling
       let errorMessage = "Failed to submit review. Please try again.";
       
       const errorMessageStr = error instanceof Error ? error.message : String(error);
@@ -144,7 +140,7 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
         errorMessage = "Review system is being updated. Please try again in a few minutes.";
       } else if (errorMessageStr.includes('row-level security policy') || errorMessageStr.includes('RLS')) {
         errorMessage = "Review system is not properly configured. Please contact support.";
-      } else if (errorMessageStr.includes('network') || errorMessageStr.includes('fetch') || errorMessageStr.includes('CORS')) {
+      } else if (errorMessageStr.includes('network') || errorMessageStr.includes('fetch')) {
         errorMessage = "Network error. Please check your connection and try again.";
       } else if (errorMessageStr.includes('timeout')) {
         errorMessage = "Request timed out. Please try again.";

@@ -25,11 +25,6 @@ interface EnvironmentConfig {
     url: string;
   };
   
-  // Security Configuration
-  security: {
-    allowedOrigins: string[];
-  };
-  
   // Optional Services
   services: {
     sentryDsn?: string;
@@ -69,14 +64,6 @@ const validateEnvironment = (): EnvironmentConfig => {
     },
     frontend: {
       url: import.meta.env.VITE_FRONTEND_URL || window.location.origin,
-    },
-    security: {
-      allowedOrigins: import.meta.env.VITE_ALLOWED_ORIGINS?.split(',') || [
-        'http://localhost:3000',
-        'http://localhost:5173',
-        'http://localhost:8081',
-        window.location.origin,
-      ],
     },
     services: {
       sentryDsn: import.meta.env.VITE_SENTRY_DSN,

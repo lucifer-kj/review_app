@@ -11,19 +11,6 @@ declare const Deno: {
   };
 };
 
-const getCorsHeaders = (origin: string) => ({
-  "Access-Control-Allow-Origin": origin,
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-requested-with, accept",
-  "Access-Control-Max-Age": "86400",
-  "Vary": "Origin",
-});
-
-// Simple in-memory rate limiting per IP
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_MAX = 20; // requests
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
   Deno.env.get("SUPABASE_ANON_KEY") ?? ""
@@ -39,26 +26,15 @@ interface ReviewSubmission {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  const origin = req.headers.get("Origin") || "*";
-  
-  // Define allowed origins - include your Vercel domain
-  const allowedOrigins = [
-    "https://invoice-app-iota-livid.vercel.app",
-    "https://alpha-business.vercel.app",
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://localhost:4173"
-  ];
-  
-  // Check if origin is allowed
-  const isOriginAllowed = allowedOrigins.includes(origin) || origin === "*";
-  const corsHeaders = getCorsHeaders(isOriginAllowed ? origin : allowedOrigins[0]);
-
   // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
     return new Response("", { 
       status: 200,
-      headers: corsHeaders 
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+      }
     });
   }
 
@@ -66,36 +42,13 @@ const handler = async (req: Request): Promise<Response> => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
+      headers: { "Content-Type": "application/json" },
     });
-  }
-
-  if (!isOriginAllowed) {
-    return new Response(JSON.stringify({ error: "Unauthorized origin" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  }
-
-  // Rate limit
-  const ip = req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "unknown";
-  const now = Date.now();
-  const existing = rateLimitStore.get(ip);
-  if (!existing || now > existing.resetTime) {
-    rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
-  } else {
-    existing.count += 1;
-    if (existing.count > RATE_LIMIT_MAX) {
-      return new Response(JSON.stringify({ error: "Too many requests" }), {
-        status: 429,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      });
-    }
   }
 
   try {
     const body = await req.json();
-    const { name, phone, countryCode, rating, trackingId, managerName, sig, ts }: ReviewSubmission & { sig?: string; ts?: string } = body;
+    const { name, phone, countryCode, rating, trackingId, managerName }: ReviewSubmission = body;
 
     // Validate required fields
     if (!name || !phone || !rating) {
@@ -103,7 +56,7 @@ const handler = async (req: Request): Promise<Response> => {
         JSON.stringify({ error: "Missing required fields" }),
         {
           status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
+          headers: { "Content-Type": "application/json" },
         }
       );
     }
@@ -115,34 +68,9 @@ const handler = async (req: Request): Promise<Response> => {
         JSON.stringify({ error: "Rating must be between 1 and 5" }),
         {
           status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
+          headers: { "Content-Type": "application/json" },
         }
       );
-    }
-
-    // Optional: verify HMAC signature for prefilled one-tap links
-    if (sig && ts) {
-      try {
-        const secret = Deno.env.get("REVIEW_LINK_SECRET") || "";
-        if (secret) {
-          const enc = new TextEncoder();
-          const key = await crypto.subtle.importKey(
-            "raw",
-            enc.encode(secret),
-            { name: "HMAC", hash: "SHA-256" },
-            false,
-            ["verify"]
-          );
-          const payload = `name=${name}&phone=${phone}&countryCode=${countryCode}&rating=${rating}&trackingId=${trackingId || ""}&ts=${ts}`;
-          const sigBytes = Uint8Array.from(atob(sig), c => c.charCodeAt(0));
-          const verified = await crypto.subtle.verify("HMAC", key, sigBytes, enc.encode(payload));
-          if (!verified) {
-            console.warn("Invalid signature for review submission");
-          }
-        }
-      } catch (e) {
-        console.warn("Signature verification failed:", e);
-      }
     }
 
     // Save review to database
@@ -170,7 +98,7 @@ const handler = async (req: Request): Promise<Response> => {
       throw error;
     }
 
-    console.log("Review submitted from email:", {
+    console.log("Review submitted:", {
       id: data.id,
       name: data.name,
       rating: data.rating,
@@ -188,7 +116,7 @@ const handler = async (req: Request): Promise<Response> => {
       status: 200,
       headers: {
         "Content-Type": "application/json",
-        ...corsHeaders,
+        "Access-Control-Allow-Origin": "*",
       },
     });
   } catch (error: unknown) {
@@ -200,7 +128,10 @@ const handler = async (req: Request): Promise<Response> => {
       }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { 
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
       }
     );
   }
