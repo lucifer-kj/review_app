@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-A comprehensive customer review and invoice management system built with modern web technologies.
+A comprehensive customer review management system built with modern web technologies.
 
 ## How to run this project locally
 
@@ -77,7 +77,6 @@ npx netlify deploy --prod --dir=dist
 ## Features
 
 - Customer review collection system
-- Invoice management and generation
 - Email integration with embedded forms
 - PWA support for mobile devices
 - Responsive design with Tailwind CSS

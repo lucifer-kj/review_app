@@ -14,66 +14,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      invoices: {
-        Row: {
-          created_at: string
-          currency: string
-          customer_address: string | null
-          customer_email: string
-          customer_name: string
-          customer_phone: string | null
-          due_date: string | null
-          id: string
-          invoice_number: string
-          item_description: string
-          notes: string | null
-          quantity: number
-          status: string
-          total: number
-          unit_price: number
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          currency?: string
-          customer_address?: string | null
-          customer_email: string
-          customer_name: string
-          customer_phone?: string | null
-          due_date?: string | null
-          id?: string
-          invoice_number: string
-          item_description: string
-          notes?: string | null
-          quantity?: number
-          status?: string
-          total: number
-          unit_price: number
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          currency?: string
-          customer_address?: string | null
-          customer_email?: string
-          customer_name?: string
-          customer_phone?: string | null
-          due_date?: string | null
-          id?: string
-          invoice_number?: string
-          item_description?: string
-          notes?: string | null
-          quantity?: number
-          status?: string
-          total?: number
-          unit_price?: number
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+
       profiles: {
         Row: {
           created_at: string
@@ -142,7 +83,6 @@ export type Database = {
           business_email: string | null
           business_phone: string | null
           business_address: string | null
-          invoice_template_url: string | null
           created_at: string
           updated_at: string
         }
@@ -153,7 +93,6 @@ export type Database = {
           business_email?: string | null
           business_phone?: string | null
           business_address?: string | null
-          invoice_template_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -164,7 +103,6 @@ export type Database = {
           business_email?: string | null
           business_phone?: string | null
           business_address?: string | null
-          invoice_template_url?: string | null
           created_at?: string
           updated_at?: string
         }

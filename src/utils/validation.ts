@@ -19,36 +19,7 @@ export const reviewSchema = z.object({
     .int("Rating must be a whole number"),
 });
 
-// Invoice validation schema
-export const invoiceSchema = z.object({
-  invoice_number: z.string()
-    .min(1, "Invoice number is required")
-    .max(50, "Invoice number must be less than 50 characters"),
-  customer_name: z.string()
-    .min(2, "Customer name must be at least 2 characters")
-    .max(100, "Customer name must be less than 100 characters"),
-  customer_email: z.string()
-    .email("Invalid email address"),
-  customer_address: z.string().optional(),
-  customer_phone: z.string().optional(),
-  item_description: z.string()
-    .min(1, "Item description is required")
-    .max(500, "Item description must be less than 500 characters"),
-  quantity: z.number()
-    .min(0.01, "Quantity must be greater than 0")
-    .max(999999, "Quantity is too large"),
-  unit_price: z.number()
-    .min(0, "Unit price must be non-negative")
-    .max(999999, "Unit price is too large"),
-  total: z.number()
-    .min(0, "Total must be non-negative")
-    .max(999999, "Total is too large"),
-  currency: z.string()
-    .length(3, "Currency must be a 3-letter code"),
-  due_date: z.string().optional(),
-  status: z.enum(['draft', 'sent', 'paid', 'overdue']),
-  notes: z.string().optional(),
-});
+
 
 // Auth validation schemas
 export const loginSchema = z.object({
@@ -74,7 +45,6 @@ export const signupSchema = z.object({
 
 // Type exports
 export type ReviewFormData = z.infer<typeof reviewSchema>;
-export type InvoiceFormData = z.infer<typeof invoiceSchema>;
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type SignupFormData = z.infer<typeof signupSchema>;
 
@@ -97,16 +67,7 @@ export const validateReview = (data: unknown): ValidationResult<ReviewFormData> 
   };
 };
 
-export const validateInvoice = (data: unknown): ValidationResult<InvoiceFormData> => {
-  const result = invoiceSchema.safeParse(data);
-  if (result.success) {
-    return { success: true, data: result.data };
-  }
-  return { 
-    success: false, 
-    errors: result.error.flatten().fieldErrors as Record<string, string>
-  };
-};
+
 
 export const validateLogin = (data: unknown): ValidationResult<LoginFormData> => {
   const result = loginSchema.safeParse(data);

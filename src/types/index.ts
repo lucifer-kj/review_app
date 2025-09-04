@@ -2,7 +2,6 @@ import type { Tables } from "@/integrations/supabase/types";
 
 // Database types
 export type Review = Tables<'reviews'>;
-export type Invoice = Tables<'invoices'>;
 export type Profile = Tables<'profiles'>;
 
 // Form data types
@@ -13,27 +12,12 @@ export interface ReviewFormData {
   rating: number;
 }
 
-export interface InvoiceFormData {
-  invoice_number: string;
-  customer_name: string;
-  customer_email: string;
-  customer_address?: string;
-  customer_phone?: string;
-  item_description: string;
-  quantity: number;
-  unit_price: number;
-  total: number;
-  currency: string;
-  due_date?: string;
-  status: 'draft' | 'sent' | 'paid' | 'overdue';
-  notes?: string;
-}
+
 
 // Dashboard types
 export interface DashboardStats {
   totalReviews: number;
   averageRating: number;
-  totalInvoices: number;
   highRatingReviews: number;
 }
 
@@ -45,7 +29,6 @@ export interface ApiResponse<T> {
 
 // Filter types
 export type RatingFilter = 'all' | 'high' | 'low';
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue';
 
 // Share types
 export interface ShareData {
@@ -80,7 +63,6 @@ export interface BusinessSettings {
   business_email: string | null;
   business_phone: string | null;
   business_address: string | null;
-  invoice_template_url: string | null;
   created_at?: string;
   updated_at?: string;
 }

@@ -2,7 +2,7 @@
 export const APP_CONFIG = {
   NAME: "Alpha Business Designs",
   SHORT_NAME: "Alpha Dashboard",
-  DESCRIPTION: "Alpha Business Designs Dashboard - Manage reviews and invoices",
+  DESCRIPTION: "Alpha Business Designs Dashboard - Manage customer reviews",
   SUPPORT_EMAIL: "help@alphabusiness.com",
   GOOGLE_REVIEWS_URL: "https://g.page/r/CZEmfT3kD-k-EBM/review",
 } as const;
@@ -14,7 +14,6 @@ export const ROUTES = {
   REVIEW: "/review",
   RESET_PASSWORD: "/reset-password",
   DASHBOARD_REVIEWS: "/reviews",
-  DASHBOARD_INVOICES: "/invoices",
 } as const;
 
 // Share Configuration
@@ -89,14 +88,7 @@ export const UI = {
 export const DB = {
   TABLES: {
     REVIEWS: 'reviews',
-    INVOICES: 'invoices',
     PROFILES: 'profiles',
-  },
-  STATUS: {
-    DRAFT: 'draft',
-    SENT: 'sent',
-    PAID: 'paid',
-    OVERDUE: 'overdue',
   },
 } as const;
 

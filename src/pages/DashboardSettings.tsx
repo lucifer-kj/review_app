@@ -8,18 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { BusinessSettingsService } from "@/services/businessSettingsService";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { 
   Settings, 
   Link, 
-  Upload, 
-  Download, 
   Save, 
   Globe, 
-  FileText, 
   CheckCircle, 
   AlertCircle,
   ExternalLink,
-  Trash2
+  CheckCircle2,
+  Circle
 } from "lucide-react";
 import type { BusinessSettings } from "@/types";
 
@@ -29,14 +28,24 @@ const DashboardSettings = () => {
     business_name: null,
     business_email: null,
     business_phone: null,
-    business_address: null,
-    invoice_template_url: null
+    business_address: null
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [templateFile, setTemplateFile] = useState<File | null>(null);
   const { toast } = useToast();
+
+  // Calculate setup completion
+  const setupProgress = {
+    businessName: !!settings.business_name,
+    businessEmail: !!settings.business_email,
+    businessPhone: !!settings.business_phone,
+    businessAddress: !!settings.business_address,
+    googleBusinessUrl: !!settings.google_business_url,
+  };
+
+  const completedSteps = Object.values(setupProgress).filter(Boolean).length;
+  const totalSteps = Object.keys(setupProgress).length;
+  const setupPercentage = Math.round((completedSteps / totalSteps) * 100);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -101,81 +110,7 @@ const DashboardSettings = () => {
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
 
-    setUploading(true);
-    setTemplateFile(file);
-
-    try {
-      const response = await BusinessSettingsService.uploadInvoiceTemplate(file);
-      
-      if (response.success && response.data) {
-        // Update settings with new template URL
-        setSettings(prev => ({
-          ...prev,
-          invoice_template_url: response.data.url
-        }));
-
-        toast({
-          title: "Template Uploaded",
-          description: "Invoice template has been uploaded successfully.",
-        });
-      } else {
-        toast({
-          title: "Upload Failed",
-          description: response.error || "Failed to upload template. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch (error: unknown) {
-      toast({
-        title: "Upload Failed",
-        description: error instanceof Error ? error.message : "Failed to upload template. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleRemoveTemplate = async () => {
-    if (!settings.invoice_template_url) return;
-
-    try {
-      // Extract filename from URL
-      const fileName = settings.invoice_template_url.split('/').pop();
-      if (fileName) {
-        const response = await BusinessSettingsService.deleteInvoiceTemplate(fileName);
-        
-        if (!response.success) {
-          toast({
-            title: "Remove Failed",
-            description: response.error || "Failed to remove template. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
-      setSettings(prev => ({
-        ...prev,
-        invoice_template_url: null
-      }));
-
-      toast({
-        title: "Template Removed",
-        description: "Invoice template has been removed successfully.",
-      });
-    } catch (error: unknown) {
-      toast({
-        title: "Remove Failed",
-        description: error instanceof Error ? error.message : "Failed to remove template. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const validateGoogleBusinessUrl = (url: string) => {
     if (!url) return true;
@@ -193,12 +128,78 @@ const DashboardSettings = () => {
 
   return (
     <div className="space-y-6">
+      <Breadcrumbs 
+        items={[
+          { label: "Dashboard", href: "/" },
+          { label: "Settings", isCurrent: true }
+        ]} 
+        className="mb-4"
+      />
+      
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold">Settings</h1>
         <p className="text-muted-foreground text-sm sm:text-base">
           Configure your business settings and preferences
         </p>
       </div>
+
+      {/* Setup Progress */}
+      <Card>
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <CheckCircle2 className="h-5 w-5" />
+            Setup Progress
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Complete your business profile to start collecting reviews
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-4 sm:px-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Profile Completion</span>
+              <span className="text-sm text-muted-foreground">{completedSteps}/{totalSteps} steps</span>
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div 
+                className="bg-primary h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${setupPercentage}%` }}
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm">
+                {setupProgress.businessName ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
+                <span className={setupProgress.businessName ? "text-foreground" : "text-muted-foreground"}>Business Name</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                {setupProgress.businessEmail ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
+                <span className={setupProgress.businessEmail ? "text-foreground" : "text-muted-foreground"}>Business Email</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                {setupProgress.businessPhone ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
+                <span className={setupProgress.businessPhone ? "text-foreground" : "text-muted-foreground"}>Business Phone</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                {setupProgress.businessAddress ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
+                <span className={setupProgress.businessAddress ? "text-foreground" : "text-muted-foreground"}>Business Address</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                {setupProgress.googleBusinessUrl ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
+                <span className={setupProgress.googleBusinessUrl ? "text-foreground" : "text-muted-foreground"}>Google Business Profile</span>
+              </div>
+            </div>
+            {setupPercentage === 100 && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-800">Setup Complete!</span>
+                </div>
+                <p className="text-xs text-green-700 mt-1">Your business profile is ready. You can now start sending review requests to customers.</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Business Information */}
       <Card>
@@ -318,80 +319,7 @@ const DashboardSettings = () => {
         </CardContent>
       </Card>
 
-      {/* Invoice Template */}
-      <Card>
-        <CardHeader className="px-4 sm:px-6">
-          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-            <FileText className="h-5 w-5" />
-            Invoice Template
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Upload an ODT template file for invoice generation
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 px-4 sm:px-6">
-          <div className="space-y-2">
-            <Label className="text-sm">Template File (ODT format only)</Label>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                type="file"
-                accept=".odt"
-                onChange={handleFileUpload}
-                disabled={uploading}
-                className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 text-sm sm:text-base"
-              />
-              {uploading && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  Uploading...
-                </div>
-              )}
-            </div>
-          </div>
 
-          {settings.invoice_template_url && (
-            <div className="p-4 border rounded-lg">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <span className="font-medium text-sm sm:text-base">Current Template</span>
-                  <Badge variant="secondary" className="text-xs">ODT</Badge>
-                </div>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(settings.invoice_template_url, '_blank')}
-                    className="flex-1 sm:flex-none text-sm"
-                  >
-                    <Download className="h-4 w-4 mr-1" />
-                    <span className="hidden sm:inline">Download</span>
-                    <span className="sm:hidden">Download</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRemoveTemplate}
-                    className="text-destructive hover:text-destructive flex-1 sm:flex-none text-sm"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="p-4 bg-muted rounded-lg">
-            <h4 className="font-medium mb-2 text-sm sm:text-base">Template Requirements:</h4>
-            <ul className="text-xs sm:text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>File format: ODT (OpenDocument Text)</li>
-              <li>Maximum file size: 10MB</li>
-              <li>Use placeholders like {"{{customer_name}}"}, {"{{invoice_number}}"}, {"{{total}}"} for dynamic content</li>
-              <li>Template will be used to generate PDF invoices</li>
-            </ul>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Save Button */}
       <div className="flex justify-end">

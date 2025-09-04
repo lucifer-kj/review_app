@@ -219,7 +219,6 @@ const getAllowedOrigins = () => {
     "http://localhost:3000",
     "http://localhost:5173", 
     "http://localhost:4173",
-    "https://invoice-app-iota-livid.vercel.app",
     "https://alpha-business.vercel.app"
   ];
 };

@@ -10,7 +10,11 @@ import { ReviewListSkeleton } from "@/components/ReviewSkeleton";
 import { SendReviewEmailDialog } from "@/components/SendReviewEmailDialog";
 import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
 import { LoadingWrapper } from "@/components/LoadingWrapper";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { Pagination } from "@/components/Pagination";
 import { useReviewsQuery } from "@/hooks/useReviewsQuery";
+import { MobileSearchFilters } from "@/components/MobileSearchFilters";
+import { MobileReviewCard } from "@/components/MobileReviewCard";
 import { useQueryParams } from "@/hooks/useQueryParams";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useSessionStorage } from "@/hooks/useSessionStorage";
@@ -35,6 +39,8 @@ const DashboardReviews = () => {
   const filteredReviews = data?.rows || [];
   const total = data?.total || 0;
   const totalPages = Math.max(1, Math.ceil(total / 20));
+
+
 
   const exportToCSV = useCallback(() => {
     try {
@@ -87,62 +93,145 @@ const DashboardReviews = () => {
 
   return (
     <DashboardErrorBoundary componentName="DashboardReviews">
-      <LoadingWrapper loading={loading} error={error} className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <LoadingWrapper loading={isLoading} error={error} className="space-y-6">
+        {/* Mobile Components */}
+        <div className="lg:hidden space-y-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Reviews</h1>
-            <p className="text-muted-foreground text-sm sm:text-base">
+            <h1 className="text-xl font-bold">Reviews</h1>
+            <p className="text-muted-foreground text-sm">
               Manage and analyze customer feedback
             </p>
           </div>
+          
+          <MobileSearchFilters
+            searchTerm={searchTerm}
+            ratingFilter={ratingFilter}
+            onSearchChange={(value) => {
+              setSearchTerm(value);
+              setPersistedFilters({ search: value, rating: ratingFilter });
+              setParams({ search: value || undefined, page: '1' });
+            }}
+            onRatingFilterChange={(value) => {
+              const v = value as typeof ratingFilter;
+              setRatingFilter(v);
+              setPersistedFilters({ search: searchTerm, rating: v });
+              setParams({ rating: v === 'all' ? undefined : v, page: '1' });
+            }}
+            onClearFilters={() => {
+              setSearchTerm('');
+              setRatingFilter('all');
+              setPersistedFilters({ search: '', rating: 'all' });
+              setParams({ search: undefined, rating: undefined, page: '1' });
+            }}
+          />
+          
+          {/* Mobile Review Cards */}
+          <div className="space-y-3">
+            {filteredReviews.map((review) => (
+              <MobileReviewCard
+                key={review.id}
+                review={review}
+                onViewFeedback={handleViewFeedback}
+                onGoogleReviewClick={handleGoogleReviewClick}
+              />
+            ))}
+          </div>
+          
+          {/* Mobile Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center">
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={(newPage) => setParams({ page: String(newPage) })}
+              />
+            </div>
+          )}
         </div>
 
-        <Card>
-          <CardHeader className="px-4 sm:px-6">
-            <CardTitle className="text-lg sm:text-xl">Filter Reviews</CardTitle>
-            <CardDescription className="text-sm">
-              Search and filter reviews to find what you need
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 px-4 sm:px-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by name or phone..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setPersistedFilters({ search: e.target.value, rating: ratingFilter });
-                      setParams({ search: e.target.value || undefined, page: '1' });
-                    }}
-                    className="pl-9 text-sm sm:text-base"
-                  />
-                </div>
-              </div>
-              <Select
-                value={ratingFilter}
-                onValueChange={(value) => {
-                  const v = value as typeof ratingFilter;
-                  setRatingFilter(v);
-                  setPersistedFilters({ search: searchTerm, rating: v });
-                  setParams({ rating: v === 'all' ? undefined : v, page: '1' });
-                }}
-              >
-                <SelectTrigger className="w-full sm:w-[180px] text-sm sm:text-base">
-                  <Filter className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="Filter by rating" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Ratings</SelectItem>
-                  <SelectItem value="high">High (4-5 stars)</SelectItem>
-                  <SelectItem value="low">Low (1-3 stars)</SelectItem>
-                </SelectContent>
-              </Select>
+        {/* Desktop Components */}
+        <div className="hidden lg:block">
+          <Breadcrumbs 
+            items={[
+              { label: "Dashboard", href: "/" },
+              { label: "Reviews", isCurrent: true }
+            ]} 
+            className="mb-4"
+          />
+          
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold">Reviews</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">
+                Manage and analyze customer feedback
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <Card>
+            <CardHeader className="px-4 sm:px-6">
+              <CardTitle className="text-lg sm:text-xl">Filter Reviews</CardTitle>
+              <CardDescription className="text-sm">
+                Search and filter reviews to find what you need
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 px-4 sm:px-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name or phone..."
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setPersistedFilters({ search: e.target.value, rating: ratingFilter });
+                        setParams({ search: e.target.value || undefined, page: '1' });
+                      }}
+                      className="pl-9 text-sm sm:text-base"
+                    />
+                  </div>
+                </div>
+                <Select
+                  value={ratingFilter}
+                  onValueChange={(value) => {
+                    const v = value as typeof ratingFilter;
+                    setRatingFilter(v);
+                    setPersistedFilters({ search: searchTerm, rating: v });
+                    setParams({ rating: v === 'all' ? undefined : v, page: '1' });
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-[180px] text-sm sm:text-base">
+                    <Filter className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Filter by rating" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Ratings</SelectItem>
+                    <SelectItem value="high">High (4-5 stars)</SelectItem>
+                    <SelectItem value="low">Low (1-3 stars)</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {(searchTerm || ratingFilter !== 'all') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setRatingFilter('all');
+                      setPersistedFilters({ search: '', rating: 'all' });
+                      setParams({ search: undefined, rating: undefined, page: '1' });
+                    }}
+                    className="flex-shrink-0"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="h-6"></div>
 
         <Card>
           <CardHeader className="px-4 sm:px-6">
@@ -282,17 +371,16 @@ const DashboardReviews = () => {
                 </div>
               </div>
             </div>
-            <div className="flex justify-end items-center gap-2 px-4 sm:px-0 mt-4">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setParams({ page: String(page - 1 || 1) })}>
-                Prev
-              </Button>
-              <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setParams({ page: String(page + 1) })}>
-                Next
-              </Button>
+            <div className="px-4 sm:px-6 pt-4">
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={(newPage) => setParams({ page: String(newPage) })}
+              />
             </div>
           </CardContent>
         </Card>
+        </div>
 
         {/* Feedback Dialog */}
         {showFeedbackDialog && selectedReview && (

@@ -1,38 +1,109 @@
 import { Outlet } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
-import { Building2 } from "lucide-react";
-import { Suspense, lazy } from "react";
+import { Building2, LogOut, Settings, User, ChevronDown } from "lucide-react";
+import { Suspense, lazy, useState } from "react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { MobileHeader } from "@/components/MobileHeader";
 
 const ShareButton = lazy(() => import("@/components/ShareButton").then(module => ({ default: module.ShareButton })));
+const CopyLinkButton = lazy(() => import("@/components/CopyLinkButton").then(module => ({ default: module.CopyLinkButton })));
 
 const DashboardLayout = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate("/");
+      toast({
+        title: "Signed Out",
+        description: "You have been successfully signed out.",
+      });
+    } catch {
+      toast({
+        title: "Error",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSettings = () => {
+    navigate("/settings");
+  };
+
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col">
-          <header className="h-16 flex items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
-            <div className="flex items-center gap-3">
-              <SidebarTrigger />
-              <div className="flex items-center gap-3">
-                <Building2 className="h-6 w-6 text-primary" />
-                <span className="font-semibold text-base">Alpha Business Designs</span>
-              </div>
-            </div>
-            <div className="flex-shrink-0">
-              <Suspense fallback={<LoadingSpinner />}>
-                <ShareButton />
-              </Suspense>
-            </div>
-          </header>
-          <main className="flex-1 p-6 sm:p-8 lg:p-10 overflow-x-hidden">
-            <Outlet />
-          </main>
-        </div>
+    <div className="min-h-screen flex w-full">
+      {/* Mobile Header */}
+      <MobileHeader onLogout={handleLogout} />
+      
+      <div className="flex-1 flex flex-col">
+        {/* Desktop Header */}
+        <header className="hidden lg:flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => navigate("/")}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity duration-200 cursor-pointer"
+            >
+              <Building2 className="h-6 w-6 text-primary" />
+              <span className="font-semibold text-base">Alpha Business Designs</span>
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <Suspense fallback={<LoadingSpinner />}>
+              <CopyLinkButton />
+            </Suspense>
+            <Suspense fallback={<LoadingSpinner />}>
+              <ShareButton />
+            </Suspense>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                      AB
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden sm:inline">Account</span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={handleSettings}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden pb-20 lg:pb-8">
+          <Outlet />
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
 

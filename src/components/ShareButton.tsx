@@ -118,12 +118,6 @@ export const ShareButton = ({
   };
 
   const shareOptions = [
-    {
-      name: "Copy Link",
-      icon: Copy,
-      action: copyToClipboard,
-      isWebShare: false,
-    },
     ...(navigator.share ? [{
       name: "Share",
       icon: Share2,
