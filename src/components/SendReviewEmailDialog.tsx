@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { EmailService } from "@/services/emailService";
-import { Mail, Send, Loader2, Copy, ExternalLink } from "lucide-react";
+import { EmailSendingService } from "@/services/emailSendingService";
+import { Mail, Send, Loader2, Copy, ExternalLink, CheckCircle, AlertCircle } from "lucide-react";
 import { VALIDATION } from "@/constants";
 
 interface SendReviewEmailDialogProps {
@@ -30,8 +31,11 @@ export const SendReviewEmailDialog = ({
     businessName: "Alpha Business Designs"
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [emailGenerated, setEmailGenerated] = useState(false);
-  const [emailData, setEmailData] = useState<{ to: string; subject: string; body: string } | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailData, setEmailData] = useState<{ to: string; subject: string; body: string; html?: string } | null>(null);
+  const [sendingMethod, setSendingMethod] = useState<string>('auto');
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,8 +72,8 @@ export const SendReviewEmailDialog = ({
     setIsSubmitting(true);
 
     try {
-      // Generate email template
-      const generatedEmailData = EmailService.generateReviewEmailTemplate({
+      // Generate email template with dynamic business settings
+      const generatedEmailData = await EmailService.generateReviewEmailTemplate({
         customerEmail: formData.customerEmail.trim(),
         customerName: formData.customerName.trim(),
         businessName: formData.businessName.trim(),
@@ -79,12 +83,18 @@ export const SendReviewEmailDialog = ({
       setEmailData(generatedEmailData);
       setEmailGenerated(true);
 
-      toast({
-        title: "Email Template Generated",
-        description: `Email template prepared for ${formData.customerName}. Choose how you'd like to send it.`,
-      });
+      // Auto-send email if configured
+      if (sendingMethod === 'auto') {
+        await handleAutoSendEmail(generatedEmailData);
+      } else {
+        toast({
+          title: "Email Template Generated",
+          description: `Email template prepared for ${formData.customerName}. Choose how you'd like to send it.`,
+        });
+      }
       
     } catch (error) {
+      console.error('Error generating email template:', error);
       toast({
         title: "Error",
         description: "Failed to generate email template. Please try again.",
@@ -95,22 +105,68 @@ export const SendReviewEmailDialog = ({
     }
   };
 
+  const handleAutoSendEmail = async (emailData: any) => {
+    setIsSending(true);
+    
+    try {
+      // Try to send via API first
+      const result = await EmailSendingService.sendEmailViaAPI(emailData);
+      
+      if (result.success) {
+        setEmailSent(true);
+        toast({
+          title: "Email Sent Successfully!",
+          description: `Review request email has been sent to ${formData.customerName} at ${formData.customerEmail}`,
+        });
+        onSuccess?.();
+      } else {
+        // Fallback to other methods
+        await handleFallbackSending(emailData);
+      }
+    } catch (error) {
+      console.error('Auto-send error:', error);
+      await handleFallbackSending(emailData);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleFallbackSending = async (emailData: any) => {
+    // Try EmailJS if available
+    if (EmailSendingService.isEmailJSConfigured()) {
+      const result = await EmailSendingService.sendEmail(emailData);
+      if (result.success) {
+        setEmailSent(true);
+        toast({
+          title: "Email Sent Successfully!",
+          description: `Review request email has been sent to ${formData.customerName}`,
+        });
+        onSuccess?.();
+        return;
+      }
+    }
+
+    // Fallback to mailto
+    EmailSendingService.openEmailClient(emailData);
+    toast({
+      title: "Email Client Opened",
+      description: "Please send the email manually from your email client.",
+    });
+  };
+
   const handleOpenEmailClient = () => {
     if (emailData) {
-      EmailService.openEmailClient(emailData);
+      EmailSendingService.openEmailClient(emailData);
       toast({
         title: "Email Client Opened",
-        description: "Your default email client should now open with the pre-filled email.",
+        description: "Your default email client should open with the pre-filled email.",
       });
-      
-      onSuccess?.();
-      handleClose();
     }
   };
 
   const handleCopyToClipboard = async () => {
     if (emailData) {
-      const success = await EmailService.copyEmailToClipboard(emailData);
+      const success = await EmailSendingService.copyEmailToClipboard(emailData);
       if (success) {
         toast({
           title: "Email Copied",
@@ -126,112 +182,165 @@ export const SendReviewEmailDialog = ({
     }
   };
 
-  const handleClose = () => {
-    if (!isSubmitting) {
-      setEmailGenerated(false);
-      setEmailData(null);
-      onOpenChange(false);
+  const handleSendEmail = async () => {
+    if (!emailData) return;
+    
+    setIsSending(true);
+    try {
+      const result = await EmailSendingService.sendEmailViaAPI(emailData);
+      
+      if (result.success) {
+        setEmailSent(true);
+        toast({
+          title: "Email Sent Successfully!",
+          description: `Review request email has been sent to ${formData.customerName}`,
+        });
+        onSuccess?.();
+      } else {
+        toast({
+          title: "Send Failed",
+          description: result.error || "Failed to send email. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Send email error:', error);
+      toast({
+        title: "Send Failed",
+        description: "Failed to send email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
     }
   };
 
   const handleReset = () => {
-    setEmailGenerated(false);
-    setEmailData(null);
     setFormData({
-      customerName: "",
-      customerEmail: "",
+      customerName: customerName,
+      customerEmail: customerEmail,
       managerName: "",
       businessName: "Alpha Business Designs"
     });
+    setEmailGenerated(false);
+    setEmailSent(false);
+    setEmailData(null);
+    setSendingMethod('auto');
+  };
+
+  const handleClose = () => {
+    handleReset();
+    onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Mail className="w-5 h-5" />
-            Send Review Request
+            <Mail className="h-5 w-5" />
+            Send Review Request Email
           </DialogTitle>
           <DialogDescription>
-            {emailGenerated 
-              ? "Email template generated! Choose how you'd like to send it."
-              : "Create a personalized review request email for your customer."
-            }
+            Generate and send a personalized email template to request customer feedback.
           </DialogDescription>
         </DialogHeader>
 
         {!emailGenerated ? (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="customerName">Customer Name *</Label>
-              <Input
-                id="customerName"
-                value={formData.customerName}
-                onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                placeholder="Enter customer's full name"
-                disabled={isSubmitting}
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="customerName">Customer Name *</Label>
+                <Input
+                  id="customerName"
+                  type="text"
+                  value={formData.customerName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                  placeholder="Enter customer's full name"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="customerEmail">Customer Email *</Label>
+                <Input
+                  id="customerEmail"
+                  type="email"
+                  value={formData.customerEmail}
+                  onChange={(e) => setFormData(prev => ({ ...prev, customerEmail: e.target.value }))}
+                  placeholder="customer@example.com"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="managerName">Manager Name (Optional)</Label>
+                <Input
+                  id="managerName"
+                  type="text"
+                  value={formData.managerName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, managerName: e.target.value }))}
+                  placeholder="Who is requesting this review?"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="businessName">Business Name</Label>
+                <Input
+                  id="businessName"
+                  type="text"
+                  value={formData.businessName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
+                  placeholder="Your business name"
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="customerEmail">Customer Email *</Label>
-              <Input
-                id="customerEmail"
-                type="email"
-                value={formData.customerEmail}
-                onChange={(e) => setFormData(prev => ({ ...prev, customerEmail: e.target.value }))}
-                placeholder="customer@example.com"
-                disabled={isSubmitting}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="managerName">Manager Name (Optional)</Label>
-              <Input
-                id="managerName"
-                value={formData.managerName}
-                onChange={(e) => setFormData(prev => ({ ...prev, managerName: e.target.value }))}
-                placeholder="Your name (will appear in email signature)"
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="businessName">Business Name</Label>
-              <Input
-                id="businessName"
-                value={formData.businessName}
-                onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
-                placeholder="Your business name"
-                disabled={isSubmitting}
-              />
+              <Label>Sending Method</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    value="auto"
+                    checked={sendingMethod === 'auto'}
+                    onChange={(e) => setSendingMethod(e.target.value)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm">Auto-send email</span>
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    value="manual"
+                    checked={sendingMethod === 'manual'}
+                    onChange={(e) => setSendingMethod(e.target.value)}
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm">Generate template only</span>
+                </label>
+              </div>
             </div>
 
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-                disabled={isSubmitting}
-              >
+              <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-              >
+              <Button type="submit" disabled={isSubmitting || isSending}>
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Generating...
+                  </>
+                ) : isSending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
                   </>
                 ) : (
                   <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Generate Email Template
+                    <Send className="h-4 w-4 mr-2" />
+                    {sendingMethod === 'auto' ? 'Generate & Send' : 'Generate Email'}
                   </>
                 )}
               </Button>
@@ -239,52 +348,94 @@ export const SendReviewEmailDialog = ({
           </form>
         ) : (
           <div className="space-y-4">
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">Email Preview</h4>
-              <div className="text-sm space-y-1">
-                <p><strong>To:</strong> {emailData?.to}</p>
-                <p><strong>Subject:</strong> {emailData?.subject}</p>
-                <div className="mt-2">
-                  <p><strong>Body:</strong></p>
-                  <div className="bg-background p-3 rounded border text-xs max-h-32 overflow-y-auto">
-                    {emailData?.body}
+            {emailSent && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <div>
+                    <h4 className="font-medium text-green-800">Email Sent Successfully!</h4>
+                    <p className="text-sm text-green-700">
+                      Review request email has been sent to {formData.customerName} at {formData.customerEmail}
+                    </p>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                onClick={handleOpenEmailClient}
-                className="flex-1"
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Open Email Client
-              </Button>
-              <Button
-                onClick={handleCopyToClipboard}
-                variant="outline"
-                className="flex-1"
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Copy to Clipboard
-              </Button>
-            </div>
+            {emailData && (
+              <>
+                <div className="space-y-3">
+                  <div className="p-3 bg-muted rounded-lg">
+                    <div className="text-sm font-medium">To:</div>
+                    <div className="text-sm text-muted-foreground">{emailData.to}</div>
+                  </div>
+                  <div className="p-3 bg-muted rounded-lg">
+                    <div className="text-sm font-medium">Subject:</div>
+                    <div className="text-sm text-muted-foreground">{emailData.subject}</div>
+                  </div>
+                </div>
+
+                {/* Email Preview */}
+                <div className="space-y-2">
+                  <Label>Email Preview:</Label>
+                  <div className="border rounded-lg overflow-hidden">
+                    <div className="bg-muted px-3 py-2 border-b">
+                      <div className="text-xs font-medium text-muted-foreground">HTML Email Preview</div>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {emailData.html ? (
+                        <iframe
+                          srcDoc={emailData.html}
+                          className="w-full h-96 border-0"
+                          title="Email Preview"
+                        />
+                      ) : (
+                        <div className="p-4 whitespace-pre-wrap text-sm font-mono">
+                          {emailData.body}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {!emailSent && (
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button 
+                      onClick={handleSendEmail} 
+                      disabled={isSending}
+                      className="flex-1"
+                    >
+                      {isSending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-4 w-4 mr-2" />
+                          Send Email Now
+                        </>
+                      )}
+                    </Button>
+                    <Button onClick={handleOpenEmailClient} variant="outline" className="flex-1">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Open Email Client
+                    </Button>
+                    <Button onClick={handleCopyToClipboard} variant="outline" className="flex-1">
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy to Clipboard
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
 
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleReset}
-              >
-                Create New Email
+              <Button type="button" variant="outline" onClick={handleReset}>
+                Send Another Email
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClose}
-              >
-                Close
+              <Button onClick={handleClose}>
+                Done
               </Button>
             </DialogFooter>
           </div>
