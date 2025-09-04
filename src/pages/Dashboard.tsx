@@ -4,13 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadingWrapper } from "@/components/LoadingWrapper";
 import { MagicCard } from "@/components/ui/magic-card";
-import { BarChart3, FileText, Star, Plus, Eye, Download, Mail, HelpCircle, MessageSquare, Settings } from "lucide-react";
+import { BarChart3, FileText, Star, Plus, Eye, Download, Mail, HelpCircle, MessageSquare, Settings, AlertCircle } from "lucide-react";
 import { SendReviewEmailDialog } from "@/components/SendReviewEmailDialog";
 import { useNavigate } from "react-router-dom";
 import { ReviewService } from "@/services/reviewService";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDistanceToNow } from "date-fns";
 import { MobileDashboard } from "@/components/MobileDashboard";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DashboardStats {
   totalReviews: number;
@@ -35,22 +36,31 @@ const Dashboard = () => {
     highRatingReviews: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch stats
+        setError(null);
+        
+        // Fetch stats with error handling
         const statsResponse = await ReviewService.getReviewStats();
         
         if (statsResponse.success && statsResponse.data) {
           setStats(statsResponse.data);
         } else {
-          console.error('Error fetching stats:', statsResponse.error);
+          console.warn('Stats fetch warning:', statsResponse.error);
+          // Don't set error for stats, just use defaults
+          setStats({
+            totalReviews: 0,
+            averageRating: 0,
+            highRatingReviews: 0,
+          });
         }
 
-        // Fetch recent reviews for activity feed
+        // Fetch recent reviews for activity feed with error handling
         const reviewsResponse = await ReviewService.getReviews();
         
         if (reviewsResponse.success && reviewsResponse.data) {
@@ -66,9 +76,14 @@ const Dashboard = () => {
           }));
           
           setRecentActivities(activities);
+        } else {
+          console.warn('Reviews fetch warning:', reviewsResponse.error);
+          // Don't set error for reviews, just use empty array
+          setRecentActivities([]);
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching dashboard data:', error);
+        setError('Failed to load dashboard data. Please try refreshing the page.');
       } finally {
         setLoading(false);
       }
@@ -76,6 +91,35 @@ const Dashboard = () => {
 
     fetchData();
   }, []);
+
+  const handleRetry = () => {
+    setLoading(true);
+    setError(null);
+    fetchData();
+  };
+
+  // If there's an error, show error state
+  if (error) {
+    return (
+      <div className="w-full p-6">
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error}
+          </AlertDescription>
+        </Alert>
+        
+        <div className="flex gap-3">
+          <Button onClick={handleRetry} variant="default">
+            Try Again
+          </Button>
+          <Button onClick={() => navigate("/")} variant="outline">
+            Go Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <LoadingWrapper loading={loading} error={null} className="w-full">
@@ -152,15 +196,15 @@ const Dashboard = () => {
               </div>
             </CardHeader>
             <CardContent className="px-0 pb-0">
-              <div className="text-3xl font-bold text-foreground mb-2">{stats.totalReviews}</div>
+              <div className="text-2xl font-bold text-foreground">{stats.totalReviews}</div>
               <p className="text-xs text-muted-foreground">
-                Customer feedback received
+                Total customer reviews received
               </p>
             </CardContent>
           </MagicCard>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Total number of customer reviews collected through your review system.</p>
+              <p>Total number of reviews and feedback received from customers.</p>
             </TooltipContent>
           </Tooltip>
 
@@ -169,23 +213,13 @@ const Dashboard = () => {
               <MagicCard className="p-6 cursor-help">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-0 pt-0">
               <CardTitle className="text-sm font-semibold text-foreground">Average Rating</CardTitle>
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Star className="h-4 w-4 text-yellow-600" />
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Star className="h-4 w-4 text-green-600" />
               </div>
             </CardHeader>
             <CardContent className="px-0 pb-0">
-              <div className="text-3xl font-bold text-foreground mb-2">{stats.averageRating.toFixed(1)}</div>
-              <div className="flex items-center gap-1 mb-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={`h-4 w-4 ${
-                      star <= Math.round(stats.averageRating)
-                        ? "text-yellow-500 fill-current"
-                        : "text-gray-300"
-                    }`}
-                  />
-                ))}
+              <div className="text-2xl font-bold text-foreground">
+                {stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '0.0'}
               </div>
               <p className="text-xs text-muted-foreground">
                 Average customer rating
@@ -202,15 +236,15 @@ const Dashboard = () => {
             <TooltipTrigger asChild>
               <MagicCard className="p-6 cursor-help">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-0 pt-0">
-              <CardTitle className="text-sm font-semibold text-foreground">High Ratings</CardTitle>
-              <div className="p-2 bg-green-100 rounded-lg">
-                <BarChart3 className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-sm font-semibold text-foreground">High Rating Reviews</CardTitle>
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Star className="h-4 w-4 text-yellow-600" />
               </div>
             </CardHeader>
             <CardContent className="px-0 pb-0">
-              <div className="text-3xl font-bold text-foreground mb-2">{stats.highRatingReviews}</div>
+              <div className="text-2xl font-bold text-foreground">{stats.highRatingReviews}</div>
               <p className="text-xs text-muted-foreground">
-                4-5 star reviews
+                Reviews with 4+ stars
               </p>
             </CardContent>
           </MagicCard>
@@ -221,8 +255,8 @@ const Dashboard = () => {
           </Tooltip>
         </div>
 
-        {/* Recent Activity */}
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+          {/* Recent Activity */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -237,40 +271,28 @@ const Dashboard = () => {
               {recentActivities.length > 0 ? (
                 <div className="space-y-4">
                   {recentActivities.map((activity) => (
-                    <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                    <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg border">
                       <div className="flex-shrink-0">
-                        {activity.type === 'review' && (
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <Star className="h-4 w-4 text-blue-600" />
-                          </div>
-                        )}
-                        {activity.type === 'feedback' && (
-                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                            <MessageSquare className="h-4 w-4 text-green-600" />
-                          </div>
+                        {activity.type === 'review' ? (
+                          <Star className="h-4 w-4 text-yellow-500" />
+                        ) : (
+                          <MessageSquare className="h-4 w-4 text-blue-500" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground">
                           {activity.message}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
-                        </p>
-                        {activity.rating && (
-                          <div className="flex items-center gap-1 mt-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <Star
-                                key={star}
-                                className={`h-3 w-3 ${
-                                  star <= activity.rating!
-                                    ? "text-yellow-500 fill-current"
-                                    : "text-gray-300"
-                                }`}
-                              />
-                            ))}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          {activity.rating && (
+                            <Badge variant="secondary" className="text-xs">
+                              {activity.rating} stars
+                            </Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -279,16 +301,19 @@ const Dashboard = () => {
                 <div className="text-center py-8">
                   <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p className="text-muted-foreground">No recent activity</p>
-                  <p className="text-sm text-muted-foreground">Customer reviews and feedback will appear here</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Start by sending review requests to your customers
+                  </p>
                 </div>
               )}
             </CardContent>
           </Card>
 
+          {/* Quick Actions */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
+                <Settings className="h-5 w-5" />
                 Quick Actions
               </CardTitle>
               <CardDescription>
@@ -302,23 +327,25 @@ const Dashboard = () => {
                   className="w-full justify-start"
                   variant="outline"
                 >
-                  <Mail className="h-4 w-4 mr-3" />
+                  <Mail className="h-4 w-4 mr-2" />
                   Send Review Request
                 </Button>
+                
                 <Button
                   onClick={() => navigate("/reviews")}
                   className="w-full justify-start"
                   variant="outline"
                 >
-                  <FileText className="h-4 w-4 mr-3" />
+                  <FileText className="h-4 w-4 mr-2" />
                   View All Reviews
                 </Button>
+                
                 <Button
                   onClick={() => navigate("/settings")}
                   className="w-full justify-start"
                   variant="outline"
                 >
-                  <Settings className="h-4 w-4 mr-3" />
+                  <Settings className="h-4 w-4 mr-2" />
                   Business Settings
                 </Button>
               </div>
@@ -327,12 +354,12 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Review Email Dialog */}
       <SendReviewEmailDialog
         open={showReviewDialog}
         onOpenChange={setShowReviewDialog}
         onSuccess={() => {
-          // Refresh data after sending email
+          setShowReviewDialog(false);
+          // Refresh data after sending review request
           window.location.reload();
         }}
       />
@@ -341,3 +368,7 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+function fetchData() {
+  throw new Error("Function not implemented.");
+}
