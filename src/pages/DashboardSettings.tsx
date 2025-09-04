@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { BusinessSettingsService } from "@/services/businessSettingsService";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { MobileSettings } from "@/components/MobileSettings";
 import { 
   Settings, 
   Link, 
@@ -126,22 +127,46 @@ const DashboardSettings = () => {
     );
   }
 
+  const setupSteps = [
+    { label: "Business Name", completed: !!settings.business_name, field: 'business_name' as keyof BusinessSettings },
+    { label: "Business Email", completed: !!settings.business_email, field: 'business_email' as keyof BusinessSettings },
+    { label: "Business Phone", completed: !!settings.business_phone, field: 'business_phone' as keyof BusinessSettings },
+    { label: "Business Address", completed: !!settings.business_address, field: 'business_address' as keyof BusinessSettings },
+    { label: "Google Business URL", completed: !!settings.google_business_url, field: 'google_business_url' as keyof BusinessSettings },
+  ];
+
+  const handleSettingsChange = (field: keyof BusinessSettings, value: string) => {
+    setSettings(prev => ({ ...prev, [field]: value }));
+  };
+
   return (
     <div className="space-y-6">
-      <Breadcrumbs 
-        items={[
-          { label: "Dashboard", href: "/" },
-          { label: "Settings", isCurrent: true }
-        ]} 
-        className="mb-4"
+      {/* Mobile Settings */}
+      <MobileSettings
+        settings={settings}
+        onSettingsChange={handleSettingsChange}
+        onSave={handleSaveSettings}
+        saving={saving}
+        setupProgress={setupPercentage}
+        setupSteps={setupSteps}
       />
-      
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground text-sm sm:text-base">
-          Configure your business settings and preferences
-        </p>
-      </div>
+
+      {/* Desktop Settings */}
+      <div className="hidden lg:block">
+        <Breadcrumbs 
+          items={[
+            { label: "Dashboard", href: "/" },
+            { label: "Settings", isCurrent: true }
+          ]} 
+          className="mb-4"
+        />
+        
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Settings</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            Configure your business settings and preferences
+          </p>
+        </div>
 
       {/* Setup Progress */}
       <Card>
@@ -336,6 +361,7 @@ const DashboardSettings = () => {
             </>
           )}
         </Button>
+      </div>
       </div>
     </div>
   );

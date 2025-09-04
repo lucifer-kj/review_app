@@ -25,41 +25,34 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
   return (
     <>
       {/* Mobile Header */}
-      <header className="lg:hidden h-14 flex items-center justify-between border-b bg-background/95 backdrop-blur px-4">
-        <button 
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-        >
-          <Building2 className="h-5 w-5 text-primary" />
-          <span className="font-semibold text-sm">Alpha Business</span>
-        </button>
-        
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="sm" className="p-2">
-              <Menu className="h-5 w-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-64 p-0">
+      <header className="lg:hidden h-16 flex items-center justify-between border-b bg-background/95 backdrop-blur px-4 shadow-sm">
+        <div className="flex items-center gap-3">
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="p-2 hover:bg-muted">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+          <SheetContent side="left" className="w-80 p-0">
             <div className="flex flex-col h-full">
-              <div className="p-4 border-b">
-                <div className="flex items-center gap-2 mb-4">
-                  <Building2 className="h-6 w-6 text-primary" />
-                  <span className="font-semibold">Alpha Business Designs</span>
+              <div className="p-6 border-b bg-muted/30">
+                <div className="flex items-center gap-3 mb-6">
+                  <Building2 className="h-8 w-8 text-primary" />
+                  <span className="font-bold text-lg">Alpha Business</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                    <span className="text-primary-foreground text-sm font-medium">AB</span>
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
+                    <span className="text-primary-foreground text-lg font-bold">AB</span>
                   </div>
                   <div>
-                    <p className="text-sm font-medium">Account</p>
-                    <p className="text-xs text-muted-foreground">Business Owner</p>
+                    <p className="text-base font-semibold">Account</p>
+                    <p className="text-sm text-muted-foreground">Business Owner</p>
                   </div>
                 </div>
               </div>
               
-              <nav className="flex-1 p-4">
-                <div className="space-y-2">
+              <nav className="flex-1 p-6">
+                <div className="space-y-3">
                   {navigationItems.map((item) => {
                     const Icon = item.icon;
                     return (
@@ -70,13 +63,13 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
                           setIsOpen(false);
                         }}
                         className={cn(
-                          "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                          "w-full flex items-center gap-4 px-4 py-3 rounded-xl text-base font-medium transition-colors",
                           isActive(item.href)
-                            ? "bg-primary text-primary-foreground"
+                            ? "bg-primary text-primary-foreground shadow-lg"
                             : "hover:bg-muted"
                         )}
                       >
-                        <Icon className="h-4 w-4" />
+                        <Icon className="h-5 w-5" />
                         {item.label}
                       </button>
                     );
@@ -84,26 +77,37 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
                 </div>
               </nav>
               
-              <div className="p-4 border-t">
+              <div className="p-6 border-t">
                 <button
                   onClick={() => {
                     onLogout();
                     setIsOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                  className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-base font-medium text-destructive hover:bg-destructive/10 transition-colors"
                 >
-                  <User className="h-4 w-4" />
+                  <User className="h-5 w-5" />
                   Sign Out
                 </button>
               </div>
             </div>
           </SheetContent>
         </Sheet>
+          
+        <button 
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+        >
+          <Building2 className="h-6 w-6 text-primary" />
+          <span className="font-bold text-base">Alpha Business</span>
+        </button>
+        </div>
+        
+        <div className="w-6 h-6" />
       </header>
 
       {/* Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background border-t z-50">
-        <div className="flex justify-around">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t z-50 shadow-lg">
+        <div className="flex justify-around py-2">
           {navigationItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -111,14 +115,14 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
                 key={item.href}
                 onClick={() => navigate(item.href)}
                 className={cn(
-                  "flex flex-col items-center py-2 px-3 text-xs transition-colors",
+                  "flex flex-col items-center py-3 px-4 text-xs font-medium transition-all duration-200 min-w-0 flex-1",
                   isActive(item.href)
-                    ? "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-primary bg-primary/10 rounded-xl"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl"
                 )}
               >
-                <Icon className="h-5 w-5 mb-1" />
-                {item.label}
+                <Icon className="h-6 w-6 mb-1" />
+                <span className="text-xs">{item.label}</span>
               </button>
             );
           })}

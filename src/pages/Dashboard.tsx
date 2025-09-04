@@ -91,7 +91,7 @@ const Dashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
@@ -145,19 +145,19 @@ const Dashboard = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <MagicCard className="p-6 cursor-help">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-0 pt-0">
-                  <CardTitle className="text-sm font-semibold text-foreground">Total Reviews</CardTitle>
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <FileText className="h-4 w-4 text-blue-600" />
-                  </div>
-                </CardHeader>
-                <CardContent className="px-0 pb-0">
-                  <div className="text-3xl font-bold text-foreground mb-2">{stats.totalReviews}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Customer feedback received
-                  </p>
-                </CardContent>
-              </MagicCard>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-0 pt-0">
+              <CardTitle className="text-sm font-semibold text-foreground">Total Reviews</CardTitle>
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <FileText className="h-4 w-4 text-blue-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
+              <div className="text-3xl font-bold text-foreground mb-2">{stats.totalReviews}</div>
+              <p className="text-xs text-muted-foreground">
+                Customer feedback received
+              </p>
+            </CardContent>
+          </MagicCard>
             </TooltipTrigger>
             <TooltipContent>
               <p>Total number of customer reviews collected through your review system.</p>
@@ -167,28 +167,28 @@ const Dashboard = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <MagicCard className="p-6 cursor-help">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-0 pt-0">
-                  <CardTitle className="text-sm font-semibold text-foreground">Average Rating</CardTitle>
-                  <div className="p-2 bg-yellow-100 rounded-lg">
-                    <Star className="h-4 w-4 text-yellow-600" />
-                  </div>
-                </CardHeader>
-                <CardContent className="px-0 pb-0">
-                  <div className="text-3xl font-bold text-foreground mb-2">{stats.averageRating.toFixed(1)}</div>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={`h-3 w-3 ${
-                          star <= Math.round(stats.averageRating)
-                            ? "text-yellow-500 fill-current"
-                            : "text-gray-300"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </CardContent>
-              </MagicCard>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-0 pt-0">
+              <CardTitle className="text-sm font-semibold text-foreground">Average Rating</CardTitle>
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Star className="h-4 w-4 text-yellow-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
+              <div className="text-3xl font-bold text-foreground mb-2">{stats.averageRating.toFixed(1)}</div>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`h-3 w-3 ${
+                      star <= Math.round(stats.averageRating)
+                        ? "text-yellow-500 fill-current"
+                        : "text-gray-300"
+                    }`}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </MagicCard>
             </TooltipTrigger>
             <TooltipContent>
               <p>Average star rating from all customer reviews. Higher ratings help improve your business reputation.</p>
@@ -198,19 +198,19 @@ const Dashboard = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <MagicCard className="p-6 cursor-help">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-0 pt-0">
-                  <CardTitle className="text-sm font-semibold text-foreground">High Ratings</CardTitle>
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <BarChart3 className="h-4 w-4 text-green-600" />
-                  </div>
-                </CardHeader>
-                <CardContent className="px-0 pb-0">
-                  <div className="text-3xl font-bold text-foreground mb-2">{stats.highRatingReviews}</div>
-                  <p className="text-xs text-muted-foreground">
-                    4+ star reviews
-                  </p>
-                </CardContent>
-              </MagicCard>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 px-0 pt-0">
+              <CardTitle className="text-sm font-semibold text-foreground">High Ratings</CardTitle>
+              <div className="p-2 bg-green-100 rounded-lg">
+                <BarChart3 className="h-4 w-4 text-green-600" />
+              </div>
+            </CardHeader>
+            <CardContent className="px-0 pb-0">
+              <div className="text-3xl font-bold text-foreground mb-2">{stats.highRatingReviews}</div>
+              <p className="text-xs text-muted-foreground">
+                4+ star reviews
+              </p>
+            </CardContent>
+          </MagicCard>
             </TooltipTrigger>
             <TooltipContent>
               <p>Number of reviews with 4 or 5 stars. These customers are redirected to leave Google Reviews.</p>
@@ -220,15 +220,15 @@ const Dashboard = () => {
 
         </div>
 
-        <MagicCard>
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-foreground">Recent Activity</CardTitle>
-            <CardDescription className="text-sm">
-              Latest updates from your business
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <MagicCard>
+            <CardHeader>
+              <CardTitle className="text-xl font-bold text-foreground">Recent Activity</CardTitle>
+              <CardDescription className="text-sm">
+                Latest updates from your business
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
               {recentActivities.length > 0 ? (
                 recentActivities.map((activity) => (
                   <div key={activity.id} className="flex items-center gap-4 p-4 rounded-lg hover:bg-accent/30 transition-colors duration-200">
@@ -244,7 +244,7 @@ const Dashboard = () => {
                         <div className="flex items-center gap-1 mt-1">
                           <span className="text-xs text-muted-foreground">{activity.rating}</span>
                           <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                        </div>
+                </div>
                       )}
                     </div>
                     <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap">
@@ -257,12 +257,12 @@ const Dashboard = () => {
                   <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">No recent activity</p>
                   <p className="text-xs">Start collecting reviews to see activity here</p>
-                </div>
+                    </div>
               )}
-            </div>
-          </CardContent>
-        </MagicCard>
-      </div>
+              </div>
+            </CardContent>
+          </MagicCard>
+        </div>
       
       <SendReviewEmailDialog
         open={showReviewDialog}
