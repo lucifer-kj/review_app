@@ -258,7 +258,7 @@ const Dashboard = () => {
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
           {/* Recent Activity */}
           <Card>
-            <CardHeader>
+            <CardHeader className="px-6 sm:px-8">
               <CardTitle className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5" />
                 Recent Activity
@@ -267,7 +267,7 @@ const Dashboard = () => {
                 Latest customer interactions and reviews
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-6 sm:px-8">
               {recentActivities.length > 0 ? (
                 <div className="space-y-4">
                   {recentActivities.map((activity) => (
@@ -311,7 +311,7 @@ const Dashboard = () => {
 
           {/* Quick Actions */}
           <Card>
-            <CardHeader>
+            <CardHeader className="px-6 sm:px-8">
               <CardTitle className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
                 Quick Actions
@@ -320,7 +320,7 @@ const Dashboard = () => {
                 Common tasks and shortcuts
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-6 sm:px-8">
               <div className="space-y-3">
                 <Button
                   onClick={() => setShowReviewDialog(true)}

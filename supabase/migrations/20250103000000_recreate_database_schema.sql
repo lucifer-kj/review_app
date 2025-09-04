@@ -109,6 +109,9 @@ BEGIN
   -- For authenticated users, assign their user_id
   IF auth.uid() IS NOT NULL THEN
     NEW.user_id = auth.uid();
+  ELSE
+    -- For anonymous users, set user_id to NULL (make sure the column allows NULL)
+    NEW.user_id = NULL;
   END IF;
   RETURN NEW;
 END;

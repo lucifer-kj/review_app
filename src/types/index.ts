@@ -12,8 +12,6 @@ export interface ReviewFormData {
   rating: number;
 }
 
-
-
 // Dashboard types
 export interface DashboardStats {
   totalReviews: number;
@@ -55,14 +53,15 @@ export interface AuthState {
   isAuthenticated: boolean;
 }
 
-// Business settings types
+// Business settings types - updated to match service interface
 export interface BusinessSettings {
-  id?: string;
-  google_business_url: string | null;
-  business_name: string | null;
-  business_email: string | null;
-  business_phone: string | null;
-  business_address: string | null;
-  created_at?: string;
-  updated_at?: string;
+  id: string;
+  user_id?: string;
+  google_business_url?: string;
+  business_name?: string;
+  business_email?: string;
+  business_phone?: string;
+  business_address?: string;
+  created_at: string;
+  updated_at: string;
 }

@@ -40,8 +40,6 @@ const DashboardReviews = () => {
   const total = data?.total || 0;
   const totalPages = Math.max(1, Math.ceil(total / 20));
 
-
-
   const exportToCSV = useCallback(() => {
     try {
       const csvContent = [
@@ -89,11 +87,15 @@ const DashboardReviews = () => {
     if (review.google_review) {
       window.open('https://g.page/r/CZEmfT3kD-k-EBM/review', '_blank');
     }
-  }
+  };
+
+  const handleRefetch = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   return (
     <DashboardErrorBoundary componentName="DashboardReviews">
-      <LoadingWrapper loading={isLoading} error={error} className="space-y-6">
+      <div className="w-full space-y-6 p-6">
         {/* Mobile Components */}
         <div className="lg:hidden space-y-6">
           <MobileSearchFilters
@@ -153,7 +155,7 @@ const DashboardReviews = () => {
         </div>
 
         {/* Desktop Components */}
-        <div className="hidden lg:block">
+        <div className="hidden lg:block space-y-6">
           <Breadcrumbs 
             items={[
               { label: "Dashboard", href: "/" },
@@ -162,23 +164,21 @@ const DashboardReviews = () => {
             className="mb-4"
           />
           
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">Reviews</h1>
-              <p className="text-muted-foreground text-sm sm:text-base">
-                Manage and analyze customer feedback
-              </p>
-            </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Reviews</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Manage and analyze customer feedback
+            </p>
           </div>
 
           <Card>
-            <CardHeader className="px-4 sm:px-6">
+            <CardHeader className="px-6 sm:px-8">
               <CardTitle className="text-lg sm:text-xl">Filter Reviews</CardTitle>
               <CardDescription className="text-sm">
                 Search and filter reviews to find what you need
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 px-4 sm:px-6">
+            <CardContent className="space-y-4 px-6 sm:px-8">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
                   <div className="relative">
@@ -234,153 +234,153 @@ const DashboardReviews = () => {
             </CardContent>
           </Card>
 
-          <Card className="mt-4">
-          <CardHeader className="px-4 sm:px-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <CardTitle className="text-lg sm:text-xl">Reviews ({total})</CardTitle>
-                <CardDescription className="text-sm">
-                  {error && (
-                    <span className="text-destructive">Error loading reviews. 
-                      <Button variant="link" onClick={refetch} className="p-0 h-auto ml-1">
-                        Retry
-                      </Button>
-                    </span>
-                  )}
-                </CardDescription>
-              </div>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <Button onClick={refetch} variant="outline" size="sm" className="flex-1 sm:flex-none text-sm">
-                  Refresh
-                </Button>
-                <Button 
-                  onClick={() => setShowSendEmailDialog(true)} 
-                  variant="default" 
-                  size="sm"
-                  className="flex-1 sm:flex-none text-sm"
-                >
-                  <Mail className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Send Review Request</span>
-                  <span className="sm:hidden">Send Request</span>
-                </Button>
-                <Button onClick={exportToCSV} variant="outline" size="sm" className="flex-1 sm:flex-none text-sm">
-                  <Download className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Export CSV</span>
-                  <span className="sm:hidden">Export</span>
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="px-0 sm:px-6">
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <div className="min-w-full inline-block align-middle">
-                <div className="overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="px-3 py-3 text-xs sm:text-sm">Customer</TableHead>
-                        <TableHead className="px-3 py-3 text-xs sm:text-sm">Rating</TableHead>
-                        <TableHead className="px-3 py-3 text-xs sm:text-sm">Google Review</TableHead>
-                        <TableHead className="hidden sm:table-cell px-3 py-3 text-xs sm:text-sm">Redirected</TableHead>
-                        <TableHead className="px-3 py-3 text-xs sm:text-sm">Feedback</TableHead>
-                        <TableHead className="hidden lg:table-cell px-3 py-3 text-xs sm:text-sm">Date</TableHead>
-                        <TableHead className="px-3 py-3 text-xs sm:text-sm">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredReviews.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
-                            {searchTerm || ratingFilter !== "all" 
-                              ? "No reviews found matching your filters" 
-                              : "No reviews found. Start collecting customer feedback!"}
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredReviews.map((review) => (
-                          <TableRow key={review.id} className="hover:bg-muted/50">
-                            <TableCell className="px-2 sm:px-4">
-                              <div>
-                                <div className="font-medium text-xs sm:text-sm lg:text-base truncate">{review.name}</div>
-                                <div className="text-xs text-muted-foreground truncate">{review.phone}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="px-2 sm:px-4">
-                              <div className="flex items-center gap-1">
-                                <span className="font-medium text-xs sm:text-sm lg:text-base">{review.rating}</span>
-                                <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400 fill-yellow-400" />
-                              </div>
-                            </TableCell>
-                            <TableCell className="px-2 sm:px-4">
-                              <Button
-                                variant={review.google_review ? "default" : "secondary"}
-                                size="sm"
-                                onClick={() => handleGoogleReviewClick(review)}
-                                disabled={!review.google_review}
-                                className="text-xs h-7 sm:h-8 px-2 sm:px-3"
-                              >
-                                {review.google_review ? (
-                                  <>
-                                    <ExternalLink className="mr-1 h-3 w-3" />
-                                    <span className="hidden sm:inline">View</span>
-                                    <span className="sm:hidden">✓</span>
-                                  </>
-                                ) : (
-                                  "No"
-                                )}
-                              </Button>
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell px-4">
-                              <Badge variant={review.redirect_opened ? "default" : "outline"} className="text-xs">
-                                {review.redirect_opened ? "Yes" : "No"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="px-2 sm:px-4">
-                              {review.feedback ? (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleViewFeedback(review)}
-                                  className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-                                >
-                                  <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4" />
-                                </Button>
-                              ) : (
-                                <span className="text-muted-foreground text-xs">No feedback</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="hidden lg:table-cell px-4 text-xs sm:text-sm text-muted-foreground">
-                              {format(new Date(review.created_at), 'MMM dd, yyyy HH:mm')}
-                            </TableCell>
-                            <TableCell className="px-2 sm:px-4">
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleViewFeedback(review)}
-                                  className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-                                >
-                                  <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+          <Card>
+            <CardHeader className="px-6 sm:px-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <CardTitle className="text-lg sm:text-xl">Reviews ({total})</CardTitle>
+                  <CardDescription className="text-sm">
+                    {error && (
+                      <span className="text-destructive">Error loading reviews. 
+                        <Button variant="link" onClick={handleRefetch} className="p-0 h-auto ml-1">
+                          Retry
+                        </Button>
+                      </span>
+                    )}
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Button onClick={handleRefetch} variant="outline" size="sm" className="flex-1 sm:flex-none text-sm">
+                    Refresh
+                  </Button>
+                  <Button 
+                    onClick={() => setShowSendEmailDialog(true)} 
+                    variant="default" 
+                    size="sm"
+                    className="flex-1 sm:flex-none text-sm"
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Send Review Request</span>
+                    <span className="sm:hidden">Send Request</span>
+                  </Button>
+                  <Button onClick={exportToCSV} variant="outline" size="sm" className="flex-1 sm:flex-none text-sm">
+                    <Download className="mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Export CSV</span>
+                    <span className="sm:hidden">Export</span>
+                  </Button>
                 </div>
               </div>
-            </div>
-            <div className="px-4 sm:px-6 pt-4">
-              <Pagination
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={(newPage) => setParams({ page: String(newPage) })}
-              />
-            </div>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="px-6 sm:px-8">
+              <div className="overflow-x-auto">
+                <div className="min-w-full inline-block align-middle">
+                  <div className="overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="px-3 py-3 text-xs sm:text-sm">Customer</TableHead>
+                          <TableHead className="px-3 py-3 text-xs sm:text-sm">Rating</TableHead>
+                          <TableHead className="px-3 py-3 text-xs sm:text-sm">Google Review</TableHead>
+                          <TableHead className="hidden sm:table-cell px-3 py-3 text-xs sm:text-sm">Redirected</TableHead>
+                          <TableHead className="px-3 py-3 text-xs sm:text-sm">Feedback</TableHead>
+                          <TableHead className="hidden lg:table-cell px-3 py-3 text-xs sm:text-sm">Date</TableHead>
+                          <TableHead className="px-3 py-3 text-xs sm:text-sm">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredReviews.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
+                              {searchTerm || ratingFilter !== "all" 
+                                ? "No reviews found matching your filters" 
+                                : "No reviews found. Start collecting customer feedback!"}
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          filteredReviews.map((review) => (
+                            <TableRow key={review.id} className="hover:bg-muted/50">
+                              <TableCell className="px-2 sm:px-4">
+                                <div>
+                                  <div className="font-medium text-xs sm:text-sm lg:text-base truncate">{review.name}</div>
+                                  <div className="text-xs text-muted-foreground truncate">{review.phone}</div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-2 sm:px-4">
+                                <div className="flex items-center gap-1">
+                                  <span className="font-medium text-xs sm:text-sm lg:text-base">{review.rating}</span>
+                                  <Star className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400 fill-yellow-400" />
+                                </div>
+                              </TableCell>
+                              <TableCell className="px-2 sm:px-4">
+                                <Button
+                                  variant={review.google_review ? "default" : "secondary"}
+                                  size="sm"
+                                  onClick={() => handleGoogleReviewClick(review)}
+                                  disabled={!review.google_review}
+                                  className="text-xs h-7 sm:h-8 px-2 sm:px-3"
+                                >
+                                  {review.google_review ? (
+                                    <>
+                                      <ExternalLink className="mr-1 h-3 w-3" />
+                                      <span className="hidden sm:inline">View</span>
+                                      <span className="sm:hidden">✓</span>
+                                    </>
+                                  ) : (
+                                    "No"
+                                  )}
+                                </Button>
+                              </TableCell>
+                              <TableCell className="hidden sm:table-cell px-4">
+                                <Badge variant={review.redirect_opened ? "default" : "outline"} className="text-xs">
+                                  {review.redirect_opened ? "Yes" : "No"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="px-2 sm:px-4">
+                                {review.feedback ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleViewFeedback(review)}
+                                    className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+                                  >
+                                    <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4" />
+                                  </Button>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">No feedback</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="hidden lg:table-cell px-4 text-xs sm:text-sm text-muted-foreground">
+                                {format(new Date(review.created_at), 'MMM dd, yyyy HH:mm')}
+                              </TableCell>
+                              <TableCell className="px-2 sm:px-4">
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleViewFeedback(review)}
+                                    className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+                                  >
+                                    <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-4">
+                <Pagination
+                  currentPage={page}
+                  totalPages={totalPages}
+                  onPageChange={(newPage) => setParams({ page: String(newPage) })}
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Feedback Dialog */}
@@ -450,9 +450,9 @@ const DashboardReviews = () => {
             });
           }}
         />
-      </LoadingWrapper>
+      </div>
     </DashboardErrorBoundary>
   );
-}
+};
 
 export default DashboardReviews;
