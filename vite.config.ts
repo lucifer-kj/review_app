@@ -32,6 +32,8 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     chunkSizeWarningLimit: 1024,
+    sourcemap: false,
+    minify: 'terser',
     rollupOptions: {
       output: {
         manualChunks: {
@@ -45,5 +47,8 @@ export default defineConfig(({ mode }) => ({
         },
       },
     },
+  },
+  define: {
+    global: 'globalThis',
   },
 }));

@@ -1,83 +1,135 @@
-# Alpha Business Designs - Customer Review System
+# Alpha Business Designs - Review Management System
 
-## Project Overview
-
-A comprehensive customer review management system built with modern web technologies.
-
-## How to run this project locally
-
-Clone this repository and follow these steps:
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How to deploy this project
-
-This project can be deployed to any static hosting service like Vercel, Netlify, or GitHub Pages.
-
-### Build for production
-
-```sh
-npm run build
-```
-
-The built files will be in the `dist` directory.
-
-### Deploy to Vercel
-
-```sh
-npx vercel --prod
-```
-
-### Deploy to Netlify
-
-```sh
-npx netlify deploy --prod --dir=dist
-```
+A modern, responsive review management dashboard built with React, TypeScript, and Supabase.
 
 ## Features
 
-- Customer review collection system
-- Email integration with embedded forms
-- PWA support for mobile devices
-- Responsive design with Tailwind CSS
-- Type-safe development with TypeScript
+- 📊 **Dashboard Analytics**: Track review statistics and business metrics
+- 📧 **Email Review Requests**: Generate personalized email templates for customer review requests
+- 📱 **Mobile Responsive**: Optimized for both desktop and mobile devices
+- 🔐 **Secure Authentication**: Built-in user authentication and authorization
+- 📈 **Review Management**: View, manage, and analyze customer reviews
+- ⚡ **Real-time Updates**: Live data updates with Supabase real-time subscriptions
+
+## Email System
+
+This application uses a **browser-based email client integration** for sending review requests:
+
+### How It Works
+
+1. **Generate Email Template**: Create personalized email content with customer details
+2. **Multiple Sending Options**:
+   - **Open Email Client**: Automatically opens your default email client with pre-filled content
+   - **Copy to Clipboard**: Copy the email content to paste into any email service
+3. **No Third-party Dependencies**: Uses your own email account and client
+
+### Benefits
+
+- ✅ **No API Keys Required**: No need for Resend, SendGrid, or other email services
+- ✅ **Uses Your Email**: Sends from your registered business email address
+- ✅ **Privacy Focused**: No third-party email service involved
+- ✅ **Simple Setup**: Works with any email client (Gmail, Outlook, Apple Mail, etc.)
+- ✅ **Cost Effective**: No monthly email service fees
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+ 
+- Bun (recommended) or npm
+- Supabase account
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd alpha-pro02-main
+   ```
+
+2. **Install dependencies**
+   ```bash
+   bun install
+   # or
+   npm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp env.example .env
+   ```
+   
+   Update `.env` with your Supabase credentials:
+   ```bash
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   VITE_FRONTEND_URL=https://yourdomain.com
+   ```
+
+4. **Run the development server**
+   ```bash
+   bun dev
+   # or
+   npm run dev
+   ```
+
+5. **Open your browser**
+   Navigate to `http://localhost:5173`
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `VITE_SUPABASE_URL` | Your Supabase project URL | Yes |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anonymous key | Yes |
+| `VITE_FRONTEND_URL` | Your frontend URL for email links | Yes |
+| `VITE_SENTRY_DSN` | Sentry DSN for error tracking | No |
+| `VITE_GA_TRACKING_ID` | Google Analytics tracking ID | No |
+
+## Database Schema
+
+The application uses the following Supabase tables:
+
+### `reviews`
+- `id` (UUID, Primary Key)
+- `name` (Text)
+- `email` (Text)
+- `phone` (Text)
+- `rating` (Integer)
+- `feedback` (Text)
+- `created_at` (Timestamp)
+
+### `business_settings`
+- `id` (UUID, Primary Key)
+- `business_name` (Text)
+- `business_email` (Text)
+- `business_phone` (Text)
+- `business_address` (Text)
+- `google_business_url` (Text)
+
+## Email Template Features
+
+The email system generates professional review request emails with:
+
+- Personalized customer greeting
+- Business branding and contact information
+- Direct link to review form
+- UTM tracking parameters
+- Mobile-responsive design
+- Professional formatting
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Support
+
+For support, email support@alphabusiness.com or create an issue in the repository.

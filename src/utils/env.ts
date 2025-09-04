@@ -10,16 +10,6 @@ interface EnvironmentConfig {
     anonKey: string;
   };
   
-  // Email Configuration
-  email: {
-    domain: string;
-    fromName: string;
-    template: string;
-    primaryColor: string;
-    buttonText: string;
-    title: string;
-  };
-  
   // Frontend Configuration
   frontend: {
     url: string;
@@ -43,27 +33,23 @@ const validateEnvironment = (): EnvironmentConfig => {
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn(
       'Missing Supabase environment variables. Please create a .env file with:\n' +
-      'VITE_SUPABASE_URL=https://elhbthnvwcqewjpwulhq.supabase.co\n' +
+      'VITE_SUPABASE_URL=https://your-project.supabase.co\n' +
       'VITE_SUPABASE_ANON_KEY=your_supabase_anon_key\n\n' +
       'For now, using placeholder values. Review form submissions will not work.'
     );
   }
 
+  // Get frontend URL with fallback
+  const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 
+    (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173');
+
   return {
     supabase: {
-      url: supabaseUrl || 'https://elhbthnvwcqewjpwulhq.supabase.co',
+      url: supabaseUrl || 'https://placeholder.supabase.co',
       anonKey: supabaseAnonKey || 'placeholder_key',
     },
-    email: {
-      domain: import.meta.env.VITE_EMAIL_DOMAIN || 'alphabusiness.com',
-      fromName: import.meta.env.VITE_EMAIL_FROM_NAME || 'noreply',
-      template: import.meta.env.VITE_EMAIL_TEMPLATE || 'default',
-      primaryColor: import.meta.env.VITE_EMAIL_PRIMARY_COLOR || '#007bff',
-      buttonText: import.meta.env.VITE_EMAIL_BUTTON_TEXT || 'Leave a Review',
-      title: import.meta.env.VITE_EMAIL_TITLE || "We'd love your feedback!",
-    },
     frontend: {
-      url: import.meta.env.VITE_FRONTEND_URL || window.location.origin,
+      url: frontendUrl,
     },
     services: {
       sentryDsn: import.meta.env.VITE_SENTRY_DSN,
@@ -95,12 +81,22 @@ export const getEnvironmentConfig = () => {
     return {
       ...env,
       // Development-specific overrides
-      email: {
-        ...env.email,
-        domain: 'localhost',
+      frontend: {
+        ...env.frontend,
+        url: 'http://localhost:5173',
       },
     };
   }
   
   return env;
+};
+
+/**
+ * Check if Supabase is properly configured
+ */
+export const isSupabaseConfigured = (): boolean => {
+  return !!(env.supabase.url && 
+    env.supabase.anonKey && 
+    env.supabase.url !== 'https://placeholder.supabase.co' && 
+    env.supabase.anonKey !== 'placeholder_key');
 };

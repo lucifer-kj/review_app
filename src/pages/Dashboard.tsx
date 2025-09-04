@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { LoadingWrapper } from "@/components/LoadingWrapper";
 import { MagicCard } from "@/components/ui/magic-card";
-import { BarChart3, FileText, Star, Plus, Eye, Download, Mail, HelpCircle, MessageSquare } from "lucide-react";
+import { BarChart3, FileText, Star, Plus, Eye, Download, Mail, HelpCircle, MessageSquare, Settings } from "lucide-react";
 import { SendReviewEmailDialog } from "@/components/SendReviewEmailDialog";
 import { useNavigate } from "react-router-dom";
 import { ReviewService } from "@/services/reviewService";
@@ -78,7 +78,7 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <LoadingWrapper loading={loading} error={null} className="space-y-8">
+    <LoadingWrapper loading={loading} error={null} className="w-full">
       {/* Mobile Dashboard */}
       <MobileDashboard 
         stats={stats}
@@ -87,11 +87,11 @@ const Dashboard = () => {
       />
       
       {/* Desktop Dashboard */}
-      <div className="hidden lg:block space-y-6"> 
+      <div className="hidden lg:block w-full space-y-6 p-6"> 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Dashboard</h1>
+            <h1 className="text-2xl font-bold text-foreground pt-5 tracking-tight">Dashboard</h1>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
@@ -175,11 +175,11 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent className="px-0 pb-0">
               <div className="text-3xl font-bold text-foreground mb-2">{stats.averageRating.toFixed(1)}</div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 mb-2">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
-                    className={`h-3 w-3 ${
+                    className={`h-4 w-4 ${
                       star <= Math.round(stats.averageRating)
                         ? "text-yellow-500 fill-current"
                         : "text-gray-300"
@@ -187,11 +187,14 @@ const Dashboard = () => {
                   />
                 ))}
               </div>
+              <p className="text-xs text-muted-foreground">
+                Average customer rating
+              </p>
             </CardContent>
           </MagicCard>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Average star rating from all customer reviews. Higher ratings help improve your business reputation.</p>
+              <p>Average rating from all customer reviews (1-5 stars).</p>
             </TooltipContent>
           </Tooltip>
 
@@ -207,69 +210,130 @@ const Dashboard = () => {
             <CardContent className="px-0 pb-0">
               <div className="text-3xl font-bold text-foreground mb-2">{stats.highRatingReviews}</div>
               <p className="text-xs text-muted-foreground">
-                4+ star reviews
+                4-5 star reviews
               </p>
             </CardContent>
           </MagicCard>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Number of reviews with 4 or 5 stars. These customers are redirected to leave Google Reviews.</p>
+              <p>Number of reviews with 4 or 5 star ratings.</p>
             </TooltipContent>
           </Tooltip>
-
-
         </div>
 
-          <MagicCard>
+        {/* Recent Activity */}
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-xl font-bold text-foreground">Recent Activity</CardTitle>
-              <CardDescription className="text-sm">
-                Latest updates from your business
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Recent Activity
+              </CardTitle>
+              <CardDescription>
+                Latest customer interactions and reviews
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
               {recentActivities.length > 0 ? (
-                recentActivities.map((activity) => (
-                  <div key={activity.id} className="flex items-center gap-4 p-4 rounded-lg hover:bg-accent/30 transition-colors duration-200">
-                    <Badge 
-                      variant={activity.type === 'feedback' ? 'secondary' : 'default'} 
-                      className="flex-shrink-0"
-                    >
-                      {activity.type === 'feedback' ? 'Feedback' : 'Review'}
-                    </Badge>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm text-foreground block truncate">{activity.message}</span>
-                      {activity.rating && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <span className="text-xs text-muted-foreground">{activity.rating}</span>
-                          <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                <div className="space-y-4">
+                  {recentActivities.map((activity) => (
+                    <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="flex-shrink-0">
+                        {activity.type === 'review' && (
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <Star className="h-4 w-4 text-blue-600" />
+                          </div>
+                        )}
+                        {activity.type === 'feedback' && (
+                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <MessageSquare className="h-4 w-4 text-green-600" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground">
+                          {activity.message}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                        </p>
+                        {activity.rating && (
+                          <div className="flex items-center gap-1 mt-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`h-3 w-3 ${
+                                  star <= activity.rating!
+                                    ? "text-yellow-500 fill-current"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground ml-auto whitespace-nowrap">
-                      {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
-                    </span>
-                  </div>
-                ))
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No recent activity</p>
-                  <p className="text-xs">Start collecting reviews to see activity here</p>
-                    </div>
+                <div className="text-center py-8">
+                  <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No recent activity</p>
+                  <p className="text-sm text-muted-foreground">Customer reviews and feedback will appear here</p>
+                </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Quick Actions
+              </CardTitle>
+              <CardDescription>
+                Common tasks and shortcuts
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <Button
+                  onClick={() => setShowReviewDialog(true)}
+                  className="w-full justify-start"
+                  variant="outline"
+                >
+                  <Mail className="h-4 w-4 mr-3" />
+                  Send Review Request
+                </Button>
+                <Button
+                  onClick={() => navigate("/reviews")}
+                  className="w-full justify-start"
+                  variant="outline"
+                >
+                  <FileText className="h-4 w-4 mr-3" />
+                  View All Reviews
+                </Button>
+                <Button
+                  onClick={() => navigate("/settings")}
+                  className="w-full justify-start"
+                  variant="outline"
+                >
+                  <Settings className="h-4 w-4 mr-3" />
+                  Business Settings
+                </Button>
               </div>
             </CardContent>
-          </MagicCard>
+          </Card>
         </div>
-      
+      </div>
+
+      {/* Review Email Dialog */}
       <SendReviewEmailDialog
         open={showReviewDialog}
         onOpenChange={setShowReviewDialog}
         onSuccess={() => {
-          // Optionally refresh stats after sending
-          // fetchStats();
+          // Refresh data after sending email
+          window.location.reload();
         }}
       />
     </LoadingWrapper>

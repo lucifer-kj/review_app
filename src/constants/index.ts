@@ -33,25 +33,21 @@ export const VALIDATION = {
 
 // Email Configuration
 export const EMAIL_CONFIG = {
-  DEFAULT_DOMAIN: "alphabusiness.com",
-  DEFAULT_FROM_NAME: "noreply",
   SUBJECT_TEMPLATE: "We'd love your feedback, {customerName}!",
   TEMPLATES: {
     DEFAULT: "default",
     MINIMAL: "minimal",
     PROFESSIONAL: "professional",
   },
-  COLORS: {
-    PRIMARY: "oklch(0.55 0.15 240)",
-    SECONDARY: "oklch(0.60 0.02 0)",
-    SUCCESS: "oklch(0.75 0.15 142)",
-    WARNING: "oklch(0.85 0.15 85)",
-    DANGER: "oklch(0.65 0.20 25)",
-  },
   BUTTON_TEXTS: {
     LEAVE_REVIEW: "Leave a Review",
     SHARE_FEEDBACK: "Share Feedback",
     RATE_US: "Rate Us",
+  },
+  CLIENT_OPTIONS: {
+    OPEN_EMAIL_CLIENT: "Open Email Client",
+    COPY_TO_CLIPBOARD: "Copy to Clipboard",
+    GENERATE_TEMPLATE: "Generate Email Template",
   },
 } as const;
 

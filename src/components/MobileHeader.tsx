@@ -25,7 +25,7 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
   return (
     <>
       {/* Mobile Header */}
-      <header className="lg:hidden h-14 flex items-center justify-between border-b bg-background/95 backdrop-blur px-3 shadow-sm">
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-14 flex items-center justify-between border-b bg-background/95 backdrop-blur px-3 shadow-sm z-50">
         <div className="flex items-center gap-3">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
