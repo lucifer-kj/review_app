@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     chunkSizeWarningLimit: 1024,
     sourcemap: false,
-    minify: 'terser',
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks: {
