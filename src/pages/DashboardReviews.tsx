@@ -18,7 +18,7 @@ import { MobileReviewCard } from "@/components/MobileReviewCard";
 import { useQueryParams } from "@/hooks/useQueryParams";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useSessionStorage } from "@/hooks/useSessionStorage";
-import { Star, Search, Download, Filter, Eye, MessageSquare, ExternalLink, Mail } from "lucide-react";
+import { Star, Search, Download, Filter, Eye, MessageSquare, ExternalLink, Mail, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import type { Review, RatingFilter } from "@/types";
