@@ -41,7 +41,7 @@ const validateEnvironment = (): EnvironmentConfig => {
 
   // Get frontend URL with fallback
   const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 
-    (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173');
+    (typeof window !== 'undefined' ? window.location.origin : 'https://review-app-jet-one.vercel.app/');
 
   return {
     supabase: {
@@ -83,7 +83,7 @@ export const getEnvironmentConfig = () => {
       // Development-specific overrides
       frontend: {
         ...env.frontend,
-        url: 'http://localhost:5173',
+        url: 'http://localhost:3000',
       },
     };
   }
