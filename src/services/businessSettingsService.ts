@@ -3,6 +3,7 @@ import { BaseService, type ServiceResponse } from "./baseService";
 
 export interface BusinessSettings {
   id: string;
+  user_id?: string; // Make optional since it might not be in DB types yet
   google_business_url?: string;
   business_name?: string;
   business_email?: string;
@@ -26,17 +27,29 @@ export class BusinessSettingsService extends BaseService {
    */
   static async getBusinessSettings(): Promise<ServiceResponse<BusinessSettings>> {
     try {
-      const { data, error } = await supabase
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return {
+          data: null,
+          error: 'User not authenticated',
+          success: false,
+        };
+      }
+
+      // Simple query without complex chaining
+      const result = await supabase
         .from('business_settings')
         .select('*')
+        .eq('user_id', user.id)
         .maybeSingle();
 
-      if (error) {
-        return this.handleError(error, 'BusinessSettingsService.getBusinessSettings');
+      if (result.error) {
+        return this.handleError(result.error, 'BusinessSettingsService.getBusinessSettings');
       }
 
       return {
-        data: data || null,
+        data: result.data as BusinessSettings || null,
         error: null,
         success: true,
       };
@@ -50,41 +63,55 @@ export class BusinessSettingsService extends BaseService {
    */
   static async upsertBusinessSettings(settings: BusinessSettingsFormData): Promise<ServiceResponse<BusinessSettings>> {
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return {
+          data: null,
+          error: 'User not authenticated',
+          success: false,
+        };
+      }
+
       // First try to get existing settings
       const existingSettings = await this.getBusinessSettings();
       
       if (existingSettings.success && existingSettings.data) {
         // Update existing settings
-        const { data, error } = await supabase
+        const result = await supabase
           .from('business_settings')
           .update(settings)
           .eq('id', existingSettings.data.id)
+          .eq('user_id', user.id)
           .select()
           .single();
 
-        if (error) {
-          return this.handleError(error, 'BusinessSettingsService.updateBusinessSettings');
+        if (result.error) {
+          return this.handleError(result.error, 'BusinessSettingsService.updateBusinessSettings');
         }
 
         return {
-          data,
+          data: result.data as BusinessSettings,
           error: null,
           success: true,
         };
       } else {
-        // Create new settings
-        const { data, error } = await supabase
+        // Create new settings with user_id
+        const result = await supabase
           .from('business_settings')
-          .insert(settings)
+          .insert({
+            ...settings,
+            user_id: user.id
+          })
           .select()
           .single();
 
-        if (error) {
-          return this.handleError(error, 'BusinessSettingsService.createBusinessSettings');
+        if (result.error) {
+          return this.handleError(result.error, 'BusinessSettingsService.createBusinessSettings');
         }
 
         return {
-          data,
+          data: result.data as BusinessSettings,
           error: null,
           success: true,
         };
@@ -100,6 +127,7 @@ export class BusinessSettingsService extends BaseService {
   static getDefaultBusinessSettings(): BusinessSettings {
     return {
       id: '',
+      user_id: '',
       business_name: 'Alpha Business Designs',
       business_email: '',
       business_phone: '',
@@ -124,5 +152,38 @@ export class BusinessSettingsService extends BaseService {
     }
     
     return this.getDefaultBusinessSettings();
+  }
+
+  /**
+   * Delete business settings for current user
+   */
+  static async deleteBusinessSettings(): Promise<ServiceResponse<boolean>> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return {
+          data: false,
+          error: 'User not authenticated',
+          success: false,
+        };
+      }
+
+      const result = await supabase
+        .from('business_settings')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (result.error) {
+        return this.handleError(result.error, 'BusinessSettingsService.deleteBusinessSettings');
+      }
+
+      return {
+        data: true,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'BusinessSettingsService.deleteBusinessSettings');
+    }
   }
 }
