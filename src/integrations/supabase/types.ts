@@ -34,7 +34,15 @@ export type Database = {
           role?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       reviews: {
         Row: {
@@ -48,6 +56,7 @@ export type Database = {
           phone: string
           rating: number
           redirect_opened: boolean
+          user_id: string | null
         }
         Insert: {
           country_code?: string
@@ -60,6 +69,7 @@ export type Database = {
           phone: string
           rating: number
           redirect_opened?: boolean
+          user_id?: string | null
         }
         Update: {
           country_code?: string
@@ -72,12 +82,22 @@ export type Database = {
           phone?: string
           rating?: number
           redirect_opened?: boolean
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       business_settings: {
         Row: {
           id: string
+          user_id: string
           google_business_url: string | null
           business_name: string | null
           business_email: string | null
@@ -88,6 +108,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          user_id: string
           google_business_url?: string | null
           business_name?: string | null
           business_email?: string | null
@@ -98,6 +119,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          user_id?: string
           google_business_url?: string | null
           business_name?: string | null
           business_email?: string | null
@@ -106,13 +128,57 @@ export type Database = {
           created_at?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "business_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      get_user_business_settings: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          google_business_url: string | null
+          business_name: string | null
+          business_email: string | null
+          business_phone: string | null
+          business_address: string | null
+          created_at: string
+          updated_at: string
+        }[]
+      }
+      get_user_reviews: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          phone: string
+          country_code: string
+          rating: number
+          feedback: string | null
+          google_review: boolean
+          redirect_opened: boolean
+          created_at: string
+          metadata: Json | null
+        }[]
+      }
+      get_user_review_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_reviews: number
+          average_rating: number
+          high_rating_reviews: number
+        }[]
+      }
       is_admin: {
         Args: { user_id?: string }
         Returns: boolean
