@@ -246,6 +246,20 @@ export class BusinessSettingsService extends BaseService {
   }
 
   /**
+   * Alias for getBusinessSettings - used by DashboardSettings component
+   */
+  static async getSettings(): Promise<ServiceResponse<BusinessSettings>> {
+    return this.getBusinessSettings();
+  }
+
+  /**
+   * Alias for upsertBusinessSettings - used by DashboardSettings component
+   */
+  static async updateSettings(settings: BusinessSettingsFormData): Promise<ServiceResponse<BusinessSettings>> {
+    return this.upsertBusinessSettings(settings);
+  }
+
+  /**
    * Delete business settings for current user
    */
   static async deleteBusinessSettings(): Promise<ServiceResponse<boolean>> {

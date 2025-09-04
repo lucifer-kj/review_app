@@ -234,9 +234,7 @@ const DashboardReviews = () => {
             </CardContent>
           </Card>
 
-          <div className="h-6"></div>
-
-        <Card>
+          <Card className="mt-4">
           <CardHeader className="px-4 sm:px-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
@@ -280,19 +278,19 @@ const DashboardReviews = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="px-2 sm:px-4 text-xs sm:text-sm">Customer</TableHead>
-                        <TableHead className="px-2 sm:px-4 text-xs sm:text-sm">Rating</TableHead>
-                        <TableHead className="px-2 sm:px-4 text-xs sm:text-sm">Google Review</TableHead>
-                        <TableHead className="hidden sm:table-cell px-4 text-xs sm:text-sm">Redirected</TableHead>
-                        <TableHead className="px-2 sm:px-4 text-xs sm:text-sm">Feedback</TableHead>
-                        <TableHead className="hidden lg:table-cell px-4 text-xs sm:text-sm">Date</TableHead>
-                        <TableHead className="px-2 sm:px-4 text-xs sm:text-sm">Actions</TableHead>
+                        <TableHead className="px-3 py-3 text-xs sm:text-sm">Customer</TableHead>
+                        <TableHead className="px-3 py-3 text-xs sm:text-sm">Rating</TableHead>
+                        <TableHead className="px-3 py-3 text-xs sm:text-sm">Google Review</TableHead>
+                        <TableHead className="hidden sm:table-cell px-3 py-3 text-xs sm:text-sm">Redirected</TableHead>
+                        <TableHead className="px-3 py-3 text-xs sm:text-sm">Feedback</TableHead>
+                        <TableHead className="hidden lg:table-cell px-3 py-3 text-xs sm:text-sm">Date</TableHead>
+                        <TableHead className="px-3 py-3 text-xs sm:text-sm">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredReviews.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                             {searchTerm || ratingFilter !== "all" 
                               ? "No reviews found matching your filters" 
                               : "No reviews found. Start collecting customer feedback!"}

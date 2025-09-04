@@ -140,7 +140,7 @@ const DashboardSettings = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Mobile Settings */}
       <MobileSettings
         settings={settings}
@@ -191,7 +191,7 @@ const DashboardSettings = () => {
                 style={{ width: `${setupPercentage}%` }}
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm">
                 {setupProgress.businessName ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
                 <span className={setupProgress.businessName ? "text-foreground" : "text-muted-foreground"}>Business Name</span>
