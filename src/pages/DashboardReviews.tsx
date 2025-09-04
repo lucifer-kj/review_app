@@ -95,7 +95,7 @@ const DashboardReviews = () => {
 
   return (
     <DashboardErrorBoundary componentName="DashboardReviews">
-      <div className="w-full space-y-6 p-6">
+      <div className="w-full space-y-6 p-6 pt-20 lg:pt-6">
         {/* Mobile Components */}
         <div className="lg:hidden space-y-6">
           <MobileSearchFilters

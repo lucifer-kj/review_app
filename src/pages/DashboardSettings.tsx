@@ -162,7 +162,7 @@ const DashboardSettings = () => {
   };
 
   return (
-    <div className="w-full space-y-6 p-6">
+    <div className="w-full space-y-6 p-6 pt-20 lg:pt-6">
       {/* Mobile Settings */}
       <MobileSettings
         settings={settings}

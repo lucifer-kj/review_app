@@ -1,9 +1,14 @@
-import { useState } from "react";
-import { Building2, Menu, X, Home, FileText, Settings, User } from "lucide-react";
+import { useState, Suspense, lazy } from "react";
+import { Building2, Menu, X, Home, FileText, Settings, User, Copy, Share2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+
+// Lazy load the share and copy components
+const ShareButton = lazy(() => import("@/components/ShareButton").then(module => ({ default: module.ShareButton })));
+const CopyLinkButton = lazy(() => import("@/components/CopyLinkButton").then(module => ({ default: module.CopyLinkButton })));
 
 interface MobileHeaderProps {
   onLogout: () => void;
@@ -76,6 +81,19 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
                   })}
                 </div>
               </nav>
+              
+              {/* Share and Copy Section */}
+              <div className="p-6 border-t border-b">
+                <div className="space-y-3">
+                  <div className="text-sm font-medium text-muted-foreground mb-3">Share & Copy</div>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <div className="space-y-2">
+                      <CopyLinkButton />
+                      <ShareButton />
+                    </div>
+                  </Suspense>
+                </div>
+              </div>
               
               <div className="p-6 border-t">
                 <button

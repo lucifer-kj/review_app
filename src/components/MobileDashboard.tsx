@@ -18,7 +18,7 @@ export const MobileDashboard = ({ stats, onSendReview, onViewReviews }: MobileDa
   return (
     <div className="lg:hidden w-full min-h-screen bg-background">
       {/* Mobile Content Container */}
-      <div className="w-full px-4 py-6 space-y-6 pb-24">
+      <div className="w-full px-4 py-6 space-y-6 pb-24 pt-20">
         {/* Page Title */}
         <div className="w-full">
           <h1 className="text-xl font-bold mb-1">Dashboard</h1>
