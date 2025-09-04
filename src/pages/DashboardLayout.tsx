@@ -99,7 +99,7 @@ const DashboardLayout = () => {
             </DropdownMenu>
           </div>
         </header>
-        <main className="flex-1 p-0 sm:p-6 lg:p-8 overflow-x-hidden pb-24 lg:pb-8 pt-4 lg:pt-0">
+        <main className="flex-1 p-0 sm:p-6 lg:p-8 overflow-x-hidden pb-20 lg:pb-8 pt-2 lg:pt-0">
           <Outlet />
         </main>
       </div>

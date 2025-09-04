@@ -25,15 +25,15 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
   return (
     <>
       {/* Mobile Header */}
-      <header className="lg:hidden h-16 flex items-center justify-between border-b bg-background/95 backdrop-blur px-4 shadow-sm">
+      <header className="lg:hidden h-14 flex items-center justify-between border-b bg-background/95 backdrop-blur px-3 shadow-sm">
         <div className="flex items-center gap-3">
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm" className="p-2 hover:bg-muted">
-                <Menu className="h-6 w-6" />
+              <Button variant="ghost" size="sm" className="p-1 hover:bg-muted">
+                <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-          <SheetContent side="left" className="w-80 p-0">
+          <SheetContent side="left" className="w-72 p-0">
             <div className="flex flex-col h-full">
               <div className="p-6 border-b bg-muted/30">
                 <div className="flex items-center gap-3 mb-6">
@@ -97,8 +97,8 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
           onClick={() => navigate("/")}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          <Building2 className="h-6 w-6 text-primary" />
-          <span className="font-bold text-base">Alpha Business</span>
+          <Building2 className="h-5 w-5 text-primary" />
+          <span className="font-semibold text-sm">Alpha Business</span>
         </button>
         </div>
         
