@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, FileText, Mail, Plus, TrendingUp, Users } from "lucide-react";
@@ -21,73 +21,82 @@ export const MobileDashboard = ({ stats, onSendReview, onViewReviews }: MobileDa
       <div className="w-full px-4 py-6 space-y-6 pb-24 pt-20">
         {/* Page Title */}
         <div className="w-full">
-          <h1 className="text-xl font-bold mb-1">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Welcome back! Here's your business overview.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
+            Welcome back! Here's your business overview.
+          </p>
         </div>
 
         {/* Hero Metrics - Stack on Mobile */}
         <div className="w-full space-y-4">
-          <Card className="w-full p-4 shadow-lg border-0 bg-gradient-to-br from-blue-50 to-blue-100/50">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-blue-500 rounded-lg shadow-lg">
-                  <FileText className="h-5 w-5 text-white" />
-                </div>
-                <span className="font-semibold text-sm">Total Reviews</span>
-              </div>
-            </div>
-            <div className="text-2xl font-bold mb-1 text-blue-700">{stats.totalReviews}</div>
-            <p className="text-xs text-blue-600/80">Customer feedback received</p>
+          <Card>
+            <CardHeader className="px-6 sm:px-8">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <FileText className="h-5 w-5" />
+                Total Reviews
+              </CardTitle>
+              <CardDescription className="text-sm">
+                Customer feedback received
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-6 sm:px-8">
+              <div className="text-3xl font-bold">{stats.totalReviews}</div>
+            </CardContent>
           </Card>
 
-          <Card className="w-full p-4 shadow-lg border-0 bg-gradient-to-br from-yellow-50 to-yellow-100/50">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-yellow-500 rounded-lg shadow-lg">
-                  <Star className="h-5 w-5 text-white" />
-                </div>
-                <span className="font-semibold text-sm">Average Rating</span>
+          <Card>
+            <CardHeader className="px-6 sm:px-8">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <Star className="h-5 w-5" />
+                Average Rating
+              </CardTitle>
+              <CardDescription className="text-sm">
+                Overall customer satisfaction
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-6 sm:px-8">
+              <div className="text-3xl font-bold mb-2">{stats.averageRating.toFixed(1)}</div>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={cn(
+                      "h-4 w-4",
+                      star <= Math.round(stats.averageRating)
+                        ? "text-yellow-500 fill-current"
+                        : "text-gray-300"
+                    )}
+                  />
+                ))}
               </div>
-            </div>
-            <div className="text-2xl font-bold mb-1 text-yellow-700">{stats.averageRating.toFixed(1)}</div>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className={cn(
-                    "h-3 w-3",
-                    star <= Math.round(stats.averageRating)
-                      ? "text-yellow-500 fill-current"
-                      : "text-gray-300"
-                  )}
-                />
-              ))}
-            </div>
+            </CardContent>
           </Card>
 
-          <Card className="w-full p-4 shadow-lg border-0 bg-gradient-to-br from-green-50 to-green-100/50">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-green-500 rounded-lg shadow-lg">
-                  <TrendingUp className="h-5 w-5 text-white" />
-                </div>
-                <span className="font-semibold text-sm">High Ratings</span>
-              </div>
-            </div>
-            <div className="text-2xl font-bold mb-1 text-green-700">{stats.highRatingReviews}</div>
-            <p className="text-xs text-green-600/80">4-5 star reviews</p>
+          <Card>
+            <CardHeader className="px-6 sm:px-8">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <TrendingUp className="h-5 w-5" />
+                High Ratings
+              </CardTitle>
+              <CardDescription className="text-sm">
+                4-5 star reviews
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-6 sm:px-8">
+              <div className="text-3xl font-bold">{stats.highRatingReviews}</div>
+            </CardContent>
           </Card>
         </div>
 
         {/* Action Buttons */}
-        <div className="w-full flex gap-3">
-          <Button onClick={onSendReview} className="flex-1 h-12 text-sm font-semibold shadow-lg">
+        <div className="w-full flex items-center justify-center gap-4">
+          <Button onClick={onSendReview} size="lg" className="flex-1 max-w-xs text-sm font-semibold">
             <Mail className="h-4 w-4 mr-2" />
-            Send Review
+            Send Review Request
           </Button>
-          <Button onClick={onViewReviews} variant="outline" className="flex-1 h-12 text-sm font-semibold shadow-lg border-2">
+          <Button onClick={onViewReviews} variant="outline" size="lg" className="flex-1 max-w-xs text-sm font-semibold">
             <FileText className="h-4 w-4 mr-2" />
-            View Reviews
+            View All Reviews
           </Button>
         </div>
       </div>

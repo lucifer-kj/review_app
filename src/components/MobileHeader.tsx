@@ -84,10 +84,10 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
               
               {/* Share and Copy Section */}
               <div className="p-6 border-t border-b">
-                <div className="space-y-3">
-                  <div className="text-sm font-medium text-muted-foreground mb-3">Share & Copy</div>
+                <div className="space-y-4">
+                  <div className="text-sm font-medium text-muted-foreground mb-4">Share & Copy</div>
                   <Suspense fallback={<LoadingSpinner />}>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <CopyLinkButton />
                       <ShareButton />
                     </div>

@@ -11,6 +11,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ReviewService } from "@/services/reviewService";
+import { SendReviewEmailDialog } from "@/components/SendReviewEmailDialog";
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -19,6 +20,7 @@ const Dashboard = () => {
     highRatingReviews: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -51,7 +53,7 @@ const Dashboard = () => {
   }, [toast]);
 
   const handleSendReview = () => {
-    navigate("/reviews");
+    setShowReviewDialog(true);
   };
 
   const handleViewReviews = () => {
@@ -166,6 +168,19 @@ const Dashboard = () => {
           </Button>
         </div>
       </div>
+
+      {/* Send Review Email Dialog */}
+      <SendReviewEmailDialog
+        open={showReviewDialog}
+        onOpenChange={setShowReviewDialog}
+        onSuccess={() => {
+          setShowReviewDialog(false);
+          toast({
+            title: "Review Request Sent",
+            description: "The customer will receive an email with a link to leave a review.",
+          });
+        }}
+      />
     </DashboardErrorBoundary>
   );
 };
