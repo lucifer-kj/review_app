@@ -68,6 +68,9 @@ const checkRoleAccess = (userRole: string | null, requiredRole: string): boolean
   // Super admin has access to everything
   if (userRole === 'super_admin') return true;
 
+  // Legacy admin role has access to everything (for backward compatibility)
+  if (userRole === 'admin') return true;
+
   // Tenant admin has access to tenant_admin and user routes
   if (userRole === 'tenant_admin') {
     return requiredRole === 'tenant_admin' || requiredRole === 'user';

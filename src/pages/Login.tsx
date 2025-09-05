@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Loader2, Mail, ArrowLeft, Shield, AlertTriangle } from "lucide-react";
+import { Loader2, ArrowLeft, Shield, AlertTriangle } from "lucide-react";
 import type { AuthError } from "@supabase/supabase-js";
 
 interface LoginFormData {
@@ -39,7 +39,7 @@ const Login = () => {
             .eq('id', session.user.id)
             .single();
           
-          if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin') {
+          if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin') {
             navigate("/master"); // Redirect to master dashboard
           } else {
             // If not a manager, sign them out
@@ -82,10 +82,14 @@ const Login = () => {
         .eq('id', data.user.id)
         .single();
       
-      if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin') {
+      if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin') {
+        const roleDisplay = profile.role === 'super_admin' ? 'Super Admin' : 
+                          profile.role === 'tenant_admin' ? 'Tenant Admin' : 
+                          profile.role === 'admin' ? 'Admin' : 'Manager';
+        
         toast({
           title: "Login Successful",
-          description: `Welcome, ${profile.role === 'super_admin' ? 'Super Admin' : 'Tenant Admin'}!`,
+          description: `Welcome, ${roleDisplay}!`,
         });
         navigate("/master"); // Redirect to master dashboard
       } else {
@@ -163,8 +167,8 @@ const Login = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <Card className="w-full max-w-md mx-auto shadow-lg border border-border">
         <CardHeader className="text-center px-8 pt-8 pb-6">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <Building2 className="w-8 h-8 text-primary" />
+          <div className="items-center justify-center gap-3 mb-6">
+            <img src="/public/web/icons8-logo-ios-17-outlined-16.png" alt="Crux" className="w-8 h-8" />
             <span className="text-xl font-bold">Crux</span>
           </div>
           <CardTitle className="text-xl mb-2">
