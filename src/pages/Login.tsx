@@ -39,9 +39,18 @@ const Login = () => {
             .eq('id', session.user.id)
             .single();
           
+          console.log('🔍 Login Debug - Profile check:', {
+            userId: session.user.id,
+            userEmail: session.user.email,
+            profileRole: profile?.role,
+            hasAccess: profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin'
+          });
+          
           if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin') {
+            console.log('🔍 Login Debug - Access granted, navigating to /master');
             navigate("/master"); // Redirect to master dashboard
           } else {
+            console.log('🔍 Login Debug - Access denied, signing out');
             // If not a manager, sign them out
             await supabase.auth.signOut();
             toast({
@@ -82,17 +91,26 @@ const Login = () => {
         .eq('id', data.user.id)
         .single();
       
+      console.log('🔍 Login Debug - Form submission profile check:', {
+        userId: data.user.id,
+        userEmail: data.user.email,
+        profileRole: profile?.role,
+        hasAccess: profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin'
+      });
+      
       if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin') {
         const roleDisplay = profile.role === 'super_admin' ? 'Super Admin' : 
                           profile.role === 'tenant_admin' ? 'Tenant Admin' : 
                           profile.role === 'admin' ? 'Admin' : 'Manager';
         
+        console.log('🔍 Login Debug - Form submission access granted, navigating to /master');
         toast({
           title: "Login Successful",
           description: `Welcome, ${roleDisplay}!`,
         });
         navigate("/master"); // Redirect to master dashboard
       } else {
+        console.log('🔍 Login Debug - Form submission access denied, signing out');
         // If not a manager, sign them out
         await supabase.auth.signOut();
         toast({
