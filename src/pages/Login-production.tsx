@@ -21,8 +21,6 @@ const Login = () => {
     password: "",
   });
   const [loading, setLoading] = useState(false);
-  // Signup disabled - invite-only authentication
-  const [isSignUp] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -33,7 +31,6 @@ const Login = () => {
   const handleInputChange = (field: keyof LoginFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
-
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,26 +51,17 @@ const Login = () => {
         .eq('id', data.user.id)
         .single();
       
-      console.log('🔍 Login Debug - Form submission profile check:', {
-        userId: data.user.id,
-        userEmail: data.user.email,
-        profileRole: profile?.role,
-        hasAccess: profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin'
-      });
-      
       if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin') {
         const roleDisplay = profile.role === 'super_admin' ? 'Super Admin' : 
                           profile.role === 'tenant_admin' ? 'Tenant Admin' : 
                           profile.role === 'admin' ? 'Admin' : 'Manager';
         
-        console.log('🔍 Login Debug - Form submission access granted, navigating to /master');
         toast({
           title: "Login Successful",
           description: `Welcome, ${roleDisplay}!`,
         });
-        navigate("/master", { replace: true }); // Redirect to master dashboard with replace
+        navigate("/master", { replace: true });
       } else {
-        console.log('🔍 Login Debug - Form submission access denied, signing out');
         // If not a manager, sign them out
         await supabase.auth.signOut();
         toast({
@@ -93,7 +81,6 @@ const Login = () => {
       setLoading(false);
     }
   };
-
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,7 +115,7 @@ const Login = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/` // Redirect to root
+          redirectTo: `${window.location.origin}/`
         }
       });
       
@@ -142,7 +129,6 @@ const Login = () => {
       });
     }
   };
-
 
   // Show loading while checking authentication
   if (isChecking) {
@@ -160,8 +146,8 @@ const Login = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <Card className="w-full max-w-md mx-auto shadow-lg border border-border">
         <CardHeader className="text-center px-8 pt-8 pb-6">
-          <div className="items-center justify-center gap-3 mb-6">
-            <img src="/public/web/icons8-logo-ios-17-outlined-16.png" alt="Crux" className="w-8 h-8" />
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <Shield className="w-8 h-8 text-primary" />
             <span className="text-xl font-bold">Crux</span>
           </div>
           <CardTitle className="text-xl mb-2">
@@ -209,7 +195,7 @@ const Login = () => {
                 <div className="flex items-center justify-center gap-2 mb-4">
                   <Shield className="h-6 w-6 text-primary" />
                   <h2 className="text-2xl font-bold text-gray-900">Manager Access</h2>
-                  </div>
+                </div>
                 <p className="text-sm text-gray-600 mt-2">
                   This system is restricted to managers only. Please sign in with your manager credentials.
                 </p>
@@ -222,49 +208,49 @@ const Login = () => {
                 <p className="text-xs text-muted-foreground mt-3 font-medium">
                   Crux — Powered by Alpha Business Digital
                 </p>
-                    </div>
+              </div>
               
               <div className="space-y-6">
                 {/* Email Sign In Form */}
-                  <form onSubmit={handleEmailSubmit} className="space-y-6">
-                    <div className="space-y-3">
+                <form onSubmit={handleEmailSubmit} className="space-y-6">
+                  <div className="space-y-3">
                     <Label htmlFor="signin-email" className="text-sm font-medium">Email</Label>
-                      <Input
+                    <Input
                       id="signin-email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        required
-                        className="h-11"
-                      />
-                    </div>
-                    <div className="space-y-3">
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      required
+                      className="h-11"
+                    />
+                  </div>
+                  <div className="space-y-3">
                     <Label htmlFor="signin-password" className="text-sm font-medium">Password</Label>
-                      <Input
+                    <Input
                       id="signin-password"
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => handleInputChange('password', e.target.value)}
-                        required
-                        className="h-11"
-                      />
-                    </div>
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      required
+                      className="h-11"
+                    />
+                  </div>
                   <Button type="submit" disabled={loading} className="w-full h-11">
                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Sign In
-                    </Button>
-                  </form>
+                  </Button>
+                </form>
                 
                 {/* Forgot Password */}
                 <div className="text-center">
-                <Button 
-                  type="button" 
+                  <Button 
+                    type="button" 
                     variant="link" 
-                  onClick={() => setShowPasswordReset(true)}
+                    onClick={() => setShowPasswordReset(true)}
                     className="text-sm"
-                >
+                  >
                     Forgot your password?
-                </Button>
+                  </Button>
                 </div>
                 
                 {/* Social Sign In */}

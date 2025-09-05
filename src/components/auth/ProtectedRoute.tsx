@@ -54,7 +54,10 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
   // Check role-based access
   if (requiredRole) {
     const hasAccess = checkRoleAccess(userRole, requiredRole);
+    
     if (!hasAccess) {
+      // Sign out the user to prevent loops
+      supabase.auth.signOut().catch(console.error);
       return <Navigate to="/" replace />;
     }
   }

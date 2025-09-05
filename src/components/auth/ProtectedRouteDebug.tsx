@@ -84,6 +84,10 @@ export const ProtectedRouteDebug = ({ children, requiredRole }: ProtectedRoutePr
     
     if (!hasAccess) {
       console.log('🔍 ProtectedRoute Debug - Access denied, redirecting to login');
+      // Sign out the user to prevent loops
+      supabase.auth.signOut().then(() => {
+        console.log('🔍 ProtectedRoute Debug - User signed out due to access denial');
+      });
       return <Navigate to="/" replace />;
     }
   }
