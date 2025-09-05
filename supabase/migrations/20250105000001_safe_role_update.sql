@@ -1,18 +1,26 @@
--- Update roles system to support multi-tenancy
--- This migration updates the profiles table to support the new role hierarchy
+-- Safe role update migration
+-- This handles any unexpected role values gracefully
 
--- First, update existing data to match new role system
--- Update existing 'admin' roles to 'super_admin'
+-- First, let's see what roles exist in the table
+-- (This is just for reference, you can run this separately to check)
+-- SELECT DISTINCT role FROM public.profiles;
+
+-- Update existing data to match new role system
+-- Handle all possible existing roles
 UPDATE public.profiles 
 SET role = 'super_admin' 
 WHERE role = 'admin';
 
--- Update existing 'staff' roles to 'user'
 UPDATE public.profiles 
 SET role = 'user' 
 WHERE role = 'staff';
 
--- Now update the constraint to support new roles
+-- Handle any other unexpected roles by defaulting them to 'user'
+UPDATE public.profiles 
+SET role = 'user' 
+WHERE role NOT IN ('super_admin', 'tenant_admin', 'user');
+
+-- Now safely update the constraint
 ALTER TABLE public.profiles 
 DROP CONSTRAINT IF EXISTS profiles_role_check;
 
