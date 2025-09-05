@@ -1,6 +1,8 @@
-# Alpha Business Designs - Review Management System
+# Crux - Review Management System
 
-A modern, responsive review management dashboard built with React, TypeScript, and Supabase.
+**Powered by Alpha Business Digital**
+
+Crux is a modern, responsive review management dashboard built with React, TypeScript, and Supabase. It provides professional-grade tools for businesses to collect, manage, and analyze customer feedback.
 
 ## Features
 

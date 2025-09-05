@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { BaseService, type ServiceResponse } from "./baseService";
+import { logger } from "@/utils/logger";
 
 type Review = Tables<'reviews'>;
 type CreateReviewData = Omit<Review, 'id' | 'created_at'>;
@@ -8,32 +9,40 @@ type UpdateReviewData = Partial<Review>;
 
 export class ReviewService extends BaseService {
   /**
-   * Get reviews using the new dashboard function that includes both user and anonymous reviews
+   * Get reviews for current tenant using the dashboard function
    */
-  static async getReviews(): Promise<ServiceResponse<Review[]>> {
+  static async getReviews(tenantId?: string): Promise<ServiceResponse<Review[]>> {
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      // If tenantId is provided, use it; otherwise get from current user context
+      let targetTenantId = tenantId;
       
-      // Use the new dashboard function that handles both authenticated and anonymous reviews
+      if (!targetTenantId) {
+        // Get current tenant from user context
+        const { data: tenantResponse } = await supabase.rpc('get_current_tenant_id');
+        targetTenantId = tenantResponse;
+      }
+      
+      if (!targetTenantId) {
+        return {
+          data: [],
+          error: 'No tenant context available',
+          success: false,
+        };
+      }
+
+      // Use the dashboard function with tenant context
       const { data, error } = await supabase
-        .rpc('get_all_reviews_for_dashboard');
+        .rpc('get_all_reviews_for_dashboard', { p_tenant_id: targetTenantId });
 
       if (error) {
-        // Fallback to the old method if the function doesn't exist
-        console.warn('Dashboard function not found, falling back to basic query:', error.message);
+        // Fallback to direct query with tenant filtering
+        logger.warn('Dashboard function not found, falling back to basic query', { error: error.message });
         
-        let query = supabase.from('reviews').select('*');
-        
-        if (user) {
-          // For authenticated users, get their reviews plus anonymous ones
-          query = query.or(`user_id.eq.${user.id},user_id.is.null`);
-        } else {
-          // For unauthenticated users, get all reviews (should not happen in dashboard)
-          query = query.select('*');
-        }
-        
-        const fallbackResult = await query.order('created_at', { ascending: false });
+        const fallbackResult = await supabase
+          .from('reviews')
+          .select('*')
+          .eq('tenant_id', targetTenantId)
+          .order('created_at', { ascending: false });
         
         if (fallbackResult.error) {
           return this.handleError(fallbackResult.error, 'ReviewService.getReviews');
@@ -57,26 +66,40 @@ export class ReviewService extends BaseService {
   }
 
   /**
-   * Get review statistics using the new dashboard function
+   * Get review statistics for current tenant using the dashboard function
    */
-  static async getReviewStats(): Promise<ServiceResponse<{
+  static async getReviewStats(tenantId?: string): Promise<ServiceResponse<{
     totalReviews: number;
     averageRating: number;
     highRatingReviews: number;
   }>> {
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      // If tenantId is provided, use it; otherwise get from current user context
+      let targetTenantId = tenantId;
       
-      // Use the new dashboard stats function
+      if (!targetTenantId) {
+        // Get current tenant from user context
+        const { data: tenantResponse } = await supabase.rpc('get_current_tenant_id');
+        targetTenantId = tenantResponse;
+      }
+      
+      if (!targetTenantId) {
+        return {
+          data: { totalReviews: 0, averageRating: 0, highRatingReviews: 0 },
+          error: 'No tenant context available',
+          success: false,
+        };
+      }
+
+      // Use the dashboard stats function with tenant context
       const { data, error } = await supabase
-        .rpc('get_review_stats_for_dashboard');
+        .rpc('get_review_stats_for_dashboard', { p_tenant_id: targetTenantId });
 
       if (error) {
         // Fallback to manual calculation if the function doesn't exist
-        console.warn('Dashboard stats function not found, falling back to manual calculation:', error.message);
+        logger.warn('Dashboard stats function not found, falling back to manual calculation', { error: error.message });
         
-        const reviewsResponse = await this.getReviews();
+        const reviewsResponse = await this.getReviews(targetTenantId);
         if (!reviewsResponse.success || !reviewsResponse.data) {
           return {
             data: { totalReviews: 0, averageRating: 0, highRatingReviews: 0 },
@@ -116,7 +139,7 @@ export class ReviewService extends BaseService {
     }
   }
 
-  static async getReviewById(id: string): Promise<ServiceResponse<Review>> {
+  static async getReviewById(id: string, tenantId?: string): Promise<ServiceResponse<Review>> {
     if (!this.validateId(id)) {
       return {
         data: null,
@@ -136,11 +159,26 @@ export class ReviewService extends BaseService {
         };
       }
 
+      // Get tenant context
+      let targetTenantId = tenantId;
+      if (!targetTenantId) {
+        const { data: tenantResponse } = await supabase.rpc('get_current_tenant_id');
+        targetTenantId = tenantResponse;
+      }
+
+      if (!targetTenantId) {
+        return {
+          data: null,
+          error: 'No tenant context available',
+          success: false,
+        };
+      }
+
       const { data, error } = await supabase
         .from('reviews')
         .select('*')
         .eq('id', id)
-        .or(`user_id.eq.${user.id},user_id.is.null`)
+        .eq('tenant_id', targetTenantId)
         .single();
 
       if (error) {

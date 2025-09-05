@@ -4,8 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { EmailService } from "@/services/emailService";
-import { EmailSendingService } from "@/services/emailSendingService";
+import { UnifiedEmailService } from "@/services/unifiedEmailService";
 import { Mail, Send, Loader2, Copy, ExternalLink, CheckCircle, AlertCircle } from "lucide-react";
 import { VALIDATION } from "@/constants";
 
@@ -28,7 +27,7 @@ export const SendReviewEmailDialog = ({
     customerName: customerName,
     customerEmail: customerEmail,
     managerName: "",
-    businessName: "Alpha Business Designs"
+    businessName: "Crux"
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -73,7 +72,7 @@ export const SendReviewEmailDialog = ({
 
     try {
       // Generate email template with dynamic business settings
-      const generatedEmailData = await EmailService.generateReviewEmailTemplate({
+      const generatedEmailData = await UnifiedEmailService.generateReviewEmailTemplate({
         customerEmail: formData.customerEmail.trim(),
         customerName: formData.customerName.trim(),
         businessName: formData.businessName.trim(),
@@ -110,7 +109,7 @@ export const SendReviewEmailDialog = ({
     
     try {
       // Try to send via API first
-      const result = await EmailSendingService.sendEmailViaAPI(emailData);
+      const result = await UnifiedEmailService.sendEmail(emailData);
       
       if (result.success) {
         setEmailSent(true);
@@ -133,8 +132,8 @@ export const SendReviewEmailDialog = ({
 
   const handleFallbackSending = async (emailData: any) => {
     // Try EmailJS if available
-    if (EmailSendingService.isEmailJSConfigured()) {
-      const result = await EmailSendingService.sendEmail(emailData);
+    if (UnifiedEmailService.isEmailJSConfigured()) {
+      const result = await UnifiedEmailService.sendEmail(emailData);
       if (result.success) {
         setEmailSent(true);
         toast({
@@ -147,7 +146,7 @@ export const SendReviewEmailDialog = ({
     }
 
     // Fallback to mailto
-    EmailSendingService.openEmailClient(emailData);
+    UnifiedEmailService.openEmailClient(emailData);
     toast({
       title: "Email Client Opened",
       description: "Please send the email manually from your email client.",
@@ -156,7 +155,7 @@ export const SendReviewEmailDialog = ({
 
   const handleOpenEmailClient = () => {
     if (emailData) {
-      EmailSendingService.openEmailClient(emailData);
+      UnifiedEmailService.openEmailClient(emailData);
       toast({
         title: "Email Client Opened",
         description: "Your default email client should open with the pre-filled email.",
@@ -166,7 +165,7 @@ export const SendReviewEmailDialog = ({
 
   const handleCopyToClipboard = async () => {
     if (emailData) {
-      const success = await EmailSendingService.copyEmailToClipboard(emailData);
+      const success = await UnifiedEmailService.copyEmailToClipboard(emailData);
       if (success) {
         toast({
           title: "Email Copied",
@@ -187,7 +186,7 @@ export const SendReviewEmailDialog = ({
     
     setIsSending(true);
     try {
-      const result = await EmailSendingService.sendEmailViaAPI(emailData);
+      const result = await UnifiedEmailService.sendEmail(emailData);
       
       if (result.success) {
         setEmailSent(true);
@@ -220,7 +219,7 @@ export const SendReviewEmailDialog = ({
       customerName: customerName,
       customerEmail: customerEmail,
       managerName: "",
-      businessName: "Alpha Business Designs"
+      businessName: "Crux"
     });
     setEmailGenerated(false);
     setEmailSent(false);

@@ -267,7 +267,7 @@ const DashboardSettings = () => {
                   id="business-name"
                   value={settings.business_name || ""}
                   onChange={(e) => setSettings(prev => ({ ...prev, business_name: e.target.value }))}
-                  placeholder="Alpha Business Designs"
+                  placeholder="Crux"
                   className="text-sm sm:text-base"
                 />
               </div>

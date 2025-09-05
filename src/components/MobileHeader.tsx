@@ -41,13 +41,16 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
           <SheetContent side="left" className="w-72 p-0">
             <div className="flex flex-col h-full">
               <div className="p-6 border-b bg-muted/30">
-                <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center gap-3 mb-4">
                   <Building2 className="h-8 w-8 text-primary" />
-                  <span className="font-bold text-lg">Alpha Business</span>
+                  <div>
+                    <span className="font-bold text-lg">Crux</span>
+                    <p className="text-xs text-muted-foreground">Powered by Alpha Business Digital</p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-                    <span className="text-primary-foreground text-lg font-bold">AB</span>
+                    <span className="text-primary-foreground text-lg font-bold">CX</span>
                   </div>
                   <div>
                     <p className="text-base font-semibold">Account</p>
@@ -116,7 +119,7 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
           <Building2 className="h-5 w-5 text-primary" />
-          <span className="font-semibold text-sm">Alpha Business</span>
+          <span className="font-semibold text-sm">Crux</span>
         </button>
         </div>
         

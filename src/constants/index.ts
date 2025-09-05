@@ -1,9 +1,9 @@
 // App Configuration
 export const APP_CONFIG = {
-  NAME: "Alpha Business Designs",
-  SHORT_NAME: "Alpha Dashboard",
-  DESCRIPTION: "Alpha Business Designs Dashboard - Manage customer reviews",
-  SUPPORT_EMAIL: "help@alphabusiness.com",
+  NAME: "Crux",
+  SHORT_NAME: "Crux",
+  DESCRIPTION: "Crux - Professional review management system powered by Alpha Business Digital",
+  SUPPORT_EMAIL: "help@alphabusinessdigital.com",
   GOOGLE_REVIEWS_URL: "https://g.page/r/CZEmfT3kD-k-EBM/review",
 } as const;
 
@@ -18,8 +18,8 @@ export const ROUTES = {
 
 // Share Configuration
 export const SHARE_CONFIG = {
-  TITLE: "Alpha Business Designs - Share Your Experience",
-  DESCRIPTION: "We'd love to hear about your experience with Alpha Business Designs. Please share your feedback!",
+  TITLE: "Crux - Share Your Experience",
+  DESCRIPTION: "We'd love to hear about your experience with Crux. Please share your feedback!",
 } as const;
 
 // Form Validation

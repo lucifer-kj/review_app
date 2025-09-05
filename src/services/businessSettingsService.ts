@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { BaseService, type ServiceResponse } from "./baseService";
+import { logger } from "@/utils/logger";
 
 export interface BusinessSettings {
   id: string;
@@ -66,7 +67,7 @@ export class BusinessSettingsService extends BaseService {
         // Fallback: get first settings (temporary until migration is run)
         // No additional filter; just select the first row
         query = query.limit(1);
-        console.warn('user_id column not found in business_settings table. Using fallback query.');
+        logger.warn('user_id column not found in business_settings table. Using fallback query.');
       }
       
       const { data, error } = await query.maybeSingle();
@@ -74,7 +75,7 @@ export class BusinessSettingsService extends BaseService {
       if (error) {
         // If error is due to user_id column not existing, try without it
         if (error.message.includes('column "user_id" does not exist')) {
-          console.warn('user_id column not found, falling back to basic query');
+          logger.warn('user_id column not found, falling back to basic query');
           const fallbackResult = await supabase
             .from('business_settings')
             .select('*')
@@ -140,7 +141,7 @@ export class BusinessSettingsService extends BaseService {
         if (error) {
           // If error is due to user_id column not existing, try without it
           if (error.message.includes('column "user_id" does not exist')) {
-            console.warn('user_id column not found, falling back to basic update');
+            logger.warn('user_id column not found, falling back to basic update');
             const fallbackResult = await supabase
               .from('business_settings')
               .update(settings)
@@ -181,7 +182,7 @@ export class BusinessSettingsService extends BaseService {
         if (error) {
           // If error is due to user_id column not existing, try without it
           if (error.message.includes('column "user_id" does not exist')) {
-            console.warn('user_id column not found, falling back to basic insert');
+            logger.warn('user_id column not found, falling back to basic insert');
             const fallbackResult = await supabase
               .from('business_settings')
               .insert(settings)
@@ -219,7 +220,7 @@ export class BusinessSettingsService extends BaseService {
     return {
       id: '',
       user_id: '',
-      business_name: 'Alpha Business Designs',
+      business_name: 'Crux',
       business_email: '',
       business_phone: '',
       business_address: '',
@@ -287,7 +288,7 @@ export class BusinessSettingsService extends BaseService {
       if (error) {
         // If error is due to user_id column not existing, try without it
         if (error.message.includes('column "user_id" does not exist')) {
-          console.warn('user_id column not found, falling back to basic delete');
+          logger.warn('user_id column not found, falling back to basic delete');
           const fallbackResult = await supabase
             .from('business_settings')
             .delete();

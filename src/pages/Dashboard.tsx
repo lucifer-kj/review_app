@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Star, FileText, Mail, Plus, TrendingUp, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MobileDashboard } from "@/components/MobileDashboard";
-import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { LoadingWrapper } from "@/components/LoadingWrapper";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { useNavigate } from "react-router-dom";
@@ -71,7 +71,7 @@ const Dashboard = () => {
   }
 
   return (
-    <DashboardErrorBoundary componentName="Dashboard">
+            <AppErrorBoundary componentName="Dashboard">
       {/* Mobile Dashboard */}
       <MobileDashboard
         stats={stats}
@@ -181,7 +181,7 @@ const Dashboard = () => {
           });
         }}
       />
-    </DashboardErrorBoundary>
+            </AppErrorBoundary>
   );
 };
 

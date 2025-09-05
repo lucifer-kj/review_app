@@ -61,7 +61,7 @@ export const FeedbackThankYou = ({ name, onNewReview }: FeedbackThankYouProps) =
             Thank you for helping us serve you better
           </p>
           <p className="text-xs text-muted-foreground mt-2">
-            Alpha Business Designs
+            Crux
           </p>
         </div>
       </div>

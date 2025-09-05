@@ -57,7 +57,7 @@ const DashboardLayout = () => {
             className="flex items-center gap-3 hover:opacity-80 transition-opacity duration-200 cursor-pointer"
           >
             <Building2 className="h-6 w-6 text-primary" />
-            <span className="font-semibold text-base">Alpha Business Designs</span>
+            <span className="font-semibold text-base">Crux</span>
           </button>
         </div>
         <div className="flex items-center gap-3">

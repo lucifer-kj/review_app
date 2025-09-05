@@ -26,4 +26,4 @@ const Toaster = ({ ...props }: ToasterProps) => {
   )
 }
 
-export { Toaster } // eslint-disable-line @typescript-eslint/no-unused-vars
+export { Toaster }  

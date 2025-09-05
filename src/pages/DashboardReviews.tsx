@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ReviewListSkeleton } from "@/components/ReviewSkeleton";
 import { SendReviewEmailDialog } from "@/components/SendReviewEmailDialog";
-import { DashboardErrorBoundary } from "@/components/DashboardErrorBoundary";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { LoadingWrapper } from "@/components/LoadingWrapper";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { Pagination } from "@/components/Pagination";
@@ -94,7 +94,7 @@ const DashboardReviews = () => {
   }, [refetch]);
 
   return (
-    <DashboardErrorBoundary componentName="DashboardReviews">
+    <AppErrorBoundary componentName="DashboardReviews">
       <div className="w-full space-y-6 p-6 pt-20 lg:pt-6">
         {/* Mobile Components */}
         <div className="lg:hidden space-y-6">
@@ -451,7 +451,7 @@ const DashboardReviews = () => {
           }}
         />
       </div>
-    </DashboardErrorBoundary>
+    </AppErrorBoundary>
   );
 };
 

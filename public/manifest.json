@@ -1,7 +1,7 @@
 {
-  "name": "Alpha Business Dashboard",
-  "short_name": "Alpha Dashboard",
-  "description": "Alpha Business Designs Dashboard - Manage customer reviews",
+  "name": "Crux - Powered by Alpha Business Digital",
+  "short_name": "Crux",
+  "description": "Crux - Professional review management system powered by Alpha Business Digital",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

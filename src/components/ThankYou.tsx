@@ -27,7 +27,7 @@ export const ThankYou = ({ name, onNewReview }: ThankYouProps) => {
 
           <div className="flex items-center justify-center gap-2 text-muted-foreground mt-8">
             <Building2 className="w-5 h-5" />
-            <span className="font-medium">Alpha Business Designs</span>
+            <span className="font-medium">Crux</span>
           </div>
 
           <button

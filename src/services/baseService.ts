@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { PostgrestError } from "@supabase/supabase-js";
+import { logger } from "@/utils/logger";
 
 export interface ServiceResponse<T> {
   data: T | null;
@@ -40,7 +41,7 @@ export abstract class BaseService {
   protected static async handleError(error: unknown, context: string): Promise<ServiceResponse<never>> {
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     
-    console.error(`[${context}] Error:`, error);
+    logger.error(`Service error in ${context}`, error as Error, { component: 'BaseService', action: context });
     
     return {
       data: null,
