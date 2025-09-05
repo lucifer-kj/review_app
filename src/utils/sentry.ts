@@ -4,7 +4,6 @@
  */
 
 import * as Sentry from '@sentry/react';
-import { BrowserTracing } from '@sentry/tracing';
 
 // Initialize Sentry
 export const initSentry = () => {
@@ -18,12 +17,6 @@ export const initSentry = () => {
   Sentry.init({
     dsn,
     environment: import.meta.env.NODE_ENV || 'development',
-    integrations: [
-      new BrowserTracing({
-        // Set sampling rate for performance monitoring
-        tracingOrigins: ['localhost', 'your-domain.com', /^\//],
-      }),
-    ],
     // Performance Monitoring
     tracesSampleRate: import.meta.env.NODE_ENV === 'production' ? 0.1 : 1.0,
     // Session Replay
@@ -90,10 +83,10 @@ export const clearUserContext = () => {
 
 // Performance monitoring utilities
 export const startTransaction = (name: string, op: string) => {
-  return Sentry.startTransaction({
+  return Sentry.startSpan({
     name,
     op,
-  });
+  }, () => {});
 };
 
 export const addBreadcrumb = (message: string, category: string, level: 'info' | 'warning' | 'error' = 'info') => {

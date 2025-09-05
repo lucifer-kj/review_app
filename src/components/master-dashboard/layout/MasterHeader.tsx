@@ -36,10 +36,10 @@ export function MasterHeader() {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      navigate('/login');
+      navigate('/');
     } catch (error) {
       // Handle logout error silently or show toast
-      navigate('/login'); // Force redirect even if signOut fails
+      navigate('/'); // Force redirect even if signOut fails
     }
   };
 

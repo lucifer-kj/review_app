@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Loader2, Mail, ArrowLeft } from "lucide-react";
+import { Building2, Loader2, Mail, ArrowLeft, Shield, AlertTriangle } from "lucide-react";
 import type { AuthError } from "@supabase/supabase-js";
 
 interface LoginFormData {
@@ -28,19 +28,36 @@ const Login = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user is already logged in
+    // Check if user is already logged in and redirect to master dashboard
     const checkUser = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          navigate("/"); // Redirect to root (dashboard)
+          // Check if user is a manager (super_admin or tenant_admin)
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin') {
+            navigate("/master"); // Redirect to master dashboard
+          } else {
+            // If not a manager, sign them out
+            await supabase.auth.signOut();
+            toast({
+              title: "Access Denied",
+              description: "Only managers can access this system.",
+              variant: "destructive",
+            });
+          }
         }
       } catch (error) {
         console.error('Error checking session:', error);
       }
     };
     checkUser();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const handleInputChange = (field: keyof LoginFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -52,27 +69,34 @@ const Login = () => {
     setLoading(true);
 
     try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-        });
-        
-        if (error) throw error;
-        
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+      
+      if (error) throw error;
+      
+      // Check if user is a manager (super_admin or tenant_admin)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+      
+      if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin') {
         toast({
-          title: "Verification Email Sent",
-          description: "Please check your email and click the verification link.",
+          title: "Login Successful",
+          description: `Welcome, ${profile.role === 'super_admin' ? 'Super Admin' : 'Tenant Admin'}!`,
         });
+        navigate("/master"); // Redirect to master dashboard
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
+        // If not a manager, sign them out
+        await supabase.auth.signOut();
+        toast({
+          title: "Access Denied",
+          description: "Only managers can access this system. Please contact your administrator.",
+          variant: "destructive",
         });
-        
-        if (error) throw error;
-        
-        navigate("/"); // Redirect to root (dashboard)
       }
     } catch (error) {
       const authError = error as AuthError;
@@ -184,12 +208,21 @@ const Login = () => {
             </form>
           ) : (
             <>
-              {/* Invite-only authentication - signup disabled */}
+              {/* Manager-only authentication */}
               <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Sign In to Your Account</h2>
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <Shield className="h-6 w-6 text-primary" />
+                  <h2 className="text-2xl font-bold text-gray-900">Manager Access</h2>
+                </div>
                 <p className="text-sm text-gray-600 mt-2">
-                  Access is by invitation only. If you don't have an account, please contact your administrator.
+                  This system is restricted to managers only. Please sign in with your manager credentials.
                 </p>
+                <div className="flex items-center justify-center gap-2 mt-3 p-2 bg-blue-50 rounded-lg">
+                  <AlertTriangle className="h-4 w-4 text-blue-600" />
+                  <p className="text-xs text-blue-700 font-medium">
+                    Only Super Admins and Tenant Admins can access this system
+                  </p>
+                </div>
                 <p className="text-xs text-muted-foreground mt-3 font-medium">
                   Crux — Powered by Alpha Business Digital
                 </p>

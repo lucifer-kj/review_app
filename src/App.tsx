@@ -50,6 +50,9 @@ const RouterContent = () => {
       <ProgressBar />
       <Suspense fallback={<LoadingSpinner size={reduced ? "md" : "lg"} className="min-h-screen" />}>
         <Routes>
+          {/* Login page - default route */}
+          <Route path="/" element={<Login />} />
+          
           {/* Master Dashboard routes - super admin only */}
           <Route path="/master" element={
             <ProtectedRoute requiredRole="super_admin">
@@ -68,9 +71,9 @@ const RouterContent = () => {
             <Route path="audit" element={<div>Audit Logs (Coming Soon)</div>} />
           </Route>
           
-          {/* Dashboard routes - protected */}
-          <Route path="/" element={
-            <ProtectedRoute>
+          {/* Dashboard routes - protected (managers only) */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute requiredRole="tenant_admin">
               <DashboardLayout />
             </ProtectedRoute>
           }>

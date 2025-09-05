@@ -39,7 +39,7 @@ export function ProtectedRoute({
 
   // Redirect to login if not authenticated
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   // Check role-based access
@@ -90,9 +90,9 @@ export function ProtectedRoute({
                 Go Back
               </Button>
               <Button asChild>
-                <a href="/dashboard">
+                <a href="/">
                   <Shield className="h-4 w-4 mr-2" />
-                  Dashboard
+                  Login
                 </a>
               </Button>
             </div>
