@@ -1,131 +1,82 @@
 import { ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useTenantContext } from '@/hooks/useTenantContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Shield, AlertTriangle, Loader2 } from 'lucide-react';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from 'react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredRole?: 'super_admin' | 'tenant_admin' | 'user';
-  fallback?: ReactNode;
 }
 
-export function ProtectedRoute({ 
-  children, 
-  requiredRole = 'user',
-  fallback 
-}: ProtectedRouteProps) {
-  const { user, loading: authLoading } = useAuth();
-  const { isSuperAdmin, isTenantAdmin, loading: tenantLoading } = useTenantContext();
-  const location = useLocation();
+export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
+  const { user, loading } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
 
-  // Show loading state while checking authentication
-  if (authLoading || tenantLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-96">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-center space-x-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Checking permissions...</span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (!user) {
+        setRoleLoading(false);
+        return;
+      }
+
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        setUserRole(profile?.role || null);
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+        setUserRole(null);
+      } finally {
+        setRoleLoading(false);
+      }
+    };
+
+    fetchUserRole();
+  }, [user]);
+
+  // Show loading spinner while checking authentication and role
+  if (loading || roleLoading) {
+    return <LoadingSpinner size="lg" className="min-h-screen" />;
   }
 
   // Redirect to login if not authenticated
   if (!user) {
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/" replace />;
   }
 
   // Check role-based access
-  const hasRequiredRole = (() => {
-    switch (requiredRole) {
-      case 'super_admin':
-        return isSuperAdmin;
-      case 'tenant_admin':
-        return isSuperAdmin || isTenantAdmin;
-      case 'user':
-        return true; // All authenticated users
-      default:
-        return false;
+  if (requiredRole) {
+    const hasAccess = checkRoleAccess(userRole, requiredRole);
+    if (!hasAccess) {
+      return <Navigate to="/" replace />;
     }
-  })();
-
-  // Show access denied if user doesn't have required role
-  if (!hasRequiredRole) {
-    if (fallback) {
-      return <>{fallback}</>;
-    }
-
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card className="w-96">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              <span>Access Denied</span>
-            </CardTitle>
-            <CardDescription>
-              You don't have permission to access this resource
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Required role: <span className="font-medium">{requiredRole}</span>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Your role: <span className="font-medium">
-                  {isSuperAdmin ? 'super_admin' : isTenantAdmin ? 'tenant_admin' : 'user'}
-                </span>
-              </p>
-            </div>
-            <div className="flex space-x-2">
-              <Button variant="outline" onClick={() => window.history.back()}>
-                Go Back
-              </Button>
-              <Button asChild>
-                <a href="/">
-                  <Shield className="h-4 w-4 mr-2" />
-                  Login
-                </a>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
   }
 
   return <>{children}</>;
-}
+};
 
-// Convenience components for specific role requirements
-export function SuperAdminRoute({ children }: { children: ReactNode }) {
-  return (
-    <ProtectedRoute requiredRole="super_admin">
-      {children}
-    </ProtectedRoute>
-  );
-}
+const checkRoleAccess = (userRole: string | null, requiredRole: string): boolean => {
+  if (!userRole) return false;
 
-export function TenantAdminRoute({ children }: { children: ReactNode }) {
-  return (
-    <ProtectedRoute requiredRole="tenant_admin">
-      {children}
-    </ProtectedRoute>
-  );
-}
+  // Super admin has access to everything
+  if (userRole === 'super_admin') return true;
 
-export function UserRoute({ children }: { children: ReactNode }) {
-  return (
-    <ProtectedRoute requiredRole="user">
-      {children}
-    </ProtectedRoute>
-  );
-}
+  // Tenant admin has access to tenant_admin and user routes
+  if (userRole === 'tenant_admin') {
+    return requiredRole === 'tenant_admin' || requiredRole === 'user';
+  }
+
+  // Regular user only has access to user routes
+  if (userRole === 'user') {
+    return requiredRole === 'user';
+  }
+
+  return false;
+};

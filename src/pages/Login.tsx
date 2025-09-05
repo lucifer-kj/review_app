@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Building2, Loader2, Mail, ArrowLeft, Shield, AlertTriangle } from "lucide-react";
@@ -70,12 +69,12 @@ const Login = () => {
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
-      
-      if (error) throw error;
-      
+          email: formData.email,
+          password: formData.password,
+        });
+        
+        if (error) throw error;
+        
       // Check if user is a manager (super_admin or tenant_admin)
       const { data: profile } = await supabase
         .from('profiles')
@@ -228,47 +227,47 @@ const Login = () => {
                 </p>
               </div>
               
-              <TabsContent value="signin" className="space-y-6">
+              <div className="space-y-6">
                 {/* Email Sign In Form */}
-                  <form onSubmit={handleEmailSubmit} className="space-y-6">
-                    <div className="space-y-3">
+                <form onSubmit={handleEmailSubmit} className="space-y-6">
+                  <div className="space-y-3">
                     <Label htmlFor="signin-email" className="text-sm font-medium">Email</Label>
-                      <Input
+                    <Input
                       id="signin-email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        required
-                        className="h-11"
-                      />
-                    </div>
-                    <div className="space-y-3">
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      required
+                      className="h-11"
+                    />
+                  </div>
+                  <div className="space-y-3">
                     <Label htmlFor="signin-password" className="text-sm font-medium">Password</Label>
-                      <Input
+                    <Input
                       id="signin-password"
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => handleInputChange('password', e.target.value)}
-                        required
-                        className="h-11"
-                      />
-                    </div>
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      required
+                      className="h-11"
+                    />
+                  </div>
                   <Button type="submit" disabled={loading} className="w-full h-11">
                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                     Sign In
-                    </Button>
-                  </form>
+                  </Button>
+                </form>
                 
                 {/* Forgot Password */}
                 <div className="text-center">
-                <Button 
-                  type="button" 
+                  <Button 
+                    type="button" 
                     variant="link" 
-                  onClick={() => setShowPasswordReset(true)}
+                    onClick={() => setShowPasswordReset(true)}
                     className="text-sm"
-                >
+                  >
                     Forgot your password?
-                </Button>
+                  </Button>
                 </div>
                 
                 {/* Social Sign In */}
@@ -304,7 +303,7 @@ const Login = () => {
                   </svg>
                   Continue with Google
                 </Button>
-              </TabsContent>
+              </div>
             </>
           )}
         </CardContent>
