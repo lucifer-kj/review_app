@@ -48,7 +48,7 @@ const Login = () => {
         if (error) throw error;
         
       // Check if user is a manager (super_admin or tenant_admin)
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', data.user.id)
@@ -58,8 +58,21 @@ const Login = () => {
         userId: data.user.id,
         userEmail: data.user.email,
         profileRole: profile?.role,
+        profileError: profileError,
         hasAccess: profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin'
       });
+      
+      // Handle profile fetch error
+      if (profileError) {
+        console.error('🔍 Login Debug - Profile fetch error:', profileError);
+        await supabase.auth.signOut();
+        toast({
+          title: "Profile Access Error",
+          description: "Unable to verify user permissions. Please contact your administrator.",
+          variant: "destructive",
+        });
+        return;
+      }
       
       // Check if user has required role - SECURITY FIX: No automatic role creation
       if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin') {

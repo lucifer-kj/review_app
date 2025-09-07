@@ -23,13 +23,18 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
       }
 
       try {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', user.id)
           .single();
         
-        setUserRole(profile?.role || null);
+        if (profileError) {
+          console.error('Error fetching user role:', profileError);
+          setUserRole(null);
+        } else {
+          setUserRole(profile?.role || null);
+        }
       } catch (error) {
         console.error('Error fetching user role:', error);
         setUserRole(null);
