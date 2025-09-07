@@ -31,29 +31,30 @@ export const PerformanceWrapper: React.FC<PerformanceWrapperProps> = ({
   // Wrap children with interaction tracking
   const wrappedChildren = React.Children.map(children, (child) => {
     if (React.isValidElement(child)) {
-      return React.cloneElement(child, {
+      const childProps = child.props as any;
+      return React.cloneElement(child as React.ReactElement<any>, {
         onClick: (e: React.MouseEvent) => {
           trackInteraction('click')
-          if (child.props.onClick) {
-            child.props.onClick(e)
+          if (childProps.onClick) {
+            childProps.onClick(e)
           }
         },
         onChange: (e: React.ChangeEvent) => {
           trackInteraction('change')
-          if (child.props.onChange) {
-            child.props.onChange(e)
+          if (childProps.onChange) {
+            childProps.onChange(e)
           }
         },
         onFocus: (e: React.FocusEvent) => {
           trackInteraction('focus')
-          if (child.props.onFocus) {
-            child.props.onFocus(e)
+          if (childProps.onFocus) {
+            childProps.onFocus(e)
           }
         },
         onBlur: (e: React.FocusEvent) => {
           trackInteraction('blur')
-          if (child.props.onBlur) {
-            child.props.onBlur(e)
+          if (childProps.onBlur) {
+            childProps.onBlur(e)
           }
         },
       })

@@ -61,27 +61,13 @@ const Login = () => {
         hasAccess: profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin'
       });
       
-      // Check if user has required role OR if no profile exists (temporary bypass)
-      if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin' || !profile) {
+      // Check if user has required role - SECURITY FIX: No automatic role creation
+      if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin') {
         const roleDisplay = profile?.role === 'super_admin' ? 'Super Admin' : 
                           profile?.role === 'tenant_admin' ? 'Tenant Admin' : 
-                          profile?.role === 'admin' ? 'Admin' : 
-                          !profile ? 'New User (Setting up profile...)' : 'Manager';
+                          profile?.role === 'admin' ? 'Admin' : 'Manager';
         
         console.log('🔍 Login Debug - Form submission access granted, navigating to /master');
-        
-        // If no profile exists, create one with super_admin role
-        if (!profile) {
-          console.log('🔍 Login Debug - No profile found, creating super_admin profile');
-          await supabase
-            .from('profiles')
-            .insert({
-              id: data.user.id,
-              role: 'super_admin',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
-        }
         
         toast({
           title: "Login Successful",
@@ -90,11 +76,11 @@ const Login = () => {
         navigate("/master", { replace: true }); // Redirect to master dashboard with replace
       } else {
         console.log('🔍 Login Debug - Form submission access denied, signing out');
-        // If not a manager, sign them out
+        // If not a manager or no profile exists, sign them out
         await supabase.auth.signOut();
         toast({
           title: "Access Denied",
-          description: "Only managers can access this system. Please contact your administrator.",
+          description: "Only authorized managers can access this system. Please contact your administrator for access.",
           variant: "destructive",
         });
       }

@@ -26,14 +26,16 @@ export class UnifiedEmailService {
   private static emailjsUserId: string;
   private static emailjsServiceId: string;
   private static emailjsTemplateId: string;
+  private static resendApiKey: string;
 
   /**
-   * Initialize EmailJS configuration
+   * Initialize email service configuration
    */
   static initialize(): void {
     this.emailjsUserId = import.meta.env.VITE_EMAILJS_USER_ID || '';
     this.emailjsServiceId = import.meta.env.VITE_EMAILJS_SERVICE_ID || '';
     this.emailjsTemplateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || '';
+    this.resendApiKey = import.meta.env.VITE_RESEND_API_KEY || '';
   }
 
   /**
@@ -102,17 +104,40 @@ export class UnifiedEmailService {
   }
 
   /**
-   * Send email using the best available method
+   * Send email using the best available method (Resend > EmailJS > Mailto)
    */
   static async sendEmail(emailData: EmailData): Promise<EmailSendingResult> {
     try {
-      // Check if EmailJS is available
-      if (typeof window !== 'undefined' && (window as any).emailjs) {
-        return await this.sendWithEmailJS(emailData);
-      } else {
-        // Fallback to mailto link
-        return await this.sendWithMailto(emailData);
+      this.initialize();
+
+      // Try Resend first (preferred method)
+      if (this.isResendConfigured()) {
+        const resendResult = await this.sendWithResend(emailData);
+        if (resendResult.success) {
+          return resendResult;
+        }
+        logger.warn('Resend failed, falling back to EmailJS', {
+          component: 'UnifiedEmailService',
+          action: 'sendEmail',
+          error: resendResult.error
+        });
       }
+
+      // Try EmailJS as fallback
+      if (this.isEmailJSConfigured()) {
+        const emailjsResult = await this.sendWithEmailJS(emailData);
+        if (emailjsResult.success) {
+          return emailjsResult;
+        }
+        logger.warn('EmailJS failed, falling back to mailto', {
+          component: 'UnifiedEmailService',
+          action: 'sendEmail',
+          error: emailjsResult.error
+        });
+      }
+
+      // Fallback to mailto link
+      return await this.sendWithMailto(emailData);
     } catch (error) {
       logger.error('Email sending error', error as Error, {
         component: 'UnifiedEmailService',
@@ -128,13 +153,67 @@ export class UnifiedEmailService {
   }
 
   /**
+   * Send email using Resend API (preferred method)
+   */
+  private static async sendWithResend(emailData: EmailData): Promise<EmailSendingResult> {
+    try {
+      if (!this.resendApiKey) {
+        throw new Error('Resend API key not configured');
+      }
+
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'Crux Review System <noreply@crux-reviews.com>',
+          to: [emailData.to],
+          subject: emailData.subject,
+          html: emailData.html || emailData.body,
+          text: emailData.body,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Resend API error: ${errorData.message || response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      logger.info('Email sent successfully via Resend', {
+        component: 'UnifiedEmailService',
+        action: 'sendWithResend',
+        to: emailData.to,
+        messageId: result.id
+      });
+
+      return {
+        success: true,
+        message: 'Email sent successfully via Resend'
+      };
+    } catch (error) {
+      logger.error('Resend API error', error as Error, {
+        component: 'UnifiedEmailService',
+        action: 'sendWithResend',
+        to: emailData.to
+      });
+      return {
+        success: false,
+        message: 'Failed to send email via Resend',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
    * Send email using EmailJS service
    */
   private static async sendWithEmailJS(emailData: EmailData): Promise<EmailSendingResult> {
     try {
-      this.initialize();
-      
-      if (!this.emailjsUserId || !this.emailjsServiceId || !this.emailjsTemplateId) {
+      if (!this.isEmailJSConfigured()) {
         throw new Error('EmailJS configuration is incomplete');
       }
 
@@ -246,6 +325,14 @@ export class UnifiedEmailService {
       });
       return false;
     }
+  }
+
+  /**
+   * Check if Resend is configured
+   */
+  static isResendConfigured(): boolean {
+    this.initialize();
+    return !!this.resendApiKey;
   }
 
   /**

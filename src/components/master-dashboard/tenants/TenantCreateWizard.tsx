@@ -2,21 +2,51 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Building2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Building2, Loader2, CheckCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { TenantService } from "@/services/tenantService";
+import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function TenantCreateWizard() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
+    domain: "",
+    adminEmail: "",
+    planType: "basic",
     description: "",
+  });
+
+  const createTenantMutation = useMutation({
+    mutationFn: (data: typeof formData) => 
+      TenantService.createTenant({
+        name: data.name,
+        domain: data.domain || undefined,
+        plan_type: data.planType as 'basic' | 'pro' | 'enterprise',
+        status: 'active',
+        settings: { description: data.description },
+        billing_email: data.adminEmail,
+      }, data.adminEmail),
+    onSuccess: (tenant) => {
+      toast.success("Tenant created successfully!");
+      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['platform-analytics'] });
+      navigate(`/master/tenants/${tenant.id}`);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to create tenant");
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement tenant creation logic
-    console.log("Creating tenant:", formData);
+    createTenantMutation.mutate(formData);
   };
 
   return (
@@ -44,46 +74,106 @@ export default function TenantCreateWizard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Organization Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter organization name"
-                required
-              />
+          {createTenantMutation.isError && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>
+                {createTenantMutation.error?.message || "Failed to create tenant"}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="name">Organization Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter organization name"
+                  required
+                  disabled={createTenantMutation.isPending}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="domain">Domain (Optional)</Label>
+                <Input
+                  id="domain"
+                  value={formData.domain}
+                  onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+                  placeholder="company.com"
+                  disabled={createTenantMutation.isPending}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Admin Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="Enter admin email address"
-                required
-              />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="adminEmail">Admin Email *</Label>
+                <Input
+                  id="adminEmail"
+                  type="email"
+                  value={formData.adminEmail}
+                  onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
+                  placeholder="admin@company.com"
+                  required
+                  disabled={createTenantMutation.isPending}
+                />
+                <p className="text-xs text-muted-foreground">
+                  This user will be invited as the tenant admin
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="planType">Plan Type</Label>
+                <Select
+                  value={formData.planType}
+                  onValueChange={(value) => setFormData({ ...formData, planType: value })}
+                  disabled={createTenantMutation.isPending}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select plan type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="basic">Basic</SelectItem>
+                    <SelectItem value="pro">Pro</SelectItem>
+                    <SelectItem value="enterprise">Enterprise</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
-              <Input
+              <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Brief description of the organization"
+                rows={3}
+                disabled={createTenantMutation.isPending}
               />
             </div>
 
             <div className="flex space-x-2">
-              <Button type="submit">
-                <Building2 className="mr-2 h-4 w-4" />
-                Create Tenant
+              <Button 
+                type="submit" 
+                disabled={createTenantMutation.isPending}
+              >
+                {createTenantMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Building2 className="mr-2 h-4 w-4" />
+                )}
+                {createTenantMutation.isPending ? "Creating..." : "Create Tenant"}
               </Button>
-              <Button type="button" variant="outline" asChild>
+              <Button 
+                type="button" 
+                variant="outline" 
+                asChild
+                disabled={createTenantMutation.isPending}
+              >
                 <Link to="/master/tenants">Cancel</Link>
               </Button>
             </div>

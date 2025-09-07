@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw, Home, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { captureError } from '@/utils/sentry';
+import { AuditLogService } from '@/services/auditLogService';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -36,6 +37,20 @@ export class AppErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundar
       error,
       errorInfo
     });
+
+    // Log error to audit system
+    AuditLogService.logEvent(
+      AuditLogService.ACTIONS.SYSTEM_ERROR,
+      {
+        error_message: error.message,
+        error_stack: error.stack,
+        component_stack: errorInfo.componentStack,
+        component_name: this.props.componentName || 'AppErrorBoundary',
+        error_id: this.state.errorId,
+        url: window.location.href,
+        user_agent: navigator.userAgent,
+      }
+    );
 
     // Log error for debugging (only in development)
     if (process.env.NODE_ENV === 'development') {

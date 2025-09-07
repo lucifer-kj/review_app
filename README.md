@@ -2,36 +2,49 @@
 
 **Powered by Alpha Business Digital**
 
-Crux is a modern, responsive review management dashboard built with React, TypeScript, and Supabase. It provides professional-grade tools for businesses to collect, manage, and analyze customer feedback.
+Crux is a comprehensive, enterprise-grade review management platform built with modern technologies. It provides multi-tenant SaaS capabilities for businesses to collect, manage, and analyze customer feedback at scale.
 
-## Features
+## 🚀 Features
 
-- 📊 **Dashboard Analytics**: Track review statistics and business metrics
-- 📧 **Email Review Requests**: Generate personalized email templates for customer review requests
-- 📱 **Mobile Responsive**: Optimized for both desktop and mobile devices
-- 🔐 **Secure Authentication**: Built-in user authentication and authorization
-- 📈 **Review Management**: View, manage, and analyze customer reviews
-- ⚡ **Real-time Updates**: Live data updates with Supabase real-time subscriptions
+### Core Functionality
+- 📊 **Master Dashboard**: Platform-wide analytics and tenant management
+- 🏢 **Multi-Tenant Architecture**: Complete tenant isolation and management
+- 👥 **User Management**: Role-based access control with invitation system
+- 📧 **Email Integration**: Resend API with fallback options
+- 🔐 **Enterprise Security**: Comprehensive audit logging and security monitoring
+- 📈 **Real-time Analytics**: Live metrics with interactive charts
+- ⚡ **Performance Monitoring**: Real-time performance tracking and optimization
 
-## Email System
+### Advanced Features
+- 🛡️ **Security Audit System**: Automated security checks and compliance
+- 📊 **Performance Dashboard**: System health and performance metrics
+- 🔄 **Backup & Recovery**: Automated backup system with disaster recovery
+- 📋 **Audit Logging**: Comprehensive activity tracking and compliance
+- 🎯 **Role-Based Access**: Super Admin, Tenant Admin, and User roles
+- 📱 **Mobile Responsive**: Optimized for all devices
 
-This application uses a **browser-based email client integration** for sending review requests:
+## 🏗️ Architecture
 
-### How It Works
+### Tech Stack
+- **Frontend**: React 18.3.1 + TypeScript + Vite + Tailwind CSS + Shadcn/ui
+- **Backend**: Supabase (PostgreSQL + Auth + Edge Functions)
+- **State Management**: TanStack Query (React Query)
+- **Forms**: React Hook Form + Zod validation
+- **Charts**: Recharts
+- **Icons**: Lucide React
+- **Build**: Vite with SWC, managed with Bun
 
-1. **Generate Email Template**: Create personalized email content with customer details
-2. **Multiple Sending Options**:
-   - **Open Email Client**: Automatically opens your default email client with pre-filled content
-   - **Copy to Clipboard**: Copy the email content to paste into any email service
-3. **No Third-party Dependencies**: Uses your own email account and client
-
-### Benefits
-
-- ✅ **No API Keys Required**: No need for Resend, SendGrid, or other email services
-- ✅ **Uses Your Email**: Sends from your registered business email address
-- ✅ **Privacy Focused**: No third-party email service involved
-- ✅ **Simple Setup**: Works with any email client (Gmail, Outlook, Apple Mail, etc.)
-- ✅ **Cost Effective**: No monthly email service fees
+### System Architecture
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Frontend      │    │   Supabase      │    │   External      │
+│   (React)       │◄──►│   Backend       │◄──►│   Services      │
+│                 │    │                 │    │                 │
+│ • Master Dash   │    │ • PostgreSQL    │    │ • Resend API    │
+│ • Tenant Dash   │    │ • Auth          │    │ • File Storage  │
+│ • Review Forms  │    │ • Edge Functions│    │ • Analytics     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
 
 ## Quick Start
 

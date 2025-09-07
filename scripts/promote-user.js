@@ -1,115 +1,172 @@
+#!/usr/bin/env node
+
 /**
- * Script to promote user to super_admin
- * Run with: node scripts/promote-user.js
+ * User Promotion Script
+ * This script promotes a user to super admin role
+ * 
+ * Usage:
+ * node scripts/promote-user.js <user-email>
+ * 
+ * Environment Variables Required:
+ * - SUPABASE_URL: Your Supabase project URL
+ * - SUPABASE_SERVICE_ROLE_KEY: Your Supabase service role key
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Configuration
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://elhbthnvwcqewjpwulhq.supabase.co';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Load environment variables
-const envPath = join(__dirname, '..', '.env');
-let envVars = {};
-
-try {
-  const envContent = readFileSync(envPath, 'utf8');
-  envContent.split('\n').forEach(line => {
-    const [key, value] = line.split('=');
-    if (key && value) {
-      envVars[key.trim()] = value.trim();
-    }
-  });
-} catch (error) {
-  console.log('No .env file found, using environment variables');
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('❌ Error: SUPABASE_SERVICE_ROLE_KEY environment variable is required');
+  console.log('Please set your Supabase service role key:');
+  console.log('export SUPABASE_SERVICE_ROLE_KEY=your_service_role_key');
+  process.exit(1);
 }
 
-const supabaseUrl = envVars.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = envVars.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+// Get user email from command line arguments
+const userEmail = process.argv[2];
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('❌ Missing required environment variables:');
-  console.error('   VITE_SUPABASE_URL');
-  console.error('   VITE_SUPABASE_SERVICE_ROLE_KEY');
-  console.error('\nPlease set these in your .env file or environment variables.');
+if (!userEmail) {
+  console.error('❌ Error: User email is required');
+  console.log('Usage: node scripts/promote-user.js <user-email>');
+  console.log('Example: node scripts/promote-user.js admin@example.com');
   process.exit(1);
 }
 
 // Create Supabase client with service role key
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-const USER_ID = 'edd7c8bc-f167-43b0-8ef0-53120b5cd444';
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
 async function promoteUser() {
-  try {
-    console.log('🚀 Promoting user to super_admin...');
-    console.log(`   User ID: ${USER_ID}`);
+  console.log('🔧 Crux User Promotion Tool');
+  console.log('===========================');
+  console.log(`📧 Promoting user: ${userEmail}`);
+  console.log(`📡 Connecting to: ${SUPABASE_URL}`);
 
-    // First, check if user exists in auth.users
-    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(USER_ID);
-    
+  try {
+    // First, check if the user exists in auth.users
+    const { data: authUser, error: authError } = await supabase.auth.admin.getUserByEmail(userEmail);
+
     if (authError) {
-      console.error('❌ Error fetching user from auth:', authError.message);
-      return;
+      console.error('❌ Error finding user:', authError.message);
+      process.exit(1);
     }
 
     if (!authUser.user) {
-      console.error('❌ User not found in auth.users');
-      return;
+      console.error('❌ User not found in auth.users table');
+      console.log('Please make sure the user has signed up first.');
+      process.exit(1);
     }
 
-    console.log('✅ User found in auth.users:');
-    console.log(`   Email: ${authUser.user.email}`);
-    console.log(`   Created: ${authUser.user.created_at}`);
+    console.log('✅ User found in auth.users:', authUser.user.id);
 
-    // Update or insert profile with super_admin role
+    // Check if profile exists
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .upsert({
-        id: USER_ID,
-        role: 'super_admin',
-        tenant_id: null,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'id'
-      })
-      .select()
+      .select('*')
+      .eq('id', authUser.user.id)
       .single();
 
     if (profileError) {
-      console.error('❌ Error updating profile:', profileError.message);
-      return;
+      console.error('❌ Error finding profile:', profileError.message);
+      process.exit(1);
     }
 
-    console.log('✅ User profile updated successfully:');
-    console.log(`   Role: ${profile.role}`);
-    console.log(`   Tenant ID: ${profile.tenant_id || 'NULL (super_admin)'}`);
-    console.log(`   Updated: ${profile.updated_at}`);
+    if (!profile) {
+      console.error('❌ Profile not found for user');
+      console.log('Creating profile...');
+      
+      // Create profile
+      const { error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authUser.user.id,
+          role: 'super_admin',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
 
-    // Verify the promotion worked
-    const { data: verifyProfile, error: verifyError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', USER_ID)
-      .single();
+      if (createError) {
+        console.error('❌ Error creating profile:', createError.message);
+        process.exit(1);
+      }
 
-    if (verifyError) {
-      console.error('❌ Error verifying profile:', verifyError.message);
-      return;
+      console.log('✅ Profile created with super_admin role');
+    } else {
+      console.log('✅ Profile found, current role:', profile.role);
+
+      // Update existing profile to super_admin
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          role: 'super_admin',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', authUser.user.id);
+
+      if (updateError) {
+        console.error('❌ Error updating profile:', updateError.message);
+        process.exit(1);
+      }
+
+      console.log('✅ Profile updated to super_admin role');
     }
 
-    console.log('\n🎉 User successfully promoted to super_admin!');
-    console.log('   The user should now be able to access the master dashboard.');
-    console.log('\n📋 Final profile:');
-    console.log(JSON.stringify(verifyProfile, null, 2));
+    // Log the action
+    const { error: logError } = await supabase
+      .from('audit_logs')
+      .insert({
+        user_id: authUser.user.id,
+        action: 'user_promoted',
+        resource_type: 'user',
+        resource_id: authUser.user.id,
+        details: {
+          promoted_to: 'super_admin',
+          promoted_by: 'system',
+          user_email: userEmail
+        }
+      });
+
+    if (logError) {
+      console.warn('⚠️  Warning: Could not log the action:', logError.message);
+    } else {
+      console.log('✅ Action logged in audit_logs');
+    }
+
+    console.log('');
+    console.log('🎉 User promotion completed successfully!');
+    console.log('');
+    console.log('User details:');
+    console.log(`- Email: ${userEmail}`);
+    console.log(`- User ID: ${authUser.user.id}`);
+    console.log(`- Role: super_admin`);
+    console.log('');
+    console.log('The user can now:');
+    console.log('- Access the master dashboard');
+    console.log('- Create and manage tenants');
+    console.log('- View platform analytics');
+    console.log('- Manage system settings');
 
   } catch (error) {
-    console.error('❌ Unexpected error:', error.message);
+    console.error('❌ Promotion failed:', error.message);
+    process.exit(1);
   }
 }
 
+// Handle errors
+process.on('unhandledRejection', (error) => {
+  console.error('❌ Unhandled error:', error);
+  process.exit(1);
+});
+
 // Run the promotion
-promoteUser();
+promoteUser().catch((error) => {
+  console.error('❌ Promotion failed:', error);
+  process.exit(1);
+});

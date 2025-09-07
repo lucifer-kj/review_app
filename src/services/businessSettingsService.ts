@@ -5,6 +5,7 @@ import { logger } from "@/utils/logger";
 export interface BusinessSettings {
   id: string;
   user_id?: string; // Make optional since it might not be in DB types yet
+  tenant_id?: string; // Add tenant_id for multi-tenancy
   google_business_url?: string;
   business_name?: string;
   business_email?: string;
@@ -41,7 +42,24 @@ export class BusinessSettingsService extends BaseService {
   }
 
   /**
-   * Get business settings for the current user
+   * Check if tenant_id column exists in business_settings table
+   */
+  private static async checkTenantIdColumnExists(): Promise<boolean> {
+    try {
+      // Try a simple query with tenant_id to see if it exists
+      const { error } = await supabase
+        .from('business_settings')
+        .select('tenant_id')
+        .limit(1);
+      
+      return !error || !error.message.includes('column "tenant_id" does not exist');
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Get business settings for the current user with tenant context
    */
   static async getBusinessSettings(): Promise<ServiceResponse<BusinessSettings>> {
     try {
@@ -55,27 +73,33 @@ export class BusinessSettingsService extends BaseService {
         };
       }
 
-      // Check if user_id column exists
+      // Get tenant context
+      const { data: tenantId } = await supabase.rpc('get_current_tenant_id');
+      
+      // Check if user_id and tenant_id columns exist
       const hasUserIdColumn = await this.checkUserIdColumnExists();
+      const hasTenantIdColumn = await this.checkTenantIdColumnExists();
       
       let query = supabase.from('business_settings').select('*');
       
-      if (hasUserIdColumn) {
-        // Use user_id filter if column exists
+      if (hasTenantIdColumn && tenantId) {
+        // Use tenant_id filter if column exists and tenant context is available
+        query = query.eq('tenant_id', tenantId);
+      } else if (hasUserIdColumn) {
+        // Fallback to user_id filter if tenant_id not available
         query = query.eq('user_id', user.id);
       } else {
         // Fallback: get first settings (temporary until migration is run)
-        // No additional filter; just select the first row
         query = query.limit(1);
-        logger.warn('user_id column not found in business_settings table. Using fallback query.');
+        logger.warn('Neither tenant_id nor user_id column found in business_settings table. Using fallback query.');
       }
       
       const { data, error } = await query.maybeSingle();
 
       if (error) {
-        // If error is due to user_id column not existing, try without it
-        if (error.message.includes('column "user_id" does not exist')) {
-          logger.warn('user_id column not found, falling back to basic query');
+        // If error is due to columns not existing, try without them
+        if (error.message.includes('column') && error.message.includes('does not exist')) {
+          logger.warn('Required columns not found, falling back to basic query');
           const fallbackResult = await supabase
             .from('business_settings')
             .select('*')
@@ -105,7 +129,7 @@ export class BusinessSettingsService extends BaseService {
   }
 
   /**
-   * Create or update business settings
+   * Create or update business settings with tenant context
    */
   static async upsertBusinessSettings(settings: BusinessSettingsFormData): Promise<ServiceResponse<BusinessSettings>> {
     try {
@@ -119,8 +143,12 @@ export class BusinessSettingsService extends BaseService {
         };
       }
 
-      // Check if user_id column exists
+      // Get tenant context
+      const { data: tenantId } = await supabase.rpc('get_current_tenant_id');
+
+      // Check if user_id and tenant_id columns exist
       const hasUserIdColumn = await this.checkUserIdColumnExists();
+      const hasTenantIdColumn = await this.checkTenantIdColumnExists();
 
       // First try to get existing settings
       const existingSettings = await this.getBusinessSettings();
@@ -132,16 +160,18 @@ export class BusinessSettingsService extends BaseService {
           .update(settings)
           .eq('id', existingSettings.data.id);
         
-        if (hasUserIdColumn) {
+        if (hasTenantIdColumn && tenantId) {
+          query = query.eq('tenant_id', tenantId);
+        } else if (hasUserIdColumn) {
           query = query.eq('user_id', user.id);
         }
         
         const { data, error } = await query.select().single();
 
         if (error) {
-          // If error is due to user_id column not existing, try without it
-          if (error.message.includes('column "user_id" does not exist')) {
-            logger.warn('user_id column not found, falling back to basic update');
+          // If error is due to columns not existing, try without them
+          if (error.message.includes('column') && error.message.includes('does not exist')) {
+            logger.warn('Required columns not found, falling back to basic update');
             const fallbackResult = await supabase
               .from('business_settings')
               .update(settings)
@@ -169,9 +199,14 @@ export class BusinessSettingsService extends BaseService {
         };
       } else {
         // Create new settings
-        const insertData = hasUserIdColumn 
-          ? { ...settings, user_id: user.id }
-          : settings;
+        const insertData: any = { ...settings };
+        
+        if (hasTenantIdColumn && tenantId) {
+          insertData.tenant_id = tenantId;
+        }
+        if (hasUserIdColumn) {
+          insertData.user_id = user.id;
+        }
 
         const { data, error } = await supabase
           .from('business_settings')
@@ -180,9 +215,9 @@ export class BusinessSettingsService extends BaseService {
           .single();
 
         if (error) {
-          // If error is due to user_id column not existing, try without it
-          if (error.message.includes('column "user_id" does not exist')) {
-            logger.warn('user_id column not found, falling back to basic insert');
+          // If error is due to columns not existing, try without them
+          if (error.message.includes('column') && error.message.includes('does not exist')) {
+            logger.warn('Required columns not found, falling back to basic insert');
             const fallbackResult = await supabase
               .from('business_settings')
               .insert(settings)
@@ -261,7 +296,7 @@ export class BusinessSettingsService extends BaseService {
   }
 
   /**
-   * Delete business settings for current user
+   * Delete business settings for current user with tenant context
    */
   static async deleteBusinessSettings(): Promise<ServiceResponse<boolean>> {
     try {
@@ -274,21 +309,27 @@ export class BusinessSettingsService extends BaseService {
         };
       }
 
-      // Check if user_id column exists
+      // Get tenant context
+      const { data: tenantId } = await supabase.rpc('get_current_tenant_id');
+
+      // Check if user_id and tenant_id columns exist
       const hasUserIdColumn = await this.checkUserIdColumnExists();
+      const hasTenantIdColumn = await this.checkTenantIdColumnExists();
       
       let query = supabase.from('business_settings').delete();
       
-      if (hasUserIdColumn) {
+      if (hasTenantIdColumn && tenantId) {
+        query = query.eq('tenant_id', tenantId);
+      } else if (hasUserIdColumn) {
         query = query.eq('user_id', user.id);
       }
 
       const { error } = await query;
 
       if (error) {
-        // If error is due to user_id column not existing, try without it
-        if (error.message.includes('column "user_id" does not exist')) {
-          logger.warn('user_id column not found, falling back to basic delete');
+        // If error is due to columns not existing, try without them
+        if (error.message.includes('column') && error.message.includes('does not exist')) {
+          logger.warn('Required columns not found, falling back to basic delete');
           const fallbackResult = await supabase
             .from('business_settings')
             .delete();
