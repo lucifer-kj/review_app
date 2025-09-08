@@ -42,7 +42,7 @@ export default function TenantCreateWizard() {
 
       const tenant = tenantResult.data;
 
-      // Step 2: Create user and send invitation
+      // Step 2: Create user and send invitation with dynamic redirect URL
       const userResult = await InvitationService.createUserAndInvite(
         data.adminEmail,
         data.name,

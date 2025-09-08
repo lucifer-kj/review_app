@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
@@ -43,14 +43,25 @@ interface SupabaseUser {
 
 export default function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 20;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch all Supabase users
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+      setPage(1); // Reset to first page when searching
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch all Supabase users with real-time updates
   const { data: users, isLoading, error } = useQuery({
-    queryKey: ['supabase-users', { searchTerm, page, pageSize }],
+    queryKey: ['supabase-users', { searchTerm: debouncedSearchTerm, page, pageSize }],
     queryFn: async () => {
       const { data, error } = await supabase.auth.admin.listUsers({
         page,
@@ -61,9 +72,9 @@ export default function UserManagement() {
 
       // Filter users by search term if provided
       let filteredUsers = data.users || [];
-      if (searchTerm) {
+      if (debouncedSearchTerm) {
         filteredUsers = filteredUsers.filter(user => 
-          user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+          user.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
         );
       }
 
@@ -75,7 +86,9 @@ export default function UserManagement() {
       };
     },
     keepPreviousData: true,
-    refetchInterval: 30000,
+    refetchInterval: 10000, // More frequent updates for real-time feel
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // Fetch user profiles to get role information

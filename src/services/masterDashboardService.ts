@@ -28,6 +28,33 @@ export interface TenantListItem {
   created_at: string;
 }
 
+export interface TenantDetails {
+  id: string;
+  name: string;
+  domain?: string;
+  status: 'active' | 'suspended' | 'pending';
+  plan_type?: 'basic' | 'pro' | 'enterprise';
+  billing_email?: string;
+  settings?: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TenantUsageStats {
+  users_count: number;
+  reviews_count: number;
+  storage_used: number;
+  api_calls_count: number;
+  last_activity?: string;
+}
+
+export interface TenantUser {
+  id: string;
+  email: string;
+  role: string;
+  created_at: string;
+}
+
 export interface TenantListResponse {
   items: TenantListItem[];
   total: number;
@@ -86,37 +113,129 @@ export class MasterDashboardService {
     }
   }
 
-  static async getTenantUsageStats(tenantId: string): Promise<{ users: number; reviews: number }> {
+  static async getTenantDetails(tenantId: string): Promise<TenantDetails> {
     if (!env.supabase.url || !env.supabase.anonKey || env.supabase.anonKey === 'placeholder_key') {
       // Return mock data for development
-      return { users: Math.floor(Math.random() * 50) + 1, reviews: Math.floor(Math.random() * 200) + 1 };
+      return {
+        id: tenantId,
+        name: 'Mock Tenant',
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
     }
 
     try {
-      // Get user count for this tenant
-      const { count: userCount, error: userError } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', tenantId);
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('id', tenantId)
+        .single();
 
-      if (userError) throw userError;
-
-      // Get review count for this tenant
-      const { count: reviewCount, error: reviewError } = await supabase
-        .from('reviews')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', tenantId);
-
-      if (reviewError) throw reviewError;
+      if (error) throw error;
 
       return {
-        users: userCount || 0,
-        reviews: reviewCount || 0,
+        id: data.id,
+        name: data.name,
+        domain: data.domain,
+        status: data.status,
+        plan_type: data.plan_type,
+        billing_email: data.billing_email,
+        settings: data.settings,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      };
+    } catch (error) {
+      console.error('Error fetching tenant details:', error);
+      throw error;
+    }
+  }
+
+  static async getTenantUsageStats(tenantId: string): Promise<{ success: boolean; data?: TenantUsageStats; error?: string }> {
+    if (!env.supabase.url || !env.supabase.anonKey || env.supabase.anonKey === 'placeholder_key') {
+      // Return mock data for development
+      return { 
+        success: true, 
+        data: {
+          users_count: Math.floor(Math.random() * 50) + 1,
+          reviews_count: Math.floor(Math.random() * 200) + 1,
+          storage_used: Math.floor(Math.random() * 1000) + 100,
+          api_calls_count: Math.floor(Math.random() * 1000) + 50,
+          last_activity: new Date().toISOString(),
+        }
+      };
+    }
+
+    try {
+      // Try to call the SQL function first
+      const { data, error } = await supabase.rpc('get_tenant_usage_stats', { p_tenant_id: tenantId });
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        return {
+          success: true,
+          data: {
+            users_count: data[0].users_count || 0,
+            reviews_count: data[0].reviews_count || 0,
+            storage_used: data[0].storage_used || 0,
+            api_calls_count: data[0].api_calls_count || 0,
+            last_activity: data[0].last_activity,
+          }
+        };
+      }
+
+      // Fallback to manual queries
+      const [userCountResult, reviewCountResult] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+        supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId)
+      ]);
+
+      return {
+        success: true,
+        data: {
+          users_count: userCountResult.count || 0,
+          reviews_count: reviewCountResult.count || 0,
+          storage_used: 0, // Placeholder
+          api_calls_count: 0, // Placeholder
+          last_activity: null,
+        }
       };
     } catch (error) {
       console.error('Error fetching tenant usage stats:', error);
-      // Return zeros on error
-      return { users: 0, reviews: 0 };
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch usage stats'
+      };
+    }
+  }
+
+  static async getTenantUsers(tenantId: string): Promise<TenantUser[]> {
+    if (!env.supabase.url || !env.supabase.anonKey || env.supabase.anonKey === 'placeholder_key') {
+      // Return mock data for development
+      return [
+        { id: '1', email: 'admin@tenant.com', role: 'tenant_admin', created_at: new Date().toISOString() },
+        { id: '2', email: 'user@tenant.com', role: 'user', created_at: new Date().toISOString() },
+      ];
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, role, created_at')
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return data?.map(user => ({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        created_at: user.created_at,
+      })) || [];
+    } catch (error) {
+      console.error('Error fetching tenant users:', error);
+      return [];
     }
   }
 

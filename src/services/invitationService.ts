@@ -67,7 +67,7 @@ export class InvitationService extends BaseService {
         return this.handleError(invitationError, 'InvitationService.createUserAndInvite');
       }
 
-      // Send invitation email using Supabase Auth invite
+      // Send invitation email using Supabase Auth invite with dynamic redirect URL
       let emailSent = false;
       try {
         const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
@@ -77,8 +77,8 @@ export class InvitationService extends BaseService {
             invitation_id: invitationData.id,
             role: role,
           },
-          // Redirect to our custom password creation page
-          redirectTo: `${window.location.origin}/accept-invitation`,
+          // Dynamic redirect URL for password creation
+          redirectTo: `${window.location.origin}/accept-invitation?tenant_id=${tenantId}&invitation_id=${invitationData.id}`,
         });
 
         if (!inviteError) {

@@ -9,10 +9,14 @@ import {
   Menu,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Search,
+  Bell,
+  User
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -23,10 +27,26 @@ const navigation = [
   { name: "Audit Logs", href: "/master/audit", icon: Shield },
 ];
 
-interface Props { collapsed?: boolean; onToggle?: () => void; }
+interface Props { 
+  collapsed?: boolean; 
+  onToggle?: () => void;
+  searchTerm?: string;
+  onSearchChange?: (term: string) => void;
+}
 
-export function MasterSidebar({ collapsed = false, onToggle }: Props) {
+export function MasterSidebar({ collapsed = false, onToggle, searchTerm = "", onSearchChange }: Props) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+
+  // Sync local search term with parent
+  useEffect(() => {
+    setLocalSearchTerm(searchTerm);
+  }, [searchTerm]);
+
+  const handleSearchChange = (value: string) => {
+    setLocalSearchTerm(value);
+    onSearchChange?.(value);
+  };
 
   return (
     <>
@@ -58,6 +78,21 @@ export function MasterSidebar({ collapsed = false, onToggle }: Props) {
               </Button>
             </div>
           </div>
+
+          {/* Search Bar */}
+          {!collapsed && (
+            <div className="px-4 py-2 border-b border-border">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search..."
+                  value={localSearchTerm}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="pl-8 h-8 text-sm"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Navigation */}
           <nav className="flex-1 px-2 py-4 space-y-2">

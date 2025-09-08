@@ -2,25 +2,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Plus, Building2, Search, MoreHorizontal, Users, BarChart3 } from "lucide-react";
+import { Plus, Building2, Search, MoreHorizontal, Users, BarChart3, Eye, Edit, Ban, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MasterDashboardService } from "@/services/masterDashboardService";
+import { TenantService } from "@/services/tenantService";
 import { useMemo } from "react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 export default function TenantList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 9;
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['tenants', { searchTerm, page, pageSize }],
@@ -30,12 +34,11 @@ export default function TenantList() {
       page,
       pageSize,
     }),
-    keepPreviousData: true,
     refetchInterval: 30000,
   });
 
   // Fetch usage statistics for all tenants
-  const tenantIds = data?.items?.map(t => t.id) ?? [];
+  const tenantIds = (data as any)?.items?.map((t: any) => t.id) ?? [];
   const { data: usageStats } = useQuery({
     queryKey: ['tenant-usage-stats', tenantIds],
     queryFn: async () => {
@@ -61,7 +64,45 @@ export default function TenantList() {
     refetchInterval: 30000,
   });
 
-  const filteredTenants = data?.items ?? [];
+  const filteredTenants = (data as any)?.items ?? [];
+
+  // Suspend tenant mutation
+  const suspendTenantMutation = useMutation({
+    mutationFn: async (tenantId: string) => {
+      const result = await TenantService.updateTenant(tenantId, { status: 'suspended' });
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to suspend tenant');
+      }
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success("Tenant suspended successfully");
+      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['platform-analytics'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to suspend tenant");
+    },
+  });
+
+  // Activate tenant mutation
+  const activateTenantMutation = useMutation({
+    mutationFn: async (tenantId: string) => {
+      const result = await TenantService.updateTenant(tenantId, { status: 'active' });
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to activate tenant');
+      }
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success("Tenant activated successfully");
+      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['platform-analytics'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to activate tenant");
+    },
+  });
 
   if (isLoading) {
     return (
@@ -182,17 +223,36 @@ export default function TenantList() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild>
                         <Link to={`/master/tenants/${tenant.id}`}>
+                          <Eye className="mr-2 h-4 w-4" />
                           View Details
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link to={`/master/tenants/${tenant.id}/edit`}>
+                          <Edit className="mr-2 h-4 w-4" />
                           Edit Settings
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">
-                        Suspend Tenant
-                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {tenant.status === 'active' ? (
+                        <DropdownMenuItem 
+                          className="text-red-600"
+                          onClick={() => suspendTenantMutation.mutate(tenant.id)}
+                          disabled={suspendTenantMutation.isPending}
+                        >
+                          <Ban className="mr-2 h-4 w-4" />
+                          Suspend Tenant
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem 
+                          className="text-green-600"
+                          onClick={() => activateTenantMutation.mutate(tenant.id)}
+                          disabled={activateTenantMutation.isPending}
+                        >
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          Activate Tenant
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -239,13 +299,13 @@ export default function TenantList() {
       {/* Pagination */}
       <div className="flex items-center justify-between pt-2">
         <div className="text-sm text-muted-foreground">
-          Page {data?.page ?? 1} of {data ? Math.max(1, Math.ceil(data.total / (data.pageSize || pageSize))) : 1}
+          Page {(data as any)?.page ?? 1} of {data ? Math.max(1, Math.ceil((data as any).total / ((data as any).pageSize || pageSize))) : 1}
         </div>
         <div className="space-x-2">
-          <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={(data?.page ?? 1) <= 1}>
+          <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={((data as any)?.page ?? 1) <= 1}>
             Previous
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={data ? (data.page * data.pageSize) >= data.total : true}>
+          <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={data ? ((data as any).page * (data as any).pageSize) >= (data as any).total : true}>
             Next
           </Button>
         </div>

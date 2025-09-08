@@ -79,6 +79,106 @@ export class TenantService extends BaseService {
   }
 
   /**
+   * Update tenant status
+   */
+  static async updateTenantStatus(tenantId: string, status: 'active' | 'suspended' | 'pending' | 'cancelled'): Promise<ServiceResponse<Tenant>> {
+    if (!this.validateId(tenantId)) {
+      return {
+        data: null,
+        error: 'Invalid tenant ID',
+        success: false,
+      };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('tenants')
+        .update({ 
+          status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tenantId)
+        .select()
+        .single();
+
+      if (error) {
+        return this.handleError(error, 'TenantService.updateTenantStatus');
+      }
+
+      // Log the status change
+      await AuditLogService.logEvent(
+        AuditLogService.ACTIONS.TENANT_STATUS_CHANGED,
+        {
+          tenant_id: tenantId,
+          new_status: status,
+        },
+        {
+          resource_type: 'tenant',
+          resource_id: tenantId,
+        }
+      );
+
+      return {
+        data,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'TenantService.updateTenantStatus');
+    }
+  }
+
+  /**
+   * Update tenant
+   */
+  static async updateTenant(tenantId: string, updateData: UpdateTenantData): Promise<ServiceResponse<Tenant>> {
+    if (!this.validateId(tenantId)) {
+      return {
+        data: null,
+        error: 'Invalid tenant ID',
+        success: false,
+      };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('tenants')
+        .update({ 
+          ...updateData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tenantId)
+        .select()
+        .single();
+
+      if (error) {
+        return this.handleError(error, 'TenantService.updateTenant');
+      }
+
+      // Log the update
+      await AuditLogService.logEvent(
+        AuditLogService.ACTIONS.TENANT_UPDATED,
+        {
+          tenant_id: tenantId,
+          updated_fields: Object.keys(updateData),
+        },
+        {
+          resource_type: 'tenant',
+          resource_id: tenantId,
+        }
+      );
+
+      return {
+        data,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'TenantService.updateTenant');
+    }
+  }
+
+  /**
    * Get tenant by ID
    */
   static async getTenantById(id: string): Promise<ServiceResponse<Tenant>> {

@@ -86,7 +86,7 @@ export class EnhancedInvitationService extends BaseService {
         return this.handleError(invitationError, 'EnhancedInvitationService.sendInvitation');
       }
 
-      // Send invitation using Supabase's built-in system
+      // Send invitation using Supabase's built-in system with dynamic redirect URL
       const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(data.email, {
         data: {
           role: data.role,
@@ -94,7 +94,7 @@ export class EnhancedInvitationService extends BaseService {
           tenant_name: data.tenantName,
           invitation_id: invitationRecord.id
         },
-        redirectTo: `${window.location.origin}/accept-invitation`
+        redirectTo: `${window.location.origin}/accept-invitation?tenant_id=${data.tenantId}&invitation_id=${invitationRecord.id}`
       });
 
       if (inviteError) {
