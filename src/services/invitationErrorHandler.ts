@@ -30,10 +30,28 @@ export class InvitationErrorHandler {
     }
 
     if (error.code === '23503') {
+      if (error.message?.includes('tenant_id')) {
+        return {
+          code: 'INVALID_TENANT',
+          message: 'Invalid tenant reference',
+          userMessage: 'The selected tenant is invalid. Please refresh the page and try again.',
+          retryable: true,
+          details: error
+        };
+      }
+      if (error.message?.includes('invited_by')) {
+        return {
+          code: 'INVALID_INVITER',
+          message: 'Invalid inviter reference',
+          userMessage: 'Unable to identify who is sending the invitation. Please log out and log back in.',
+          retryable: true,
+          details: error
+        };
+      }
       return {
         code: 'FOREIGN_KEY_VIOLATION',
-        message: 'Invalid tenant reference',
-        userMessage: 'The selected tenant is invalid. Please refresh the page and try again.',
+        message: 'Invalid reference',
+        userMessage: 'There is an issue with the data being saved. Please try again.',
         retryable: true,
         details: error
       };
@@ -44,6 +62,16 @@ export class InvitationErrorHandler {
         code: 'INSUFFICIENT_PRIVILEGE',
         message: 'Insufficient privileges',
         userMessage: 'You do not have permission to create invitations. Please contact your administrator.',
+        retryable: false,
+        details: error
+      };
+    }
+
+    if (error.code === 'PGRST116') {
+      return {
+        code: 'RLS_POLICY_VIOLATION',
+        message: 'Row Level Security policy violation',
+        userMessage: 'Access denied. Please ensure you have permission to create invitations for this tenant.',
         retryable: false,
         details: error
       };

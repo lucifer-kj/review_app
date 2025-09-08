@@ -75,13 +75,16 @@ export class EnhancedInvitationService extends BaseService {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + (data.expiresInDays || 7));
 
+      // Get current user for invited_by field if not provided
+      const { data: currentUser } = await supabase.auth.getUser();
+      
       const { data: invitationRecord, error: invitationError } = await supabase
         .from('user_invitations')
         .insert({
           email: data.email,
           role: data.role,
           tenant_id: data.tenantId,
-          invited_by: data.invitedBy,
+          invited_by: data.invitedBy || currentUser?.user?.id || null,
           token: crypto.randomUUID(),
           expires_at: expiresAt.toISOString()
         })

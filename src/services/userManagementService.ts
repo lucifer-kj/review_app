@@ -248,27 +248,33 @@ export class UserManagementService {
         }
       }
 
-      // Create invitation record in database
-      const { data: result, error } = await supabase
-        .from('user_invitations')
-        .insert({
-          tenant_id: data.tenant_id,
-          email: data.email,
-          role: data.role,
-          token: crypto.randomUUID(),
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-        })
-        .select(`
-          id,
-          tenant_id,
-          email,
-          role,
-          invited_by,
-          token,
-          expires_at,
-          created_at
-        `)
-        .single();
+      // Get current user for invited_by field
+      const { data: currentUser } = await supabase.auth.getUser();
+      
+      // Create invitation record in database using admin client to bypass RLS
+      const { data: result, error } = await withAdminAuth(async () => {
+        return await supabaseAdmin
+          .from('user_invitations')
+          .insert({
+            tenant_id: data.tenant_id,
+            email: data.email,
+            role: data.role,
+            invited_by: currentUser?.user?.id || null,
+            token: crypto.randomUUID(),
+            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+          })
+          .select(`
+            id,
+            tenant_id,
+            email,
+            role,
+            invited_by,
+            token,
+            expires_at,
+            created_at
+          `)
+          .single();
+      });
 
       if (error) {
         console.error('Error creating invitation:', error);
