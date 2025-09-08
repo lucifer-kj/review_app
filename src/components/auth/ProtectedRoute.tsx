@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { RoleService } from '@/services/roleService';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -13,11 +14,12 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
 
-  // Fetch user profile and role
+  // Fetch user profile and role with role validation
   const { data: profile, isLoading: profileLoading } = useQuery({
-    queryKey: ['user-profile', user?.id],
+    queryKey: ['user-profile', user?.id, requiredRole],
     queryFn: async () => {
       if (!user?.id) return null;
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('role, tenant_id')
@@ -25,9 +27,19 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
         .single();
 
       if (error) throw error;
+
+      // If required role is specified, validate access
+      if (requiredRole) {
+        const roleCheck = await RoleService.checkUserRole(user.id, requiredRole);
+        if (!roleCheck.data?.hasAccess) {
+          throw new Error(`Access denied: ${roleCheck.data?.reason || 'Insufficient permissions'}`);
+        }
+      }
+
       return data;
     },
     enabled: !!user?.id,
+    retry: false, // Don't retry on access denied errors
   });
 
   // Show loading spinner while checking authentication and profile
@@ -40,40 +52,13 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/" replace />;
   }
 
-  // Check role permissions
-  if (requiredRole && profile) {
-    const userRole = profile.role;
-    const hasAccess = checkRoleAccess(userRole, requiredRole);
-
-    if (!hasAccess) {
-      // Redirect based on user role
-      if (userRole === 'super_admin') {
-        return <Navigate to="/master" replace />;
-      } else {
-        return <Navigate to="/dashboard" replace />;
-      }
-    }
+  // If profile query failed due to access denied, redirect appropriately
+  if (!profile) {
+    // This will be handled by the error boundary or redirect logic
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
 };
 
-// Role checking function
-const checkRoleAccess = (userRole: string | null, requiredRole: string): boolean => {
-  if (!userRole) return false;
-
-  // Super admin has access to everything
-  if (userRole === 'super_admin') return true;
-
-  // Tenant admin has access to tenant_admin and user routes
-  if (userRole === 'tenant_admin') {
-    return requiredRole === 'tenant_admin' || requiredRole === 'user';
-  }
-
-  // Regular user only has access to user routes
-  if (userRole === 'user') {
-    return requiredRole === 'user';
-  }
-
-  return false;
-};
+// Role checking is now handled by RoleService for better security

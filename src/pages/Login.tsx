@@ -40,57 +40,41 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Test user credentials - bypass all protection routes
-      if (formData.email === "test@crux.com" && formData.password === "test123") {
-        console.log('🔍 Login Debug - Test user login successful');
-        
-        // Set test user in localStorage to persist across page reloads
-        localStorage.setItem('crux_test_user', 'true');
-        
-        toast({
-          title: "Login Successful",
-          description: "Welcome to Crux! (Test User)",
-        });
-        
-        // Navigate directly to master dashboard - bypass all protection
-        navigate("/master", { replace: true });
-        return;
-      }
-
-      // Bypass user credentials - specific user ID bypass
-      if (formData.email === "bypass@crux.com" && formData.password === "bypass123") {
-        console.log('🔍 Login Debug - Bypass user login successful');
-        
-        // Set bypass user in localStorage to persist across page reloads
-        localStorage.setItem('crux_bypass_user', 'true');
-        
-        toast({
-          title: "Login Successful",
-          description: "Welcome to Crux! (Bypass User)",
-        });
-        
-        // Navigate directly to master dashboard - bypass all protection
-        navigate("/master", { replace: true });
-        return;
-      }
-
-      // Regular Supabase authentication for other users
+      // Authenticate with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        });
+        email: formData.email,
+        password: formData.password,
+      });
         
-        if (error) throw error;
+      if (error) throw error;
         
-        console.log('🔍 Login Debug - Login successful for user:', data.user.id);
+      // Verify user has a profile and proper role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, tenant_id')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        throw new Error('User profile not found. Please contact support.');
+      }
+
+      // Check if user has valid role
+      if (!profile.role || !['super_admin', 'tenant_admin', 'user'].includes(profile.role)) {
+        throw new Error('Invalid user role. Please contact support.');
+      }
         
-        toast({
-          title: "Login Successful",
-          description: "Welcome to Crux!",
-        });
+      toast({
+        title: "Login Successful",
+        description: "Welcome to Crux!",
+      });
         
-        // Navigate directly to master dashboard
+      // Redirect based on user role
+      if (profile.role === 'super_admin') {
         navigate("/master", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
         
     } catch (error) {
       const authError = error as AuthError;

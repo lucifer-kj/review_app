@@ -22,24 +22,17 @@ export const useAuthRedirect = () => {
         if (!isMounted) return;
 
         if (session?.user) {
-          // User is authenticated - navigate to master dashboard
-          console.log('🔍 Auth Redirect - User authenticated, navigating to /master');
-          navigate("/master", { replace: true });
-        } else {
-          // Check for test user in localStorage
-          const storedTestUser = localStorage.getItem('crux_test_user');
-          if (storedTestUser === 'true') {
-            console.log('🔍 Auth Redirect - Test user found, navigating to /master');
-            navigate("/master", { replace: true });
-            return;
-          }
+          // User is authenticated - check their role and redirect accordingly
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
 
-          // Check for bypass user in localStorage
-          const storedBypassUser = localStorage.getItem('crux_bypass_user');
-          if (storedBypassUser === 'true') {
-            console.log('🔍 Auth Redirect - Bypass user found, navigating to /master');
+          if (profile?.role === 'super_admin') {
             navigate("/master", { replace: true });
-            return;
+          } else {
+            navigate("/dashboard", { replace: true });
           }
         }
       } catch (error) {
