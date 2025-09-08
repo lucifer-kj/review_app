@@ -16,8 +16,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { UserManagementService, User } from "@/services/userManagementService";
-import { InvitationService } from "@/services/invitationService";
+import { UserService, User } from "@/services/userService";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useState } from "react";
@@ -34,25 +33,22 @@ export default function UserDirectory() {
 
   const { data: users, isLoading: usersLoading, error: usersError } = useQuery({
     queryKey: ['all-users'],
-    queryFn: () => UserManagementService.getAllUsers(),
+    queryFn: () => UserService.getAllUsers(),
     refetchInterval: 30000,
   });
 
-  const { data: invitations, isLoading: invitationsLoading, error: invitationsError } = useQuery({
-    queryKey: ['pending-invitations'],
-    queryFn: () => InvitationService.getAllInvitations(),
-    refetchInterval: 30000,
-  });
+  // No more invitations - magic links are instant
+  const invitations: any[] = [];
+  const invitationsLoading = false;
+  const invitationsError = null;
 
   const filteredUsers = users?.filter(user =>
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.tenant_name?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  const filteredInvitations = invitations?.filter(invitation =>
-    invitation.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invitation.tenant_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  // No invitations to filter since we use magic links
+  const filteredInvitations: any[] = [];
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
@@ -121,10 +117,6 @@ export default function UserDirectory() {
           <TabsTrigger value="users">
             <Users className="mr-2 h-4 w-4" />
             Users ({filteredUsers.length})
-          </TabsTrigger>
-          <TabsTrigger value="invitations">
-            <Mail className="mr-2 h-4 w-4" />
-            Pending Invitations ({filteredInvitations.length})
           </TabsTrigger>
         </TabsList>
 
@@ -216,81 +208,6 @@ export default function UserDirectory() {
           )}
         </TabsContent>
 
-        <TabsContent value="invitations" className="space-y-4">
-          {invitationsError ? (
-            <Alert variant="destructive">
-              <AlertDescription>
-                Failed to load invitations. Please check your connection and try again.
-              </AlertDescription>
-            </Alert>
-          ) : filteredInvitations.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <Mail className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-4 text-lg font-semibold">
-                  {searchTerm ? "No invitations found" : "No pending invitations"}
-                </h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {searchTerm 
-                    ? "Try adjusting your search terms."
-                    : "All invitations have been accepted or expired."
-                  }
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4">
-              {filteredInvitations.map((invitation) => (
-                <Card key={invitation.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <Avatar>
-                          <AvatarFallback>{getInitials(invitation.email)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <p className="font-medium">{invitation.email}</p>
-                            <Badge variant={getRoleBadgeVariant(invitation.role)}>
-                              {invitation.role.replace('_', ' ')}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            {invitation.tenant_name && (
-                              <div className="flex items-center space-x-1">
-                                <Building2 className="h-4 w-4" />
-                                <span>{invitation.tenant_name}</span>
-                              </div>
-                            )}
-                            <div className="flex items-center space-x-1">
-                              <Calendar className="h-4 w-4" />
-                              <span>Expires {new Date(invitation.expires_at).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            Resend Email
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600">
-                            Cancel Invitation
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
       </Tabs>
     </div>
   );

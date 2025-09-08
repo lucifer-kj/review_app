@@ -40,8 +40,7 @@ const SystemAdministration = lazy(() => import("./components/master-dashboard/sy
 // Audit components
 const AuditLogs = lazy(() => import("./components/master-dashboard/audit/AuditLogs"));
 
-// Authentication components
-const InvitationAcceptance = lazy(() => import("./components/auth/InvitationAcceptance"));
+// Authentication components - removed InvitationAcceptance (using magic links now)
 
 // Review flow pages
 const ReviewFormPage = lazy(() => import("./pages/ReviewFormPage"));
@@ -65,8 +64,7 @@ const RouterContent = () => {
           {/* Login page - default route */}
           <Route path="/" element={<Login />} />
           
-          {/* Accept invitation page - public route */}
-          <Route path="/accept-invitation" element={<InvitationAcceptance />} />
+          {/* Magic links redirect to dashboard automatically - no need for accept-invitation page */}
           
           {/* Master Dashboard routes - super admin only */}
           <Route path="/master" element={
