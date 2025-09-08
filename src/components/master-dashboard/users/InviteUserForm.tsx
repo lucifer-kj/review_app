@@ -9,9 +9,8 @@ import { ArrowLeft, UserPlus, Loader2, CheckCircle, AlertCircle } from "lucide-r
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserManagementService } from "@/services/userManagementService";
+import { MagicLinkService } from "@/services/magicLinkService";
 import { TenantService } from "@/services/tenantService";
-import { InvitationErrorHandler } from "@/services/invitationErrorHandler";
 import { toast } from "sonner";
 
 export default function InviteUserForm() {
@@ -34,26 +33,37 @@ export default function InviteUserForm() {
   // Debug logging
   console.log('Tenants query result:', { tenants, tenantsLoading, tenantsError });
 
-  // Create invitation mutation
-  const createInvitationMutation = useMutation({
-    mutationFn: (data: typeof formData) => UserManagementService.createInvitation({
-      tenant_id: data.tenantId,
-      email: data.email,
-      role: data.role,
-    }),
+  // Send magic link mutation
+  const sendMagicLinkMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      // Get tenant name for metadata
+      const tenant = tenants?.data?.find(t => t.id === data.tenantId);
+      
+      // Use Supabase Magic Link directly
+      const result = await MagicLinkService.sendMagicLink({
+        email: data.email,
+        role: data.role,
+        tenantId: data.tenantId,
+        tenantName: tenant?.name || 'Unknown Tenant',
+        redirectTo: `${window.location.origin}/dashboard`
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send magic link');
+      }
+
+      return result;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-invitations'] });
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
-      toast.success("Invitation sent successfully!");
+      toast.success("Magic link sent successfully!");
       navigate("/master/users");
     },
     onError: (error: any) => {
-      console.error('Invitation creation error:', error);
-      const userMessage = InvitationErrorHandler.getUserMessage(error);
-      const isRetryable = InvitationErrorHandler.isRetryable(error);
-      
-      toast.error(`Invitation failed: ${userMessage}`, {
-        description: isRetryable ? "You can try again." : "Please contact support if this persists.",
+      console.error('Magic link error:', error);
+      toast.error(`Magic link failed: ${error.message || 'Unknown error occurred'}`, {
+        description: "Please check your admin configuration and try again.",
         duration: 5000
       });
     },
@@ -83,7 +93,7 @@ export default function InviteUserForm() {
       return;
     }
 
-    createInvitationMutation.mutate(formData);
+    sendMagicLinkMutation.mutate(formData);
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -104,18 +114,18 @@ export default function InviteUserForm() {
           </Link>
         </Button>
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Invite User</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Send Magic Link</h2>
           <p className="text-muted-foreground">
-            Send an invitation to a new platform user
+            Send a magic link to a new platform user
           </p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>User Invitation</CardTitle>
+          <CardTitle>Magic Link</CardTitle>
           <CardDescription>
-            Enter the details for the user invitation
+            Enter the details to send a magic link to the user
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -203,27 +213,25 @@ export default function InviteUserForm() {
                 rows={3}
               />
               <p className="text-xs text-muted-foreground">
-                This message will be included in the invitation email
+                This message will be included in the magic link email
               </p>
             </div>
 
-            {createInvitationMutation.error && (
+            {sendMagicLinkMutation.error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   <div className="space-y-2">
-                    <p className="font-semibold">Invitation Failed</p>
-                    <p>{InvitationErrorHandler.getUserMessage(createInvitationMutation.error)}</p>
-                    {InvitationErrorHandler.isRetryable(createInvitationMutation.error) && (
-                      <div className="text-sm text-gray-600 mt-2">
-                        <p><strong>You can try again:</strong> This error is usually temporary.</p>
-                      </div>
-                    )}
-                    {!InvitationErrorHandler.isRetryable(createInvitationMutation.error) && (
-                      <div className="text-sm text-gray-600 mt-2">
-                        <p><strong>Please contact support:</strong> This error requires administrator attention.</p>
-                      </div>
-                    )}
+                    <p className="font-semibold">Magic Link Failed</p>
+                    <p>{sendMagicLinkMutation.error.message || 'Unknown error occurred'}</p>
+                    <div className="text-sm text-gray-600 mt-2">
+                      <p><strong>Please check:</strong></p>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>Admin client configuration (VITE_SUPABASE_SERVICE_ROLE_KEY)</li>
+                        <li>Email address format</li>
+                        <li>Network connection</li>
+                      </ul>
+                    </div>
                   </div>
                 </AlertDescription>
               </Alert>
@@ -235,9 +243,9 @@ export default function InviteUserForm() {
               </Button>
               <Button 
                 type="submit" 
-                disabled={createInvitationMutation.isPending}
+                disabled={sendMagicLinkMutation.isPending}
               >
-                {createInvitationMutation.isPending ? (
+                {sendMagicLinkMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Sending...
@@ -245,7 +253,7 @@ export default function InviteUserForm() {
                 ) : (
                   <>
                     <UserPlus className="mr-2 h-4 w-4" />
-                    Send Invitation
+                    Send Magic Link
                   </>
                 )}
               </Button>
