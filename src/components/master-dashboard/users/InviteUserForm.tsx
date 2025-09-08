@@ -25,10 +25,13 @@ export default function InviteUserForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch available tenants
-  const { data: tenants, isLoading: tenantsLoading } = useQuery({
+  const { data: tenants, isLoading: tenantsLoading, error: tenantsError } = useQuery({
     queryKey: ['tenants'],
     queryFn: () => TenantService.getAllTenants(),
   });
+
+  // Debug logging
+  console.log('Tenants query result:', { tenants, tenantsLoading, tenantsError });
 
   // Create invitation mutation
   const createInvitationMutation = useMutation({
@@ -151,18 +154,34 @@ export default function InviteUserForm() {
                 disabled={tenantsLoading}
               >
                 <SelectTrigger className={errors.tenantId ? "border-red-500" : ""}>
-                  <SelectValue placeholder={tenantsLoading ? "Loading tenants..." : "Select a tenant"} />
+                  <SelectValue placeholder={
+                    tenantsLoading ? "Loading tenants..." : 
+                    tenantsError ? "Error loading tenants" :
+                    !tenants?.data?.length ? "No tenants available" :
+                    "Select a tenant"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
-                  {tenants?.data?.map((tenant) => (
-                    <SelectItem key={tenant.id} value={tenant.id}>
-                      {tenant.name} ({tenant.plan_type})
+                  {tenants?.data?.length > 0 ? (
+                    tenants.data.map((tenant) => (
+                      <SelectItem key={tenant.id} value={tenant.id}>
+                        {tenant.name} ({tenant.plan_type})
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-tenants" disabled>
+                      {tenantsError ? "Error loading tenants" : "No tenants available"}
                     </SelectItem>
-                  ))}
+                  )}
                 </SelectContent>
               </Select>
               {errors.tenantId && (
                 <p className="text-sm text-red-500">{errors.tenantId}</p>
+              )}
+              {tenantsError && (
+                <p className="text-sm text-red-500">
+                  Failed to load tenants: {tenantsError.message || 'Unknown error'}
+                </p>
               )}
             </div>
 

@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 import { AuditLogService } from "./auditLogService";
 import { BaseService, type ServiceResponse } from "./baseService";
 import { logger } from "@/utils/logger";
@@ -59,13 +60,31 @@ export class TenantService extends BaseService {
    */
   static async getAllTenants(): Promise<ServiceResponse<Tenant[]>> {
     try {
-      const { data, error } = await supabase
-        .from('tenants')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Try with admin client first (for super admin operations)
+      const { data, error } = await withAdminAuth(async () => {
+        return await supabaseAdmin
+          .from('tenants')
+          .select('*')
+          .order('created_at', { ascending: false });
+      });
 
       if (error) {
-        return this.handleError(error, 'TenantService.getAllTenants');
+        console.error('Admin client failed, trying regular client:', error);
+        // Fallback to regular client
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('tenants')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (fallbackError) {
+          return this.handleError(fallbackError, 'TenantService.getAllTenants');
+        }
+
+        return {
+          data: fallbackData || [],
+          error: null,
+          success: true,
+        };
       }
 
       return {
@@ -74,6 +93,7 @@ export class TenantService extends BaseService {
         success: true,
       };
     } catch (error) {
+      console.error('TenantService.getAllTenants error:', error);
       return this.handleError(error, 'TenantService.getAllTenants');
     }
   }
