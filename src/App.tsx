@@ -100,7 +100,6 @@ const RouterContent = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/tenant-login" element={<TenantLogin />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/accept-invitation" element={<AcceptInvitation />} />
           
           {/* Public customer review form */}
           <Route path="/review" element={<ReviewFormPage />} />

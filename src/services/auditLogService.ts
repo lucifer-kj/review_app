@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 
 export interface AuditLog {
   id: string;
@@ -40,21 +41,28 @@ export class AuditLogService {
       user_agent?: string;
     } = {}
   ): Promise<void> {
-    const { error } = await supabase
-      .from('audit_logs')
-      .insert({
-        action,
-        details,
-        resource_type: options.resource_type,
-        resource_id: options.resource_id,
-        tenant_id: options.tenant_id,
-        user_id: options.user_id,
-        ip_address: options.ip_address,
-        user_agent: options.user_agent,
-      });
+    try {
+      await withAdminAuth(async () => {
+        const { error } = await supabaseAdmin
+          .from('audit_logs')
+          .insert({
+            action,
+            details,
+            resource_type: options.resource_type,
+            resource_id: options.resource_id,
+            tenant_id: options.tenant_id,
+            user_id: options.user_id,
+            ip_address: options.ip_address,
+            user_agent: options.user_agent,
+          });
 
-    if (error) {
-      console.error('Failed to log audit event:', error);
+        if (error) {
+          console.error('Failed to log audit event:', error);
+          // Don't throw error to avoid breaking the main flow
+        }
+      });
+    } catch (error) {
+      console.error('Failed to log audit event (admin auth error):', error);
       // Don't throw error to avoid breaking the main flow
     }
   }
