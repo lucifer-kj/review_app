@@ -14,7 +14,12 @@ import {
   MoreHorizontal,
   UserCheck,
   UserX,
-  AlertTriangle
+  AlertTriangle,
+  Key,
+  Ban,
+  Unlock,
+  Send,
+  RefreshCw
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,7 +32,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { InvitationService } from "@/services/invitationService";
 
@@ -72,8 +79,7 @@ export default function UserManagement() {
           role,
           tenant_id,
           created_at,
-          updated_at,
-          tenants!inner(name)
+          updated_at
         `)
         .order('created_at', { ascending: false });
 
@@ -85,13 +91,44 @@ export default function UserManagement() {
       // Apply pagination
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
-      
+
       const { data, error, count } = await query.range(from, to);
 
       if (error) throw error;
 
+      // Get tenant names separately to avoid join issues
+      const tenantIds = [...new Set(data?.map(user => user.tenant_id).filter(Boolean) || [])];
+      const { data: tenants } = await supabase
+        .from('tenants')
+        .select('id, name')
+        .in('id', tenantIds);
+
+      const tenantMap = tenants?.reduce((acc, tenant) => {
+        acc[tenant.id] = tenant.name;
+        return acc;
+      }, {} as Record<string, string>) || {};
+
+      // Get auth user data for ban status
+      const userIds = data?.map(user => user.id) || [];
+      const { data: authUsers } = await supabase.auth.admin.listUsers();
+      
+      const authUserMap = authUsers?.users?.reduce((acc, authUser) => {
+        acc[authUser.id] = {
+          banned_until: authUser.banned_until,
+          email_confirmed_at: authUser.email_confirmed_at,
+          last_sign_in_at: authUser.last_sign_in_at,
+        };
+        return acc;
+      }, {} as Record<string, any>) || {};
+
       return {
-        users: data || [],
+        users: data?.map(user => ({
+          ...user,
+          tenant_name: tenantMap[user.tenant_id] || 'Unknown',
+          banned_until: authUserMap[user.id]?.banned_until || null,
+          email_confirmed_at: authUserMap[user.id]?.email_confirmed_at || null,
+          last_sign_in_at: authUserMap[user.id]?.last_sign_in_at || null,
+        })) || [],
         total: count || 0,
         page: page,
         pageSize: pageSize
@@ -117,14 +154,30 @@ export default function UserManagement() {
           expires_at,
           used_at,
           created_at,
-          tenants!inner(name)
+          tenant_id
         `)
         .is('used_at', null)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+
+      // Get tenant names separately
+      const tenantIds = [...new Set(data?.map(inv => inv.tenant_id).filter(Boolean) || [])];
+      const { data: tenants } = await supabase
+        .from('tenants')
+        .select('id, name')
+        .in('id', tenantIds);
+
+      const tenantMap = tenants?.reduce((acc, tenant) => {
+        acc[tenant.id] = tenant.name;
+        return acc;
+      }, {} as Record<string, string>) || {};
+
+      return data?.map(invitation => ({
+        ...invitation,
+        tenant_name: tenantMap[invitation.tenant_id] || 'Unknown'
+      })) || [];
     },
     refetchInterval: 30000,
   });
@@ -187,6 +240,112 @@ export default function UserManagement() {
     },
   });
 
+  // Send password recovery email mutation
+  const sendPasswordRecoveryMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const { error } = await supabase.auth.admin.generateLink({
+        type: 'recovery',
+        email: email,
+        options: {
+          redirectTo: `${window.location.origin}/reset-password`,
+        }
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: (_, email) => {
+      toast({
+        title: "Password Recovery Sent",
+        description: `Password recovery email sent to ${email}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Send Recovery Email",
+        description: error.message || "Failed to send password recovery email.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Send magic link mutation
+  const sendMagicLinkMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const { error } = await supabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email: email,
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        }
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: (_, email) => {
+      toast({
+        title: "Magic Link Sent",
+        description: `Magic link sent to ${email}`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Send Magic Link",
+        description: error.message || "Failed to send magic link.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Ban user mutation
+  const banUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.auth.admin.updateUserById(userId, {
+        ban_duration: '876000h' // 100 years (effectively permanent)
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-users'] });
+      toast({
+        title: "User Banned",
+        description: "User has been banned successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Ban User",
+        description: error.message || "Failed to ban user.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Unban user mutation
+  const unbanUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.auth.admin.updateUserById(userId, {
+        ban_duration: 'none'
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-users'] });
+      toast({
+        title: "User Unbanned",
+        description: "User has been unbanned successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Unban User",
+        description: error.message || "Failed to unban user.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getUserRole = (user: any) => {
     return user?.role || 'user';
   };
@@ -219,6 +378,16 @@ export default function UserManagement() {
       default:
         return 'outline';
     }
+  };
+
+  const isUserBanned = (user: any) => {
+    if (!user.banned_until) return false;
+    return new Date(user.banned_until) > new Date();
+  };
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Never';
+    return new Date(dateString).toLocaleDateString();
   };
 
   if (isLoading) {
@@ -355,22 +524,43 @@ export default function UserManagement() {
               {filteredUsers.map((user) => {
                 const role = getUserRole(user);
                 const tenantId = getUserTenant(user);
-                const tenantName = getUserTenantName(user);
+                const tenantName = user.tenant_name || 'No Tenant';
+                const isBanned = isUserBanned(user);
                 
                 return (
-                  <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div key={user.id} className={`flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors ${isBanned ? 'bg-red-50 border-red-200' : ''}`}>
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center space-x-2">
                         {getRoleIcon(role)}
                         <div>
-                          <p className="font-medium">{user.email}</p>
+                          <div className="flex items-center space-x-2">
+                            <p className="font-medium">{user.email}</p>
+                            {isBanned && (
+                              <Badge variant="destructive" className="text-xs">
+                                <Ban className="h-3 w-3 mr-1" />
+                                Banned
+                              </Badge>
+                            )}
+                            {!user.email_confirmed_at && (
+                              <Badge variant="outline" className="text-xs">
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Unverified
+                              </Badge>
+                            )}
+                          </div>
                           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                             <Calendar className="h-3 w-3" />
                             <span>Joined {new Date(user.created_at).toLocaleDateString()}</span>
-                            {tenantName && (
+                            {tenantName !== 'No Tenant' && (
                               <>
                                 <span>•</span>
                                 <span>{tenantName}</span>
+                              </>
+                            )}
+                            {user.last_sign_in_at && (
+                              <>
+                                <span>•</span>
+                                <span>Last seen {formatDate(user.last_sign_in_at)}</span>
                               </>
                             )}
                           </div>
@@ -390,6 +580,66 @@ export default function UserManagement() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          {/* Password Recovery */}
+                          <DropdownMenuItem 
+                            onClick={() => sendPasswordRecoveryMutation.mutate(user.email)}
+                            disabled={sendPasswordRecoveryMutation.isPending}
+                          >
+                            <Key className="mr-2 h-4 w-4" />
+                            Send Password Recovery
+                          </DropdownMenuItem>
+                          
+                          {/* Magic Link */}
+                          <DropdownMenuItem 
+                            onClick={() => sendMagicLinkMutation.mutate(user.email)}
+                            disabled={sendMagicLinkMutation.isPending}
+                          >
+                            <Send className="mr-2 h-4 w-4" />
+                            Send Magic Link
+                          </DropdownMenuItem>
+                          
+                          <DropdownMenuSeparator />
+                          
+                          {/* Ban/Unban */}
+                          {!isBanned ? (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  <Ban className="mr-2 h-4 w-4" />
+                                  Ban User
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Ban User</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to ban {user.email}? This will prevent them from logging in.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => banUserMutation.mutate(user.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Ban User
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          ) : (
+                            <DropdownMenuItem 
+                              onClick={() => unbanUserMutation.mutate(user.id)}
+                              disabled={unbanUserMutation.isPending}
+                            >
+                              <Unlock className="mr-2 h-4 w-4" />
+                              Unban User
+                            </DropdownMenuItem>
+                          )}
+                          
+                          <DropdownMenuSeparator />
+                          
+                          {/* Role Management */}
                           {role !== 'super_admin' && (
                             <DropdownMenuItem 
                               onClick={() => promoteUserMutation.mutate(user.id)}
@@ -408,6 +658,7 @@ export default function UserManagement() {
                               Demote from Super Admin
                             </DropdownMenuItem>
                           )}
+                          
                           <DropdownMenuItem>
                             <UserCheck className="mr-2 h-4 w-4" />
                             View Profile
@@ -437,6 +688,72 @@ export default function UserManagement() {
           </Button>
         </div>
       </div>
+
+      {/* Pending Invitations */}
+      {invitations && invitations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Mail className="h-5 w-5" />
+              <span>Pending Invitations ({invitations.length})</span>
+            </CardTitle>
+            <CardDescription>
+              Users who have been invited but haven't accepted yet
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {invitations.map((invitation) => (
+                <div key={invitation.id} className="flex items-center justify-between p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <Mail className="h-4 w-4 text-yellow-600" />
+                      <div>
+                        <p className="font-medium">{invitation.email}</p>
+                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          <span>Invited {new Date(invitation.created_at).toLocaleDateString()}</span>
+                          <span>•</span>
+                          <span>{invitation.tenant_name}</span>
+                          <span>•</span>
+                          <span>Expires {new Date(invitation.expires_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                      {invitation.role.replace('_', ' ')}
+                    </Badge>
+                    
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem 
+                          onClick={() => sendMagicLinkMutation.mutate(invitation.email)}
+                          disabled={sendMagicLinkMutation.isPending}
+                        >
+                          <Send className="mr-2 h-4 w-4" />
+                          Resend Magic Link
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Extend Invitation
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

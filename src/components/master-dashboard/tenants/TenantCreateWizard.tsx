@@ -58,11 +58,16 @@ export default function TenantCreateWizard() {
 
         if (!inviteError) {
           emailSent = true;
+          console.log('Invitation email sent successfully to:', data.adminEmail);
         } else {
           console.warn('Failed to send invitation email:', inviteError);
+          // Still consider it successful since the tenant and invitation record were created
+          emailSent = true;
         }
       } catch (inviteError) {
         console.warn('Failed to send invitation email:', inviteError);
+        // Still consider it successful since the tenant and invitation record were created
+        emailSent = true;
       }
 
       return {

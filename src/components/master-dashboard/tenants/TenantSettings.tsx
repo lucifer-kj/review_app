@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Building2, Loader2, Save } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { ArrowLeft, Building2, Loader2, Save, Trash2 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -98,6 +99,27 @@ export default function TenantSettings() {
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to update tenant settings");
+    },
+  });
+
+  // Delete tenant mutation
+  const deleteTenantMutation = useMutation({
+    mutationFn: async () => {
+      const result = await TenantService.deleteTenant(tenantId!);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete tenant');
+      }
+      return result.data;
+    },
+    onSuccess: () => {
+      toast.success("Tenant deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['platform-analytics'] });
+      // Redirect to tenants list
+      window.location.href = '/master/tenants';
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete tenant");
     },
   });
 
@@ -422,26 +444,70 @@ export default function TenantSettings() {
         )}
 
         {/* Submit Button */}
-        <div className="flex space-x-2">
-          <Button 
-            type="submit" 
-            disabled={updateTenantMutation.isPending}
-          >
-            {updateTenantMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="mr-2 h-4 w-4" />
-            )}
-            {updateTenantMutation.isPending ? "Saving..." : "Save Changes"}
-          </Button>
-          <Button 
-            type="button" 
-            variant="outline" 
-            asChild
-            disabled={updateTenantMutation.isPending}
-          >
-            <Link to={`/master/tenants/${tenantId}`}>Cancel</Link>
-          </Button>
+        <div className="flex justify-between">
+          <div className="flex space-x-2">
+            <Button 
+              type="submit" 
+              disabled={updateTenantMutation.isPending}
+            >
+              {updateTenantMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="mr-2 h-4 w-4" />
+              )}
+              {updateTenantMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              asChild
+              disabled={updateTenantMutation.isPending}
+            >
+              <Link to={`/master/tenants/${tenantId}`}>Cancel</Link>
+            </Button>
+          </div>
+          
+          {/* Delete Tenant Button */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                type="button" 
+                variant="destructive" 
+                disabled={updateTenantMutation.isPending || deleteTenantMutation.isPending}
+              >
+                {deleteTenantMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-2 h-4 w-4" />
+                )}
+                Delete Tenant
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the tenant
+                  "{tenant?.name}" and all associated data including:
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>All user accounts in this tenant</li>
+                    <li>All reviews and customer data</li>
+                    <li>All business settings and configurations</li>
+                    <li>All usage metrics and analytics</li>
+                  </ul>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteTenantMutation.mutate()}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Yes, delete tenant
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </form>
     </div>

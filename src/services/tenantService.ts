@@ -212,6 +212,88 @@ export class TenantService extends BaseService {
   }
 
   /**
+   * Delete a tenant (super admin only)
+   */
+  static async deleteTenant(tenantId: string): Promise<ServiceResponse<boolean>> {
+    if (!this.validateId(tenantId)) {
+      return {
+        data: null,
+        error: 'Invalid tenant ID',
+        success: false,
+      };
+    }
+
+    try {
+      // First, delete all related data
+      // Delete reviews
+      await supabase
+        .from('reviews')
+        .delete()
+        .eq('tenant_id', tenantId);
+
+      // Delete business settings
+      await supabase
+        .from('business_settings')
+        .delete()
+        .eq('tenant_id', tenantId);
+
+      // Delete user invitations
+      await supabase
+        .from('user_invitations')
+        .delete()
+        .eq('tenant_id', tenantId);
+
+      // Delete profiles (users)
+      await supabase
+        .from('profiles')
+        .delete()
+        .eq('tenant_id', tenantId);
+
+      // Delete usage metrics
+      await supabase
+        .from('usage_metrics')
+        .delete()
+        .eq('tenant_id', tenantId);
+
+      // Delete audit logs
+      await supabase
+        .from('audit_logs')
+        .delete()
+        .eq('tenant_id', tenantId);
+
+      // Finally, delete the tenant
+      const { error } = await supabase
+        .from('tenants')
+        .delete()
+        .eq('id', tenantId);
+
+      if (error) {
+        return this.handleError(error, 'TenantService.deleteTenant');
+      }
+
+      // Log the deletion
+      await AuditLogService.logEvent(
+        AuditLogService.ACTIONS.TENANT_DELETED,
+        {
+          tenant_id: tenantId,
+        },
+        {
+          resource_type: 'tenant',
+          resource_id: tenantId,
+        }
+      );
+
+      return {
+        data: true,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'TenantService.deleteTenant');
+    }
+  }
+
+  /**
    * Create a new tenant (super admin only)
    */
   static async createTenant(tenantData: CreateTenantData): Promise<ServiceResponse<Tenant>> {
