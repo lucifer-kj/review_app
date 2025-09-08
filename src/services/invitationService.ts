@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 import { BaseService, type ServiceResponse } from "./baseService";
 
 export class InvitationService extends BaseService {
@@ -13,8 +14,9 @@ export class InvitationService extends BaseService {
     role: 'tenant_admin' | 'user' = 'tenant_admin'
   ): Promise<ServiceResponse<boolean>> {
     try {
-      // Use Supabase's built-in invitation system
-      const { error } = await supabase.auth.admin.inviteUserByEmail(email, {
+      // Use Supabase's built-in invitation system with admin client
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
         data: {
           tenant_name: tenantName,
           tenant_id: tenantId,
@@ -27,6 +29,7 @@ export class InvitationService extends BaseService {
       if (error) {
         return this.handleError(error, 'InvitationService.sendInvitation');
       }
+      });
 
       return {
         data: true,

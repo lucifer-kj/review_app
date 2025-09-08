@@ -36,7 +36,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 import { InvitationService } from "@/services/invitationService";
+import AdminClientTest from "@/components/debug/AdminClientTest";
 
 interface SupabaseUser {
   id: string;
@@ -70,69 +72,155 @@ export default function UserManagement() {
   const { data: users, isLoading, error } = useQuery({
     queryKey: ['platform-users', { searchTerm: debouncedSearchTerm, page, pageSize }],
     queryFn: async () => {
-      // Use profiles table instead of admin API
-      let query = supabase
-        .from('profiles')
-        .select(`
-          id,
-          email,
-          role,
-          tenant_id,
-          created_at,
-          updated_at
-        `)
-        .order('created_at', { ascending: false });
-
-      // Apply search filter
-      if (debouncedSearchTerm) {
-        query = query.ilike('email', `%${debouncedSearchTerm}%`);
-      }
-
-      // Apply pagination
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
-
-      const { data, error, count } = await query.range(from, to);
-
-      if (error) throw error;
-
-      // Get tenant names separately to avoid join issues
-      const tenantIds = [...new Set(data?.map(user => user.tenant_id).filter(Boolean) || [])];
-      const { data: tenants } = await supabase
-        .from('tenants')
-        .select('id, name')
-        .in('id', tenantIds);
-
-      const tenantMap = tenants?.reduce((acc, tenant) => {
-        acc[tenant.id] = tenant.name;
-        return acc;
-      }, {} as Record<string, string>) || {};
-
-      // Get auth user data for ban status
-      const userIds = data?.map(user => user.id) || [];
-      const { data: authUsers } = await supabase.auth.admin.listUsers();
+      console.log('Fetching users...');
       
-      const authUserMap = authUsers?.users?.reduce((acc, authUser) => {
-        acc[authUser.id] = {
-          banned_until: authUser.banned_until,
-          email_confirmed_at: authUser.email_confirmed_at,
-          last_sign_in_at: authUser.last_sign_in_at,
-        };
-        return acc;
-      }, {} as Record<string, any>) || {};
+      try {
+        // First, try to get users from auth.users using admin client
+        console.log('Attempting to fetch auth users...');
+        const { data: authUsers, error: authError } = await withAdminAuth(async () => {
+          return await supabaseAdmin.auth.admin.listUsers();
+        });
 
-      return {
-        users: data?.map(user => ({
-          ...user,
-          tenant_name: tenantMap[user.tenant_id] || 'Unknown',
-          banned_until: authUserMap[user.id]?.banned_until || null,
-          email_confirmed_at: authUserMap[user.id]?.email_confirmed_at || null,
-          last_sign_in_at: authUserMap[user.id]?.last_sign_in_at || null,
-        })) || [],
-        total: count || 0,
+        if (authError) {
+          console.error('Auth users fetch error:', authError);
+          throw authError;
+        }
+
+        console.log('Auth users fetched:', authUsers?.users?.length || 0);
+
+        if (!authUsers?.users || authUsers.users.length === 0) {
+          console.log('No auth users found, returning empty result');
+          return {
+            users: [],
+            total: 0,
+            page: page,
+            pageSize: pageSize
+          };
+        }
+
+        // Get user IDs from auth users
+        const authUserIds = authUsers.users.map(user => user.id);
+        
+        // Try to get profiles for these users
+        console.log('Fetching profiles for auth users...');
+        let { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            email,
+            role,
+            tenant_id,
+            created_at,
+            updated_at
+          `)
+          .in('id', authUserIds)
+          .order('created_at', { ascending: false });
+
+        if (profilesError) {
+          console.error('Profiles fetch error:', profilesError);
+          // If profiles don't exist, create them from auth users
+          console.log('Creating profiles from auth users...');
+          const profilesToCreate = authUsers.users.map(authUser => ({
+            id: authUser.id,
+            email: authUser.email || '',
+            role: 'user', // Default role
+            tenant_id: null, // Will be set when they join a tenant
+            created_at: authUser.created_at,
+            updated_at: authUser.updated_at
+          }));
+
+          const { data: createdProfiles, error: createError } = await supabase
+            .from('profiles')
+            .upsert(profilesToCreate)
+            .select();
+
+          if (createError) {
+            console.error('Profile creation error:', createError);
+            // Return auth users without profiles
+            return {
+              users: authUsers.users.map(authUser => ({
+                id: authUser.id,
+                email: authUser.email || '',
+                role: 'user',
+                tenant_id: null,
+                tenant_name: 'No Tenant',
+                created_at: authUser.created_at,
+                updated_at: authUser.updated_at,
+                banned_until: authUser.banned_until,
+                email_confirmed_at: authUser.email_confirmed_at,
+                last_sign_in_at: authUser.last_sign_in_at,
+              })),
+              total: authUsers.users.length,
+              page: page,
+              pageSize: pageSize
+            };
+          }
+
+          // Use created profiles
+          profiles = createdProfiles;
+        }
+
+        console.log('Profiles fetched:', profiles?.length || 0);
+
+        // Apply search filter
+        let filteredProfiles = profiles || [];
+        if (debouncedSearchTerm) {
+          filteredProfiles = filteredProfiles.filter(profile => 
+            profile.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+          );
+        }
+
+        // Apply pagination
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize;
+        const paginatedProfiles = filteredProfiles.slice(from, to);
+
+        // Get tenant names
+        const tenantIds = [...new Set(paginatedProfiles.map(user => user.tenant_id).filter(Boolean))];
+        let tenantMap: Record<string, string> = {};
+        
+        if (tenantIds.length > 0) {
+          const { data: tenants } = await supabase
+            .from('tenants')
+            .select('id, name')
+            .in('id', tenantIds);
+
+          tenantMap = tenants?.reduce((acc, tenant) => {
+            acc[tenant.id] = tenant.name;
+            return acc;
+          }, {} as Record<string, string>) || {};
+        }
+
+        // Create auth user map for additional data
+        const authUserMap = authUsers.users.reduce((acc, authUser) => {
+          acc[authUser.id] = {
+            banned_until: authUser.banned_until,
+            email_confirmed_at: authUser.email_confirmed_at,
+            last_sign_in_at: authUser.last_sign_in_at,
+          };
+          return acc;
+        }, {} as Record<string, any>);
+
+        const result = {
+          users: paginatedProfiles.map(user => ({
+            ...user,
+            tenant_name: tenantMap[user.tenant_id] || 'No Tenant',
+            banned_until: authUserMap[user.id]?.banned_until || null,
+            email_confirmed_at: authUserMap[user.id]?.email_confirmed_at || null,
+            last_sign_in_at: authUserMap[user.id]?.last_sign_in_at || null,
+          })),
+          total: filteredProfiles.length,
         page: page,
         pageSize: pageSize
       };
+
+        console.log('Final result:', result);
+        return result;
+
+      } catch (error) {
+        console.error('User fetch error:', error);
+        throw error;
+      }
     },
     refetchInterval: 10000, // More frequent updates for real-time feel
     refetchOnWindowFocus: true,
@@ -243,7 +331,8 @@ export default function UserManagement() {
   // Send password recovery email mutation
   const sendPasswordRecoveryMutation = useMutation({
     mutationFn: async (email: string) => {
-      const { error } = await supabase.auth.admin.generateLink({
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.generateLink({
         type: 'recovery',
         email: email,
         options: {
@@ -252,6 +341,7 @@ export default function UserManagement() {
       });
 
       if (error) throw error;
+      });
     },
     onSuccess: (_, email) => {
       toast({
@@ -271,7 +361,8 @@ export default function UserManagement() {
   // Send magic link mutation
   const sendMagicLinkMutation = useMutation({
     mutationFn: async (email: string) => {
-      const { error } = await supabase.auth.admin.generateLink({
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.generateLink({
         type: 'magiclink',
         email: email,
         options: {
@@ -280,6 +371,7 @@ export default function UserManagement() {
       });
 
       if (error) throw error;
+      });
     },
     onSuccess: (_, email) => {
       toast({
@@ -299,8 +391,10 @@ export default function UserManagement() {
   // Ban user mutation
   const banUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase.auth.admin.updateUserById(userId, {
-        ban_duration: '876000h' // 100 years (effectively permanent)
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.updateUserById(userId, {
+          ban_duration: '876000h' // 100 years (effectively permanent)
+        });
       });
 
       if (error) throw error;
@@ -324,8 +418,10 @@ export default function UserManagement() {
   // Unban user mutation
   const unbanUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase.auth.admin.updateUserById(userId, {
-        ban_duration: 'none'
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.updateUserById(userId, {
+          ban_duration: 'none'
+        });
       });
 
       if (error) throw error;
@@ -421,9 +517,23 @@ export default function UserManagement() {
         </div>
         <Alert variant="destructive">
           <AlertDescription>
-            Failed to load users. Please check your connection and try again.
+            <div className="space-y-2">
+              <p>Failed to load users. Error details:</p>
+              <p className="text-sm font-mono bg-red-50 p-2 rounded">
+                {error instanceof Error ? error.message : String(error)}
+              </p>
+              <p className="text-sm">
+                Please check:
+                <br />• Your Supabase service role key is configured correctly
+                <br />• You have admin permissions
+                <br />• The profiles table exists and has proper RLS policies
+              </p>
+            </div>
           </AlertDescription>
         </Alert>
+        <Button onClick={() => window.location.reload()} variant="outline">
+          Retry
+        </Button>
       </div>
     );
   }
@@ -447,6 +557,9 @@ export default function UserManagement() {
           </Link>
         </Button>
       </div>
+
+      {/* Debug Component - Remove this after fixing */}
+      <AdminClientTest />
 
       {/* Search */}
       <div className="flex items-center space-x-2">
@@ -515,9 +628,20 @@ export default function UserManagement() {
               <p className="mt-2 text-sm text-muted-foreground">
                 {searchTerm 
                   ? "Try adjusting your search terms."
-                  : "Users will appear here once they register."
+                  : "Users will appear here once they register or are invited."
                 }
               </p>
+              {!searchTerm && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg text-left">
+                  <h4 className="font-medium text-blue-900 mb-2">Debug Information:</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Check browser console for detailed logs</li>
+                    <li>• Verify Supabase service role key is configured</li>
+                    <li>• Ensure profiles table exists with proper RLS policies</li>
+                    <li>• Try creating a tenant to generate test users</li>
+                  </ul>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -534,7 +658,7 @@ export default function UserManagement() {
                         {getRoleIcon(role)}
                         <div>
                           <div className="flex items-center space-x-2">
-                            <p className="font-medium">{user.email}</p>
+                          <p className="font-medium">{user.email}</p>
                             {isBanned && (
                               <Badge variant="destructive" className="text-xs">
                                 <Ban className="h-3 w-3 mr-1" />

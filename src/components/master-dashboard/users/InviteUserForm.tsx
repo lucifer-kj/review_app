@@ -11,7 +11,6 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserManagementService } from "@/services/userManagementService";
 import { TenantService } from "@/services/tenantService";
-import { InvitationService } from "@/services/invitationService";
 import { toast } from "sonner";
 
 export default function InviteUserForm() {
@@ -33,7 +32,7 @@ export default function InviteUserForm() {
 
   // Create invitation mutation
   const createInvitationMutation = useMutation({
-    mutationFn: (data: typeof formData) => InvitationService.createInvitation({
+    mutationFn: (data: typeof formData) => UserManagementService.createInvitation({
       tenant_id: data.tenantId,
       email: data.email,
       role: data.role,

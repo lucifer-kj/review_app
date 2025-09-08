@@ -11,6 +11,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TenantService } from "@/services/tenantService";
 import { InvitationService } from "@/services/invitationService";
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -43,17 +44,19 @@ export default function TenantCreateWizard() {
         throw new Error(error.message || 'Failed to create tenant');
       }
 
-      // Send invitation email using Supabase Auth invite
+      // Send invitation email using Supabase Admin Auth invite
       let emailSent = false;
       try {
-        const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(data.adminEmail, {
-          data: {
-            tenant_name: data.name,
-            tenant_id: result.tenant_id,
-            role: 'tenant_admin',
-          },
-          // Dynamic redirect URL for password creation
-          redirectTo: `${window.location.origin}/accept-invitation?tenant_id=${result.tenant_id}`,
+        const { error: inviteError } = await withAdminAuth(async () => {
+          return await supabaseAdmin.auth.admin.inviteUserByEmail(data.adminEmail, {
+            data: {
+              tenant_name: data.name,
+              tenant_id: result.tenant_id,
+              role: 'tenant_admin',
+            },
+            // Dynamic redirect URL for password creation
+            redirectTo: `${window.location.origin}/accept-invitation?tenant_id=${result.tenant_id}`,
+          });
         });
 
         if (!inviteError) {

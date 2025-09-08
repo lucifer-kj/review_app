@@ -42,7 +42,6 @@ const AuditLogs = lazy(() => import("./components/master-dashboard/audit/AuditLo
 
 // Authentication components
 const InvitationAcceptance = lazy(() => import("./components/auth/InvitationAcceptance"));
-const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 
 // Review flow pages
 const ReviewFormPage = lazy(() => import("./pages/ReviewFormPage"));
@@ -65,6 +64,9 @@ const RouterContent = () => {
         <Routes>
           {/* Login page - default route */}
           <Route path="/" element={<Login />} />
+          
+          {/* Accept invitation page - public route */}
+          <Route path="/accept-invitation" element={<InvitationAcceptance />} />
           
           {/* Master Dashboard routes - super admin only */}
           <Route path="/master" element={

@@ -145,15 +145,15 @@ export default function TenantDetails() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/master/tenants">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Tenants
-            </Link>
-          </Button>
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">{tenant.name}</h2>
+      <div className="flex items-center space-x-4">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/master/tenants">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Tenants
+          </Link>
+        </Button>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">{tenant.name}</h2>
             <p className="text-muted-foreground">Tenant organization details and management</p>
           </div>
         </div>
@@ -240,43 +240,43 @@ export default function TenantDetails() {
           </div>
 
           {/* Tenant Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Building2 className="h-5 w-5" />
-                <span>Tenant Information</span>
-              </CardTitle>
-            </CardHeader>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Building2 className="h-5 w-5" />
+              <span>Tenant Information</span>
+            </CardTitle>
+          </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
-                <div>
+              <div>
                   <label className="text-sm font-medium text-muted-foreground">Organization Name</label>
                   <p className="text-sm">{tenant.name}</p>
-                </div>
+              </div>
                 {tenant.domain && (
-                  <div>
+              <div>
                     <label className="text-sm font-medium text-muted-foreground">Domain</label>
                     <p className="text-sm flex items-center space-x-1">
                       <Globe className="h-3 w-3" />
                       <span>{tenant.domain}</span>
                     </p>
-                  </div>
+                </div>
                 )}
-                <div>
+              <div>
                   <label className="text-sm font-medium text-muted-foreground">Created</label>
                   <p className="text-sm flex items-center space-x-1">
                     <Calendar className="h-3 w-3" />
                     <span>{new Date(tenant.created_at).toLocaleDateString()}</span>
                   </p>
-                </div>
+              </div>
                 {stats.last_activity && (
-                  <div>
+              <div>
                     <label className="text-sm font-medium text-muted-foreground">Last Activity</label>
                     <p className="text-sm flex items-center space-x-1">
                       <Activity className="h-3 w-3" />
                       <span>{new Date(stats.last_activity).toLocaleDateString()}</span>
-                    </p>
-                  </div>
+                </p>
+              </div>
                 )}
               </div>
             </CardContent>
@@ -301,13 +301,13 @@ export default function TenantDetails() {
                     <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center space-x-3">
                         <Mail className="h-4 w-4 text-muted-foreground" />
-                        <div>
+              <div>
                           <p className="font-medium">{user.email}</p>
-                          <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                             Joined {new Date(user.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
+                </p>
+              </div>
+            </div>
                       <Badge variant="outline">{user.role}</Badge>
                     </div>
                   ))}
@@ -321,22 +321,22 @@ export default function TenantDetails() {
                   </p>
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </CardContent>
+        </Card>
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BarChart3 className="h-5 w-5" />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <BarChart3 className="h-5 w-5" />
                 <span>Usage Analytics</span>
-              </CardTitle>
-              <CardDescription>
+            </CardTitle>
+            <CardDescription>
                 Detailed usage statistics for this tenant
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">Total Users</label>
@@ -345,7 +345,7 @@ export default function TenantDetails() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">Total Reviews</label>
                   <p className="text-2xl font-bold">{stats.reviews_count}</p>
-                </div>
+              </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground">API Calls</label>
                   <p className="text-2xl font-bold">{stats.api_calls_count}</p>
@@ -355,24 +355,24 @@ export default function TenantDetails() {
                   <p className="text-2xl font-bold">
                     {stats.storage_used ? `${(stats.storage_used / 1024 / 1024).toFixed(1)} MB` : '0 MB'}
                   </p>
-                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </CardContent>
+        </Card>
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
-          <Card>
-            <CardHeader>
+      <Card>
+        <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Settings className="h-5 w-5" />
                 <span>Tenant Settings</span>
               </CardTitle>
-              <CardDescription>
+          <CardDescription>
                 Configuration and settings for this tenant
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Plan Type</label>
@@ -388,9 +388,9 @@ export default function TenantDetails() {
                     {JSON.stringify(tenant.settings || {}, null, 2)}
                   </pre>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+          </div>
+        </CardContent>
+      </Card>
         </TabsContent>
       </Tabs>
     </div>

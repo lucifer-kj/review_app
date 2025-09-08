@@ -8,6 +8,7 @@ interface EnvironmentConfig {
   supabase: {
     url: string;
     anonKey: string;
+    serviceRoleKey?: string;
   };
   
   // Frontend Configuration
@@ -28,13 +29,15 @@ interface EnvironmentConfig {
 const validateEnvironment = (): EnvironmentConfig => {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const supabaseServiceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
   // Check if Supabase variables are missing
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn(
       'Missing Supabase environment variables. Please create a .env file with:\n' +
       'VITE_SUPABASE_URL=https://your-project.supabase.co\n' +
-      'VITE_SUPABASE_ANON_KEY=your_supabase_anon_key\n\n' +
+      'VITE_SUPABASE_ANON_KEY=your_supabase_anon_key\n' +
+      'VITE_SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key\n\n' +
       'For now, using placeholder values. Review form submissions will not work.'
     );
   }
@@ -47,6 +50,7 @@ const validateEnvironment = (): EnvironmentConfig => {
     supabase: {
       url: supabaseUrl || 'https://placeholder.supabase.co',
       anonKey: supabaseAnonKey || 'placeholder_key',
+      serviceRoleKey: supabaseServiceRoleKey,
     },
     frontend: {
       url: frontendUrl,
@@ -97,6 +101,8 @@ export const getEnvironmentConfig = () => {
 export const isSupabaseConfigured = (): boolean => {
   return !!(env.supabase.url && 
     env.supabase.anonKey && 
+    env.supabase.serviceRoleKey &&
     env.supabase.url !== 'https://placeholder.supabase.co' && 
-    env.supabase.anonKey !== 'placeholder_key');
+    env.supabase.anonKey !== 'placeholder_key' &&
+    env.supabase.serviceRoleKey !== 'placeholder_service_key');
 };

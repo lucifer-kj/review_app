@@ -37,28 +37,56 @@ export class UserManagementService {
    * Get all users across all tenants (super admin only)
    */
   static async getAllUsers(): Promise<User[]> {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select(`
-        id,
-        email,
-        role,
-        tenant_id,
-        created_at,
-        tenants!inner(name)
-      `)
-      .order('created_at', { ascending: false });
+    try {
+      // First, get all profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          email,
+          role,
+          tenant_id,
+          created_at
+        `)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
+      if (profilesError) throw profilesError;
 
-    return data?.map(user => ({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      tenant_id: user.tenant_id,
-      tenant_name: user.tenants?.name,
-      created_at: user.created_at,
-    })) || [];
+      if (!profiles || profiles.length === 0) {
+        return [];
+      }
+
+      // Get unique tenant IDs
+      const tenantIds = [...new Set(profiles.map(p => p.tenant_id).filter(Boolean))];
+      
+      // Fetch tenant names separately
+      let tenantNames: Record<string, string> = {};
+      if (tenantIds.length > 0) {
+        const { data: tenants, error: tenantsError } = await supabase
+          .from('tenants')
+          .select('id, name')
+          .in('id', tenantIds);
+
+        if (!tenantsError && tenants) {
+          tenantNames = tenants.reduce((acc, tenant) => {
+            acc[tenant.id] = tenant.name;
+            return acc;
+          }, {} as Record<string, string>);
+        }
+      }
+
+      return profiles.map(user => ({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        tenant_id: user.tenant_id,
+        tenant_name: user.tenant_id ? tenantNames[user.tenant_id] : 'No Tenant',
+        created_at: user.created_at,
+      }));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
   }
 
   /**
@@ -94,95 +122,162 @@ export class UserManagementService {
    * Get all pending invitations
    */
   static async getPendingInvitations(): Promise<UserInvitation[]> {
-    const { data, error } = await supabase
-      .from('user_invitations')
-      .select(`
-        id,
-        tenant_id,
-        email,
-        role,
-        invited_by,
-        token,
-        expires_at,
-        used_at,
-        created_at,
-        tenants!inner(name),
-        profiles!user_invitations_invited_by_fkey(email)
-      `)
-      .is('used_at', null)
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false });
+    try {
+      // First, get all pending invitations
+      const { data: invitations, error: invitationsError } = await supabase
+        .from('user_invitations')
+        .select(`
+          id,
+          tenant_id,
+          email,
+          role,
+          invited_by,
+          token,
+          expires_at,
+          used_at,
+          created_at
+        `)
+        .is('used_at', null)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
+      if (invitationsError) throw invitationsError;
 
-    return data?.map(invitation => ({
-      id: invitation.id,
-      tenant_id: invitation.tenant_id,
-      tenant_name: invitation.tenants?.name,
-      email: invitation.email,
-      role: invitation.role,
-      invited_by: invitation.invited_by,
-      invited_by_name: invitation.profiles?.email,
-      token: invitation.token,
-      expires_at: invitation.expires_at,
-      used_at: invitation.used_at,
-      created_at: invitation.created_at,
-    })) || [];
+      if (!invitations || invitations.length === 0) {
+        return [];
+      }
+
+      // Get unique tenant IDs and invited_by IDs
+      const tenantIds = [...new Set(invitations.map(i => i.tenant_id).filter(Boolean))];
+      const invitedByIds = [...new Set(invitations.map(i => i.invited_by).filter(Boolean))];
+      
+      // Fetch tenant names separately
+      let tenantNames: Record<string, string> = {};
+      if (tenantIds.length > 0) {
+        const { data: tenants, error: tenantsError } = await supabase
+          .from('tenants')
+          .select('id, name')
+          .in('id', tenantIds);
+
+        if (!tenantsError && tenants) {
+          tenantNames = tenants.reduce((acc, tenant) => {
+            acc[tenant.id] = tenant.name;
+            return acc;
+          }, {} as Record<string, string>);
+        }
+      }
+
+      // Fetch invited_by names separately
+      let invitedByNames: Record<string, string> = {};
+      if (invitedByIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, email')
+          .in('id', invitedByIds);
+
+        if (!profilesError && profiles) {
+          invitedByNames = profiles.reduce((acc, profile) => {
+            acc[profile.id] = profile.email;
+            return acc;
+          }, {} as Record<string, string>);
+        }
+      }
+
+      return invitations.map(invitation => ({
+        id: invitation.id,
+        tenant_id: invitation.tenant_id,
+        tenant_name: invitation.tenant_id ? tenantNames[invitation.tenant_id] : 'No Tenant',
+        email: invitation.email,
+        role: invitation.role,
+        invited_by: invitation.invited_by,
+        invited_by_name: invitation.invited_by ? invitedByNames[invitation.invited_by] : 'System',
+        token: invitation.token,
+        expires_at: invitation.expires_at,
+        used_at: invitation.used_at,
+        created_at: invitation.created_at,
+      }));
+    } catch (error) {
+      console.error('Error fetching pending invitations:', error);
+      throw error;
+    }
   }
 
   /**
    * Create a new user invitation
    */
   static async createInvitation(data: CreateUserInvitationData): Promise<UserInvitation> {
-    const { data: result, error } = await supabase
-      .from('user_invitations')
-      .insert({
-        tenant_id: data.tenant_id,
-        email: data.email,
-        role: data.role,
-        token: crypto.randomUUID(),
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-      })
-      .select(`
-        id,
-        tenant_id,
-        email,
-        role,
-        invited_by,
-        token,
-        expires_at,
-        created_at,
-        tenants!inner(name)
-      `)
-      .single();
+    try {
+      // Create the invitation record
+      const { data: result, error } = await supabase
+        .from('user_invitations')
+        .insert({
+          tenant_id: data.tenant_id,
+          email: data.email,
+          role: data.role,
+          token: crypto.randomUUID(),
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+        })
+        .select(`
+          id,
+          tenant_id,
+          email,
+          role,
+          invited_by,
+          token,
+          expires_at,
+          created_at
+        `)
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    // Log the invitation
-    await AuditLogService.logEvent(
-      AuditLogService.ACTIONS.USER_INVITED,
-      {
-        invited_email: data.email,
-        role: data.role,
-      },
-      {
-        resource_type: 'user',
-        resource_id: result.id,
-        tenant_id: data.tenant_id,
+      // Get tenant name separately
+      let tenantName = 'Unknown Tenant';
+      if (data.tenant_id) {
+        const { data: tenant, error: tenantError } = await supabase
+          .from('tenants')
+          .select('name')
+          .eq('id', data.tenant_id)
+          .single();
+
+        if (!tenantError && tenant) {
+          tenantName = tenant.name;
+        }
       }
-    );
 
-    return {
-      id: result.id,
-      tenant_id: result.tenant_id,
-      tenant_name: result.tenants?.name,
-      email: result.email,
-      role: result.role,
-      invited_by: result.invited_by,
-      token: result.token,
-      expires_at: result.expires_at,
-      created_at: result.created_at,
-    };
+      // Log the invitation
+      try {
+        await AuditLogService.logEvent(
+          AuditLogService.ACTIONS.USER_INVITED,
+          {
+            invited_email: data.email,
+            role: data.role,
+          },
+          {
+            resource_type: 'user',
+            resource_id: result.id,
+            tenant_id: data.tenant_id,
+          }
+        );
+      } catch (auditError) {
+        console.warn('Failed to log invitation audit event:', auditError);
+      }
+
+      return {
+        id: result.id,
+        tenant_id: result.tenant_id,
+        tenant_name: tenantName,
+        email: result.email,
+        role: result.role,
+        invited_by: result.invited_by,
+        token: result.token,
+        expires_at: result.expires_at,
+        created_at: result.created_at,
+      };
+    } catch (error) {
+      console.error('Error creating invitation:', error);
+      throw error;
+    }
   }
 
   /**

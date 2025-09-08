@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../integrations/supabase/client';
+import { supabaseAdmin, withAdminAuth } from '../integrations/supabase/admin';
 import { BaseService } from './baseService';
 import { ServiceResponse } from '../types/api.types';
 
@@ -87,7 +88,8 @@ export class EnhancedInvitationService extends BaseService {
       }
 
       // Send invitation using Supabase's built-in system with dynamic redirect URL
-      const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(data.email, {
+      const { error: inviteError } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
         data: {
           role: data.role,
           tenant_id: data.tenantId,
@@ -106,6 +108,7 @@ export class EnhancedInvitationService extends BaseService {
 
         return this.handleError(inviteError, 'EnhancedInvitationService.sendInvitation');
       }
+      });
 
       return {
         success: true,
