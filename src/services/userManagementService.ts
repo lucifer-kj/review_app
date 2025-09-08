@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 import { AuditLogService } from "./auditLogService";
 
 export interface User {
@@ -207,38 +208,45 @@ export class UserManagementService {
    */
   static async createInvitation(data: CreateUserInvitationData): Promise<UserInvitation> {
     try {
-      // Create the invitation record
-      const { data: result, error } = await supabase
-        .from('user_invitations')
-        .insert({
-          tenant_id: data.tenant_id,
-          email: data.email,
-          role: data.role,
-          token: crypto.randomUUID(),
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-        })
-        .select(`
-          id,
-          tenant_id,
-          email,
-          role,
-          invited_by,
-          token,
-          expires_at,
-          created_at
-        `)
-        .single();
+      // Use admin client to avoid RLS issues
+      const { data: result, error } = await withAdminAuth(async () => {
+        return await supabaseAdmin
+          .from('user_invitations')
+          .insert({
+            tenant_id: data.tenant_id,
+            email: data.email,
+            role: data.role,
+            token: crypto.randomUUID(),
+            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+          })
+          .select(`
+            id,
+            tenant_id,
+            email,
+            role,
+            invited_by,
+            token,
+            expires_at,
+            created_at
+          `)
+          .single();
+      });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating invitation:', error);
+        throw error;
+      }
 
       // Get tenant name separately
       let tenantName = 'Unknown Tenant';
       if (data.tenant_id) {
-        const { data: tenant, error: tenantError } = await supabase
-          .from('tenants')
-          .select('name')
-          .eq('id', data.tenant_id)
-          .single();
+        const { data: tenant, error: tenantError } = await withAdminAuth(async () => {
+          return await supabaseAdmin
+            .from('tenants')
+            .select('name')
+            .eq('id', data.tenant_id)
+            .single();
+        });
 
         if (!tenantError && tenant) {
           tenantName = tenant.name;

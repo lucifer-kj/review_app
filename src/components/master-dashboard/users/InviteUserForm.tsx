@@ -47,7 +47,9 @@ export default function InviteUserForm() {
       navigate("/master/users");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to send invitation");
+      console.error('Invitation creation error:', error);
+      const errorMessage = error.message || error.error?.message || "Failed to send invitation";
+      toast.error(`Invitation failed: ${errorMessage}`);
     },
   });
 
@@ -203,7 +205,16 @@ export default function InviteUserForm() {
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  {createInvitationMutation.error.message || "Failed to send invitation"}
+                  <div className="space-y-2">
+                    <p className="font-semibold">Invitation Failed</p>
+                    <p>{createInvitationMutation.error.message || createInvitationMutation.error.error?.message || "Failed to send invitation"}</p>
+                    {createInvitationMutation.error.message?.includes('ambiguous') && (
+                      <div className="text-sm text-gray-600 mt-2">
+                        <p><strong>Database Error:</strong> This usually indicates a SQL query issue with column references.</p>
+                        <p><strong>Solution:</strong> Please apply the RLS fix script in your Supabase SQL editor.</p>
+                      </div>
+                    )}
+                  </div>
                 </AlertDescription>
               </Alert>
             )}
