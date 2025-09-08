@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { InvitationService } from "@/services/invitationService";
+import { UserInvitationService } from "@/services/userInvitationService";
 
 export default function InvitationAcceptance() {
   const [formData, setFormData] = useState({
@@ -39,7 +39,7 @@ export default function InvitationAcceptance() {
       }
 
       try {
-        const response = await InvitationService.getInvitationByToken(token);
+        const response = await UserInvitationService.getInvitationByToken(token);
         if (response.success && response.data) {
           setInvitationValid(true);
           setInvitationData(response.data);
@@ -100,10 +100,7 @@ export default function InvitationAcceptance() {
     setLoading(true);
 
     try {
-      const response = await InvitationService.acceptInvitation({
-        token: token,
-        password: formData.password,
-      });
+      const response = await UserInvitationService.acceptInvitation(token, formData.password);
 
       if (response.success) {
         toast({

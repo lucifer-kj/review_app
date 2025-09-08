@@ -204,11 +204,49 @@ export class UserManagementService {
   }
 
   /**
-   * Create a new user invitation
+   * Create a new user invitation and send email
    */
   static async createInvitation(data: CreateUserInvitationData): Promise<UserInvitation> {
     try {
-      // Use admin client to avoid RLS issues
+      // Check if user already exists
+      const { data: existingUser } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.getUserByEmail(data.email);
+      });
+
+      if (existingUser.user) {
+        throw new Error('User already exists with this email address');
+      }
+
+      // Check if invitation already exists and is still valid
+      const { data: existingInvitation } = await supabase
+        .from('user_invitations')
+        .select('*')
+        .eq('email', data.email)
+        .eq('used_at', null)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+
+      if (existingInvitation) {
+        throw new Error('Valid invitation already exists for this email');
+      }
+
+      // Get tenant name for the invitation
+      let tenantName = 'Unknown Tenant';
+      if (data.tenant_id) {
+        const { data: tenant, error: tenantError } = await withAdminAuth(async () => {
+          return await supabaseAdmin
+            .from('tenants')
+            .select('name')
+            .eq('id', data.tenant_id)
+            .single();
+        });
+
+        if (!tenantError && tenant) {
+          tenantName = tenant.name;
+        }
+      }
+
+      // Create invitation record in database
       const { data: result, error } = await withAdminAuth(async () => {
         return await supabaseAdmin
           .from('user_invitations')
@@ -237,20 +275,31 @@ export class UserManagementService {
         throw error;
       }
 
-      // Get tenant name separately
-      let tenantName = 'Unknown Tenant';
-      if (data.tenant_id) {
-        const { data: tenant, error: tenantError } = await withAdminAuth(async () => {
-          return await supabaseAdmin
-            .from('tenants')
-            .select('name')
-            .eq('id', data.tenant_id)
-            .single();
+      // Send invitation email using Supabase Auth
+      try {
+        const { error: inviteError } = await withAdminAuth(async () => {
+          return await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
+            data: {
+              tenant_name: tenantName,
+              tenant_id: data.tenant_id,
+              invitation_id: result.id,
+              role: data.role,
+            },
+            // Redirect to our custom invitation acceptance page
+            redirectTo: `${window.location.origin}/accept-invitation?token=${result.token}&tenant_id=${data.tenant_id}`,
+          });
         });
 
-        if (!tenantError && tenant) {
-          tenantName = tenant.name;
+        if (inviteError) {
+          console.error('Failed to send invitation email:', inviteError);
+          // Don't throw here - the invitation record was created successfully
+          // The email can be resent later
+        } else {
+          console.log('Invitation email sent successfully to:', data.email);
         }
+      } catch (emailError) {
+        console.error('Error sending invitation email:', emailError);
+        // Don't throw here - the invitation record was created successfully
       }
 
       // Log the invitation
@@ -260,6 +309,7 @@ export class UserManagementService {
           {
             invited_email: data.email,
             role: data.role,
+            tenant_name: tenantName,
           },
           {
             resource_type: 'user',
