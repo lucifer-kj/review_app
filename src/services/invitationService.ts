@@ -49,23 +49,74 @@ export class InvitationService extends BaseService {
     role: 'tenant_admin' | 'user' = 'tenant_admin'
   ): Promise<ServiceResponse<{ invitationId: string; emailSent: boolean }>> {
     try {
-      // Create invitation record in user_invitations table for tracking
-      const { data: invitationData, error: invitationError } = await supabase
-        .from('user_invitations')
-        .insert({
-          tenant_id: tenantId,
-          email: email,
-          role: role,
-          invited_by: null, // Will be set by RLS policy
-          token: crypto.randomUUID(),
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-        })
-        .select()
-        .single();
+      // Use the create_tenant_with_admin function which handles RLS properly
+      const { data: result, error: functionError } = await supabase.rpc('create_tenant_with_admin', {
+        tenant_data: {
+          name: tenantName,
+          id: tenantId
+        },
+        admin_email: email
+      });
 
-      if (invitationError) {
-        return this.handleError(invitationError, 'InvitationService.createUserAndInvite');
+      if (functionError) {
+        // Fallback: try direct insert with service role context
+        const { data: invitationData, error: invitationError } = await supabase
+          .from('user_invitations')
+          .insert({
+            tenant_id: tenantId,
+            email: email,
+            role: role,
+            invited_by: null,
+            token: crypto.randomUUID(),
+            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          })
+          .select()
+          .single();
+
+        if (invitationError) {
+          return this.handleError(invitationError, 'InvitationService.createUserAndInvite');
+        }
+
+        // Send invitation email using Supabase Auth invite with dynamic redirect URL
+        let emailSent = false;
+        try {
+          const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+            data: {
+              tenant_name: tenantName,
+              tenant_id: tenantId,
+              invitation_id: invitationData.id,
+              role: role,
+            },
+            // Dynamic redirect URL for password creation
+            redirectTo: `${window.location.origin}/accept-invitation?tenant_id=${tenantId}&invitation_id=${invitationData.id}`,
+          });
+
+          if (!inviteError) {
+            emailSent = true;
+          } else {
+            console.warn('Failed to send invitation email:', inviteError);
+          }
+        } catch (inviteError) {
+          console.warn('Failed to send invitation email:', inviteError);
+        }
+
+        return {
+          data: {
+            invitationId: invitationData.id,
+            emailSent: emailSent,
+          },
+          error: null,
+          success: true,
+        };
       }
+
+      // If function succeeded, get the invitation ID
+      const { data: invitationData } = await supabase
+        .from('user_invitations')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('email', email)
+        .single();
 
       // Send invitation email using Supabase Auth invite with dynamic redirect URL
       let emailSent = false;
@@ -74,11 +125,11 @@ export class InvitationService extends BaseService {
           data: {
             tenant_name: tenantName,
             tenant_id: tenantId,
-            invitation_id: invitationData.id,
+            invitation_id: invitationData?.id,
             role: role,
           },
           // Dynamic redirect URL for password creation
-          redirectTo: `${window.location.origin}/accept-invitation?tenant_id=${tenantId}&invitation_id=${invitationData.id}`,
+          redirectTo: `${window.location.origin}/accept-invitation?tenant_id=${tenantId}&invitation_id=${invitationData?.id}`,
         });
 
         if (!inviteError) {
@@ -88,12 +139,11 @@ export class InvitationService extends BaseService {
         }
       } catch (inviteError) {
         console.warn('Failed to send invitation email:', inviteError);
-        // Don't fail the whole process if email fails
       }
 
       return {
         data: {
-          invitationId: invitationData.id,
+          invitationId: invitationData?.id || 'unknown',
           emailSent: emailSent,
         },
         error: null,

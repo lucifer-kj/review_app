@@ -27,6 +27,7 @@ const PlatformOverview = lazy(() => import("./components/master-dashboard/overvi
 const TenantList = lazy(() => import("./components/master-dashboard/tenants/TenantList"));
 const TenantDetails = lazy(() => import("./components/master-dashboard/tenants/TenantDetails"));
 const TenantCreateWizard = lazy(() => import("./components/master-dashboard/tenants/TenantCreateWizard"));
+const TenantSettings = lazy(() => import("./components/master-dashboard/tenants/TenantSettings"));
 
 // User management components
 const UserDirectory = lazy(() => import("./components/master-dashboard/users/UserDirectory"));
@@ -75,7 +76,7 @@ const RouterContent = () => {
             <Route path="tenants" element={<TenantList />} />
             <Route path="tenants/new" element={<TenantCreateWizard />} />
             <Route path="tenants/:tenantId" element={<TenantDetails />} />
-            <Route path="tenants/:tenantId/edit" element={<div>Edit Tenant (Coming Soon)</div>} />
+            <Route path="tenants/:tenantId/edit" element={<TenantSettings />} />
             <Route path="users" element={<UserManagement />} />
             <Route path="users/invite" element={<InviteUserForm />} />
             <Route path="system" element={<SystemAdministration />} />

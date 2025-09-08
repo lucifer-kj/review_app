@@ -27,36 +27,47 @@ export default function TenantCreateWizard() {
 
   const createTenantMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      // Step 1: Create the tenant
-      const tenantResult = await TenantService.createTenant({
-        name: data.name,
-        domain: data.domain || undefined,
-        plan_type: data.planType as 'basic' | 'pro' | 'enterprise',
-        settings: { description: data.description },
-        billing_email: data.adminEmail,
+      // Use the database function that handles everything properly
+      const { data: result, error } = await supabase.rpc('create_tenant_with_admin', {
+        tenant_data: {
+          name: data.name,
+          domain: data.domain || null,
+          plan_type: data.planType,
+          settings: { description: data.description },
+          billing_email: data.adminEmail,
+        },
+        admin_email: data.adminEmail
       });
 
-      if (!tenantResult.success || !tenantResult.data) {
-        throw new Error(tenantResult.error || 'Failed to create tenant');
+      if (error) {
+        throw new Error(error.message || 'Failed to create tenant');
       }
 
-      const tenant = tenantResult.data;
+      // Send invitation email using Supabase Auth invite
+      let emailSent = false;
+      try {
+        const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(data.adminEmail, {
+          data: {
+            tenant_name: data.name,
+            tenant_id: result.tenant_id,
+            role: 'tenant_admin',
+          },
+          // Dynamic redirect URL for password creation
+          redirectTo: `${window.location.origin}/accept-invitation?tenant_id=${result.tenant_id}`,
+        });
 
-      // Step 2: Create user and send invitation with dynamic redirect URL
-      const userResult = await InvitationService.createUserAndInvite(
-        data.adminEmail,
-        data.name,
-        tenant.id,
-        'tenant_admin'
-      );
-
-      if (!userResult.success) {
-        throw new Error(userResult.error || 'Failed to create admin user');
+        if (!inviteError) {
+          emailSent = true;
+        } else {
+          console.warn('Failed to send invitation email:', inviteError);
+        }
+      } catch (inviteError) {
+        console.warn('Failed to send invitation email:', inviteError);
       }
 
       return {
-        tenant,
-        invitation: userResult.data,
+        tenant: { id: result.tenant_id, name: data.name },
+        invitation: { invitationId: 'created', emailSent },
         success: true,
       };
     },

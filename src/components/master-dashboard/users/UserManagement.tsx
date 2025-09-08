@@ -59,69 +59,73 @@ export default function UserManagement() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Fetch all Supabase users with real-time updates
+  // Fetch all users from profiles table with real-time updates
   const { data: users, isLoading, error } = useQuery({
-    queryKey: ['supabase-users', { searchTerm: debouncedSearchTerm, page, pageSize }],
+    queryKey: ['platform-users', { searchTerm: debouncedSearchTerm, page, pageSize }],
     queryFn: async () => {
-      const { data, error } = await supabase.auth.admin.listUsers({
-        page,
-        perPage: pageSize,
-      });
+      // Use profiles table instead of admin API
+      let query = supabase
+        .from('profiles')
+        .select(`
+          id,
+          email,
+          role,
+          tenant_id,
+          created_at,
+          updated_at,
+          tenants!inner(name)
+        `)
+        .order('created_at', { ascending: false });
+
+      // Apply search filter
+      if (debouncedSearchTerm) {
+        query = query.ilike('email', `%${debouncedSearchTerm}%`);
+      }
+
+      // Apply pagination
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      const { data, error, count } = await query.range(from, to);
 
       if (error) throw error;
 
-      // Filter users by search term if provided
-      let filteredUsers = data.users || [];
-      if (debouncedSearchTerm) {
-        filteredUsers = filteredUsers.filter(user => 
-          user.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-        );
-      }
-
       return {
-        users: filteredUsers,
-        total: data.total || 0,
+        users: data || [],
+        total: count || 0,
         page: page,
         pageSize: pageSize
       };
     },
-    keepPreviousData: true,
     refetchInterval: 10000, // More frequent updates for real-time feel
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
 
-  // Fetch user profiles to get role information
-  const userIds = users?.users?.map(u => u.id) ?? [];
-  const { data: profiles } = useQuery({
-    queryKey: ['user-profiles', userIds],
-    queryFn: async () => {
-      if (userIds.length === 0) return {};
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, role, tenant_id')
-        .in('id', userIds);
-
-      if (error) throw error;
-
-      const profileMap: Record<string, { role: string; tenant_id: string }> = {};
-      data?.forEach(profile => {
-        profileMap[profile.id] = {
-          role: profile.role,
-          tenant_id: profile.tenant_id
-        };
-      });
-
-      return profileMap;
-    },
-    enabled: userIds.length > 0,
-  });
+  // No need for separate profiles query since we get role info in main query
 
   // Fetch pending invitations
   const { data: invitations } = useQuery({
     queryKey: ['pending-invitations'],
-    queryFn: () => InvitationService.getAllInvitations(),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_invitations')
+        .select(`
+          id,
+          email,
+          role,
+          expires_at,
+          used_at,
+          created_at,
+          tenants!inner(name)
+        `)
+        .is('used_at', null)
+        .gt('expires_at', new Date().toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
     refetchInterval: 30000,
   });
 
@@ -183,12 +187,16 @@ export default function UserManagement() {
     },
   });
 
-  const getUserRole = (userId: string) => {
-    return profiles?.[userId]?.role || 'user';
+  const getUserRole = (user: any) => {
+    return user?.role || 'user';
   };
 
-  const getUserTenant = (userId: string) => {
-    return profiles?.[userId]?.tenant_id || null;
+  const getUserTenant = (user: any) => {
+    return user?.tenant_id || null;
+  };
+
+  const getUserTenantName = (user: any) => {
+    return user?.tenants?.name || 'No Tenant';
   };
 
   const getRoleIcon = (role: string) => {
@@ -252,7 +260,7 @@ export default function UserManagement() {
   }
 
   const filteredUsers = users?.users ?? [];
-  const pendingInvitations = invitations?.filter(inv => inv.status === 'pending') ?? [];
+  const pendingInvitations = invitations ?? [];
 
   return (
     <div className="space-y-6">
@@ -305,11 +313,11 @@ export default function UserManagement() {
                     <div>
                       <p className="font-medium">{invitation.email}</p>
                       <p className="text-sm text-muted-foreground">
-                        Invited {new Date(invitation.created_at).toLocaleDateString()}
+                        Invited {new Date(invitation.created_at).toLocaleDateString()} • {invitation.tenants?.name || 'No Tenant'}
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline">Pending</Badge>
+                  <Badge variant="outline">{invitation.role}</Badge>
                 </div>
               ))}
             </div>
@@ -345,8 +353,9 @@ export default function UserManagement() {
           ) : (
             <div className="space-y-2">
               {filteredUsers.map((user) => {
-                const role = getUserRole(user.id);
-                const tenantId = getUserTenant(user.id);
+                const role = getUserRole(user);
+                const tenantId = getUserTenant(user);
+                const tenantName = getUserTenantName(user);
                 
                 return (
                   <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
@@ -358,10 +367,10 @@ export default function UserManagement() {
                           <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                             <Calendar className="h-3 w-3" />
                             <span>Joined {new Date(user.created_at).toLocaleDateString()}</span>
-                            {user.last_sign_in_at && (
+                            {tenantName && (
                               <>
                                 <span>•</span>
-                                <span>Last active {new Date(user.last_sign_in_at).toLocaleDateString()}</span>
+                                <span>{tenantName}</span>
                               </>
                             )}
                           </div>
