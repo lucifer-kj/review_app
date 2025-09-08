@@ -9,6 +9,7 @@ import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { useRouteProgress } from "@/hooks/useRouteProgress";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { TenantProvider } from "@/hooks/useTenantContext";
+import { Analytics } from "@vercel/analytics/react";
 
 // Lazy load pages for better performance
 const Login = lazy(() => import("./pages/Login"));
@@ -129,6 +130,7 @@ const App = () => (
           >
             <RouterContent />
           </BrowserRouter>
+          <Analytics />
         </TenantProvider>
     </QueryClientProvider>
   </AppErrorBoundary>

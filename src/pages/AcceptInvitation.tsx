@@ -23,46 +23,83 @@ export default function AcceptInvitation() {
   });
 
   const token = searchParams.get("token");
+  const email = searchParams.get("email");
 
   useEffect(() => {
-    if (!token) {
+    // Check if we have either a token (custom system) or email (Supabase system)
+    if (!token && !email) {
       setError("Invalid invitation link");
       setLoading(false);
       return;
     }
 
-    // Verify invitation token
+    // Verify invitation
     verifyInvitation();
-  }, [token]);
+  }, [token, email]);
 
   const verifyInvitation = async () => {
     try {
-      const { data, error } = await supabase
-        .from("user_invitations")
-        .select(`
-          *,
-          tenants (
-            id,
-            name,
-            domain
-          )
-        `)
-        .eq("token", token)
-        .eq("used_at", null)
-        .single();
+      let invitationData = null;
 
-      if (error || !data) {
-        setError("Invalid or expired invitation");
-        return;
+      if (token) {
+        // Custom token-based invitation system
+        const { data, error } = await supabase
+          .from("user_invitations")
+          .select(`
+            *,
+            tenants (
+              id,
+              name,
+              domain
+            )
+          `)
+          .eq("token", token)
+          .eq("used_at", null)
+          .single();
+
+        if (error || !data) {
+          setError("Invalid or expired invitation");
+          return;
+        }
+
+        // Check if invitation is expired
+        if (new Date(data.expires_at) < new Date()) {
+          setError("This invitation has expired");
+          return;
+        }
+
+        invitationData = data;
+      } else if (email) {
+        // Supabase invitation system - find invitation by email
+        const { data, error } = await supabase
+          .from("user_invitations")
+          .select(`
+            *,
+            tenants (
+              id,
+              name,
+              domain
+            )
+          `)
+          .eq("email", email)
+          .eq("used_at", null)
+          .single();
+
+        if (error || !data) {
+          setError("Invalid or expired invitation");
+          return;
+        }
+
+        // Check if invitation is expired
+        if (new Date(data.expires_at) < new Date()) {
+          setError("This invitation has expired");
+          return;
+        }
+
+        invitationData = data;
       }
 
-      // Check if invitation is expired
-      if (new Date(data.expires_at) < new Date()) {
-        setError("This invitation has expired");
-        return;
-      }
-
-      setInvitation(data);
+      setInvitation(invitationData);
     } catch (err) {
       setError("Failed to verify invitation");
     } finally {
@@ -88,7 +125,7 @@ export default function AcceptInvitation() {
     try {
       // Sign up the user
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: invitation.email,
+        email: invitation.email || email,
         password: formData.password,
         options: {
           data: {
@@ -109,7 +146,7 @@ export default function AcceptInvitation() {
           .from("profiles")
           .insert({
             id: authData.user.id,
-            email: invitation.email,
+            email: invitation.email || email,
             full_name: formData.fullName,
             role: invitation.role,
             tenant_id: invitation.tenant_id,
@@ -192,7 +229,7 @@ export default function AcceptInvitation() {
               <Input
                 id="email"
                 type="email"
-                value={invitation?.email || ""}
+                value={invitation?.email || email || ""}
                 disabled
                 className="bg-gray-50"
               />

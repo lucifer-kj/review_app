@@ -62,7 +62,7 @@ export default function TenantCreateWizard() {
     },
     onSuccess: (result) => {
       const message = result.invitation.emailSent 
-        ? "Tenant created successfully! Invitation email sent to admin."
+        ? "Tenant created successfully! Invitation email sent to admin. They will be redirected to the password creation page to set up their account."
         : "Tenant created successfully! Admin invitation created.";
       toast.success(message);
       queryClient.invalidateQueries({ queryKey: ['tenants'] });
