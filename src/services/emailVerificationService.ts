@@ -43,10 +43,14 @@ export class EmailVerificationService extends BaseService {
         };
       }
 
-      // Check if user exists
-      const { data: user, error: userError } = await supabase.auth.admin.getUserByEmail(data.email);
+      // Check if user exists by looking in profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('email', data.email)
+        .single();
       
-      if (userError || !user.user) {
+      if (profileError || !profile) {
         return {
           success: false,
           error: 'User not found',

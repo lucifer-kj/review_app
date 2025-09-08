@@ -39,9 +39,14 @@ export class EnhancedInvitationService extends BaseService {
         };
       }
 
-      // Check if user already exists
-      const { data: existingUser } = await supabase.auth.admin.getUserByEmail(data.email);
-      if (existingUser.user) {
+      // Check if user already exists by looking in profiles table
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('email', data.email)
+        .single();
+
+      if (existingProfile) {
         return {
           success: false,
           error: 'User already exists with this email',

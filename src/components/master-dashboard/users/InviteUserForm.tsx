@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserManagementService } from "@/services/userManagementService";
 import { TenantService } from "@/services/tenantService";
+import { InvitationErrorHandler } from "@/services/invitationErrorHandler";
 import { toast } from "sonner";
 
 export default function InviteUserForm() {
@@ -48,8 +49,13 @@ export default function InviteUserForm() {
     },
     onError: (error: any) => {
       console.error('Invitation creation error:', error);
-      const errorMessage = error.message || error.error?.message || "Failed to send invitation";
-      toast.error(`Invitation failed: ${errorMessage}`);
+      const userMessage = InvitationErrorHandler.getUserMessage(error);
+      const isRetryable = InvitationErrorHandler.isRetryable(error);
+      
+      toast.error(`Invitation failed: ${userMessage}`, {
+        description: isRetryable ? "You can try again." : "Please contact support if this persists.",
+        duration: 5000
+      });
     },
   });
 
@@ -207,11 +213,15 @@ export default function InviteUserForm() {
                 <AlertDescription>
                   <div className="space-y-2">
                     <p className="font-semibold">Invitation Failed</p>
-                    <p>{createInvitationMutation.error.message || createInvitationMutation.error.error?.message || "Failed to send invitation"}</p>
-                    {createInvitationMutation.error.message?.includes('ambiguous') && (
+                    <p>{InvitationErrorHandler.getUserMessage(createInvitationMutation.error)}</p>
+                    {InvitationErrorHandler.isRetryable(createInvitationMutation.error) && (
                       <div className="text-sm text-gray-600 mt-2">
-                        <p><strong>Database Error:</strong> This usually indicates a SQL query issue with column references.</p>
-                        <p><strong>Solution:</strong> Please apply the RLS fix script in your Supabase SQL editor.</p>
+                        <p><strong>You can try again:</strong> This error is usually temporary.</p>
+                      </div>
+                    )}
+                    {!InvitationErrorHandler.isRetryable(createInvitationMutation.error) && (
+                      <div className="text-sm text-gray-600 mt-2">
+                        <p><strong>Please contact support:</strong> This error requires administrator attention.</p>
                       </div>
                     )}
                   </div>

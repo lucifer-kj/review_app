@@ -1,6 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 import { AuditLogService } from "./auditLogService";
+import { InvitationErrorHandler } from "./invitationErrorHandler";
+import { SupabaseAdminService } from "./supabaseAdminService";
 
 export interface User {
   id: string;
@@ -208,12 +210,14 @@ export class UserManagementService {
    */
   static async createInvitation(data: CreateUserInvitationData): Promise<UserInvitation> {
     try {
-      // Check if user already exists
-      const { data: existingUser } = await withAdminAuth(async () => {
-        return await supabaseAdmin.auth.admin.getUserByEmail(data.email);
-      });
+      // Check if user already exists by looking in profiles table
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('email', data.email)
+        .single();
 
-      if (existingUser.user) {
+      if (existingProfile) {
         throw new Error('User already exists with this email address');
       }
 
@@ -233,13 +237,11 @@ export class UserManagementService {
       // Get tenant name for the invitation
       let tenantName = 'Unknown Tenant';
       if (data.tenant_id) {
-        const { data: tenant, error: tenantError } = await withAdminAuth(async () => {
-          return await supabaseAdmin
-            .from('tenants')
-            .select('name')
-            .eq('id', data.tenant_id)
-            .single();
-        });
+        const { data: tenant, error: tenantError } = await supabase
+          .from('tenants')
+          .select('name')
+          .eq('id', data.tenant_id)
+          .single();
 
         if (!tenantError && tenant) {
           tenantName = tenant.name;
@@ -247,47 +249,43 @@ export class UserManagementService {
       }
 
       // Create invitation record in database
-      const { data: result, error } = await withAdminAuth(async () => {
-        return await supabaseAdmin
-          .from('user_invitations')
-          .insert({
-            tenant_id: data.tenant_id,
-            email: data.email,
-            role: data.role,
-            token: crypto.randomUUID(),
-            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-          })
-          .select(`
-            id,
-            tenant_id,
-            email,
-            role,
-            invited_by,
-            token,
-            expires_at,
-            created_at
-          `)
-          .single();
-      });
+      const { data: result, error } = await supabase
+        .from('user_invitations')
+        .insert({
+          tenant_id: data.tenant_id,
+          email: data.email,
+          role: data.role,
+          token: crypto.randomUUID(),
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+        })
+        .select(`
+          id,
+          tenant_id,
+          email,
+          role,
+          invited_by,
+          token,
+          expires_at,
+          created_at
+        `)
+        .single();
 
       if (error) {
         console.error('Error creating invitation:', error);
         throw error;
       }
 
-      // Send invitation email using Supabase Auth
+      // Send invitation email using Supabase Auth Admin
       try {
-        const { error: inviteError } = await withAdminAuth(async () => {
-          return await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
-            data: {
-              tenant_name: tenantName,
-              tenant_id: data.tenant_id,
-              invitation_id: result.id,
-              role: data.role,
-            },
-            // Redirect to our custom invitation acceptance page
-            redirectTo: `${window.location.origin}/accept-invitation?token=${result.token}&tenant_id=${data.tenant_id}`,
-          });
+        const { error: inviteError } = await SupabaseAdminService.inviteUserByEmail({
+          email: data.email,
+          data: {
+            tenant_name: tenantName,
+            tenant_id: data.tenant_id,
+            invitation_id: result.id,
+            role: data.role,
+          },
+          redirectTo: `${window.location.origin}/accept-invitation?token=${result.token}&tenant_id=${data.tenant_id}`,
         });
 
         if (inviteError) {
@@ -333,8 +331,9 @@ export class UserManagementService {
         created_at: result.created_at,
       };
     } catch (error) {
-      console.error('Error creating invitation:', error);
-      throw error;
+      InvitationErrorHandler.logError(error, 'UserManagementService.createInvitation');
+      const invitationError = InvitationErrorHandler.handleInvitationError(error);
+      throw new Error(invitationError.userMessage);
     }
   }
 
