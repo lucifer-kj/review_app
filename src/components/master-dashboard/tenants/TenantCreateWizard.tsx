@@ -56,14 +56,14 @@ export default function TenantCreateWizard() {
 
       return {
         tenant,
-        user: userResult.data,
+        invitation: userResult.data,
         success: true,
       };
     },
     onSuccess: (result) => {
-      const message = result.user.emailSent 
+      const message = result.invitation.emailSent 
         ? "Tenant created successfully! Invitation email sent to admin."
-        : "Tenant created successfully! Admin user can login immediately.";
+        : "Tenant created successfully! Admin invitation created.";
       toast.success(message);
       queryClient.invalidateQueries({ queryKey: ['tenants'] });
       queryClient.invalidateQueries({ queryKey: ['platform-analytics'] });

@@ -40,6 +40,7 @@ const AuditLogs = lazy(() => import("./components/master-dashboard/audit/AuditLo
 
 // Authentication components
 const InvitationAcceptance = lazy(() => import("./components/auth/InvitationAcceptance"));
+const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 
 // Review flow pages
 const ReviewFormPage = lazy(() => import("./pages/ReviewFormPage"));
@@ -95,7 +96,7 @@ const RouterContent = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/tenant-login" element={<TenantLogin />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/accept-invitation" element={<InvitationAcceptance />} />
+          <Route path="/accept-invitation" element={<AcceptInvitation />} />
           
           {/* Public customer review form */}
           <Route path="/review" element={<ReviewFormPage />} />

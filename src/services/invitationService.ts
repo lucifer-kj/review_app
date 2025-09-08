@@ -34,49 +34,51 @@ export class InvitationService extends BaseService {
   }
 
   /**
-   * Create a user and send invitation
+   * Create a user invitation record and send invitation
    */
   static async createUserAndInvite(
     email: string,
     tenantName: string,
     tenantId: string,
     role: 'tenant_admin' | 'user' = 'tenant_admin'
-  ): Promise<ServiceResponse<{ userId: string; emailSent: boolean }>> {
+  ): Promise<ServiceResponse<{ invitationId: string; emailSent: boolean }>> {
     try {
-      // Create user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: email,
-        email_confirm: true, // Auto-confirm email
-        user_metadata: {
-          full_name: `${tenantName} ${role === 'tenant_admin' ? 'Admin' : 'User'}`,
-          tenant_id: tenantId,
-        },
-      });
-
-      if (authError) {
-        return this.handleError(authError, 'InvitationService.createUserAndInvite');
-      }
-
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
+      // Create invitation record in user_invitations table
+      const { data: invitationData, error: invitationError } = await supabase
+        .from('user_invitations')
         .insert({
-          id: authData.user.id,
+          tenant_id: tenantId,
           email: email,
           role: role,
-          tenant_id: tenantId,
-          full_name: `${tenantName} ${role === 'tenant_admin' ? 'Admin' : 'User'}`,
-        });
+          invited_by: null, // Will be set by RLS policy
+          token: crypto.randomUUID(),
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+        })
+        .select()
+        .single();
 
-      if (profileError) {
-        return this.handleError(profileError, 'InvitationService.createUserAndInvite');
+      if (invitationError) {
+        return this.handleError(invitationError, 'InvitationService.createUserAndInvite');
       }
 
-      // Send invitation email
+      // Send invitation email using Supabase Auth invite
       let emailSent = false;
       try {
-        const inviteResult = await this.sendInvitation(email, tenantName, tenantId);
-        emailSent = inviteResult.success;
+        const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+          data: {
+            tenant_name: tenantName,
+            tenant_id: tenantId,
+            invitation_id: invitationData.id,
+            role: role,
+          },
+          redirectTo: `${window.location.origin}/accept-invitation?token=${invitationData.token}`,
+        });
+
+        if (!inviteError) {
+          emailSent = true;
+        } else {
+          console.warn('Failed to send invitation email:', inviteError);
+        }
       } catch (inviteError) {
         console.warn('Failed to send invitation email:', inviteError);
         // Don't fail the whole process if email fails
@@ -84,7 +86,7 @@ export class InvitationService extends BaseService {
 
       return {
         data: {
-          userId: authData.user.id,
+          invitationId: invitationData.id,
           emailSent: emailSent,
         },
         error: null,

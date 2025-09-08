@@ -119,40 +119,38 @@ export class TenantService extends BaseService {
       // Generate unique review form URL for the tenant
       const reviewFormUrl = `${import.meta.env.VITE_FRONTEND_URL || window.location.origin}/review/${crypto.randomUUID()}`;
 
-      const { data, error } = await supabase
-        .from('tenants')
-        .insert({
+      // Use the create_tenant_with_admin function which handles RLS properly
+      const { data, error } = await supabase.rpc('create_tenant_with_admin', {
+        tenant_data: {
           name: tenantData.name,
           domain: tenantData.domain,
           plan_type: tenantData.plan_type || 'basic',
-          settings: tenantData.settings || {},
+          settings: {
+            ...tenantData.settings,
+            review_form_url: reviewFormUrl,
+          },
           billing_email: tenantData.billing_email,
-          review_form_url: reviewFormUrl,
-        })
-        .select()
-        .single();
+        },
+        admin_email: tenantData.billing_email || 'admin@example.com'
+      });
 
       if (error) {
         return this.handleError(error, 'TenantService.createTenant');
       }
 
-      // Log the action
-      await AuditLogService.logEvent(
-        AuditLogService.ACTIONS.TENANT_CREATED,
-        {
-          tenant_name: tenantData.name,
-          plan_type: tenantData.plan_type || 'basic',
-          review_form_url: reviewFormUrl,
-        },
-        {
-          resource_type: 'tenant',
-          resource_id: data.id,
-          tenant_id: data.id,
-        }
-      );
+      // Get the created tenant
+      const { data: tenant, error: fetchError } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('id', data)
+        .single();
+
+      if (fetchError) {
+        return this.handleError(fetchError, 'TenantService.createTenant');
+      }
 
       return {
-        data: { ...data, review_form_url: reviewFormUrl },
+        data: { ...tenant, review_form_url: reviewFormUrl },
         error: null,
         success: true,
       };
