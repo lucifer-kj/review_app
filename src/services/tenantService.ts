@@ -116,6 +116,9 @@ export class TenantService extends BaseService {
    */
   static async createTenant(tenantData: CreateTenantData): Promise<ServiceResponse<Tenant>> {
     try {
+      // Generate unique review form URL for the tenant
+      const reviewFormUrl = `${import.meta.env.VITE_FRONTEND_URL || window.location.origin}/review/${crypto.randomUUID()}`;
+
       const { data, error } = await supabase
         .from('tenants')
         .insert({
@@ -124,6 +127,7 @@ export class TenantService extends BaseService {
           plan_type: tenantData.plan_type || 'basic',
           settings: tenantData.settings || {},
           billing_email: tenantData.billing_email,
+          review_form_url: reviewFormUrl,
         })
         .select()
         .single();
@@ -138,6 +142,7 @@ export class TenantService extends BaseService {
         {
           tenant_name: tenantData.name,
           plan_type: tenantData.plan_type || 'basic',
+          review_form_url: reviewFormUrl,
         },
         {
           resource_type: 'tenant',
@@ -147,7 +152,7 @@ export class TenantService extends BaseService {
       );
 
       return {
-        data: data,
+        data: { ...data, review_form_url: reviewFormUrl },
         error: null,
         success: true,
       };
@@ -408,36 +413,40 @@ export class TenantService extends BaseService {
     adminEmail: string
   ): Promise<ServiceResponse<{ tenant: Tenant; invitationId: string }>> {
     try {
-      const { data, error } = await supabase.rpc('create_tenant_with_admin', {
-        tenant_data: tenantData,
-        admin_email: adminEmail,
-      });
-
-      if (error) {
-        return this.handleError(error, 'TenantService.createTenantWithAdmin');
-      }
-
-      // Get the created tenant
-      const tenantResult = await this.getTenantById(data);
-      if (!tenantResult.success) {
+      // First create the tenant
+      const tenantResult = await this.createTenant(tenantData);
+      if (!tenantResult.success || !tenantResult.data) {
         return {
           data: null,
-          error: 'Failed to retrieve created tenant',
+          error: tenantResult.error || 'Failed to create tenant',
           success: false,
         };
       }
 
-      // Get the invitation ID
-      const { data: invitation } = await supabase
+      const tenant = tenantResult.data;
+
+      // Create invitation for the admin user
+      const { data: invitation, error: invitationError } = await supabase
         .from('user_invitations')
-        .select('id')
-        .eq('tenant_id', data)
-        .eq('email', adminEmail)
+        .insert({
+          tenant_id: tenant.id,
+          email: adminEmail,
+          role: 'tenant_admin',
+          status: 'pending',
+          invited_by: 'system', // TODO: Get actual user ID
+        })
+        .select()
         .single();
+
+      if (invitationError) {
+        // If invitation creation fails, we should still return the tenant
+        // but log the error
+        console.warn('Failed to create invitation:', invitationError);
+      }
 
       return {
         data: {
-          tenant: tenantResult.data!,
+          tenant: tenant,
           invitationId: invitation?.id || '',
         },
         error: null,

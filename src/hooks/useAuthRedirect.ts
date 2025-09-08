@@ -22,31 +22,24 @@ export const useAuthRedirect = () => {
         if (!isMounted) return;
 
         if (session?.user) {
-          // User is authenticated, check their role
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-
-          console.log('🔍 Auth Redirect - Profile check:', {
-            userId: session.user.id,
-            userEmail: session.user.email,
-            profileRole: profile?.role,
-            hasAccess: profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin'
-          });
-
-          if (profile?.role === 'super_admin' || profile?.role === 'tenant_admin' || profile?.role === 'admin') {
-            console.log('🔍 Auth Redirect - Access granted, navigating to /master');
+          // User is authenticated - navigate to master dashboard
+          console.log('🔍 Auth Redirect - User authenticated, navigating to /master');
+          navigate("/master", { replace: true });
+        } else {
+          // Check for test user in localStorage
+          const storedTestUser = localStorage.getItem('crux_test_user');
+          if (storedTestUser === 'true') {
+            console.log('🔍 Auth Redirect - Test user found, navigating to /master');
             navigate("/master", { replace: true });
-          } else {
-            console.log('🔍 Auth Redirect - Access denied, signing out');
-            await supabase.auth.signOut();
-            toast({
-              title: "Access Denied",
-              description: "Only managers can access this system.",
-              variant: "destructive",
-            });
+            return;
+          }
+
+          // Check for bypass user in localStorage
+          const storedBypassUser = localStorage.getItem('crux_bypass_user');
+          if (storedBypassUser === 'true') {
+            console.log('🔍 Auth Redirect - Bypass user found, navigating to /master');
+            navigate("/master", { replace: true });
+            return;
           }
         }
       } catch (error) {

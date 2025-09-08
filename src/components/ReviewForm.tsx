@@ -9,9 +9,10 @@ import { Button } from "./ui/button";
 
 interface ReviewFormProps {
   onSubmit: (data: { name: string; phone: string; countryCode: string; rating: number }) => void;
+  businessName?: string;
 }
 
-export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
+export const ReviewForm = ({ onSubmit, businessName = "Business" }: ReviewFormProps) => {
   const [searchParams] = useSearchParams();
   
   const [formData, setFormData] = useState({
@@ -138,7 +139,7 @@ export const ReviewForm = ({ onSubmit }: ReviewFormProps) => {
           </div>
           <div className="space-y-3">
             <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
-              Crux
+              {businessName}
             </h1>
             <p className="text-lg text-muted-foreground text-body max-w-md mx-auto">
               We'd love to hear about your experience with our services

@@ -2,8 +2,8 @@ import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useEffect, useState } from 'react';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -12,42 +12,26 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [roleLoading, setRoleLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUserRole = async () => {
-      if (!user) {
-        setRoleLoading(false);
-        return;
-      }
+  // Fetch user profile and role
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role, tenant_id')
+        .eq('id', user.id)
+        .single();
 
-      try {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        
-        if (profileError) {
-          console.error('Error fetching user role:', profileError);
-          setUserRole(null);
-        } else {
-          setUserRole(profile?.role || null);
-        }
-      } catch (error) {
-        console.error('Error fetching user role:', error);
-        setUserRole(null);
-      } finally {
-        setRoleLoading(false);
-      }
-    };
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
-    fetchUserRole();
-  }, [user]);
-
-  // Show loading spinner while checking authentication and role
-  if (loading || roleLoading) {
+  // Show loading spinner while checking authentication and profile
+  if (loading || profileLoading) {
     return <LoadingSpinner size="lg" className="min-h-screen" />;
   }
 
@@ -56,28 +40,30 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/" replace />;
   }
 
-  // Check role-based access
-  if (requiredRole) {
+  // Check role permissions
+  if (requiredRole && profile) {
+    const userRole = profile.role;
     const hasAccess = checkRoleAccess(userRole, requiredRole);
-    
+
     if (!hasAccess) {
-      // Sign out the user to prevent loops
-      supabase.auth.signOut().catch(console.error);
-      return <Navigate to="/" replace />;
+      // Redirect based on user role
+      if (userRole === 'super_admin') {
+        return <Navigate to="/master" replace />;
+      } else {
+        return <Navigate to="/dashboard" replace />;
+      }
     }
   }
 
   return <>{children}</>;
 };
 
+// Role checking function
 const checkRoleAccess = (userRole: string | null, requiredRole: string): boolean => {
   if (!userRole) return false;
 
   // Super admin has access to everything
   if (userRole === 'super_admin') return true;
-
-  // Legacy admin role has access to everything (for backward compatibility)
-  if (userRole === 'admin') return true;
 
   // Tenant admin has access to tenant_admin and user routes
   if (userRole === 'tenant_admin') {

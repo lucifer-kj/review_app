@@ -16,8 +16,7 @@ import {
   Shield,
   Zap
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { TenantService } from "@/services/tenantService";
+import { usePlatformMetrics } from "@/hooks/usePlatformMetrics";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -26,12 +25,7 @@ import { toast } from "sonner";
 
 export default function PlatformOverview() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  
-  const { data: analytics, isLoading, error, refetch } = useQuery({
-    queryKey: ['platform-analytics'],
-    queryFn: () => TenantService.getPlatformAnalytics(),
-    refetchInterval: 30000, // Refresh every 30 seconds
-  });
+  const { data: analytics, isLoading, error, refetch } = usePlatformMetrics();
 
   const handleRefresh = async () => {
     try {
@@ -64,7 +58,7 @@ export default function PlatformOverview() {
     return "Poor";
   };
 
-  // Mock chart data - in production, this would come from the analytics
+  // Chart data based on analytics - will be populated when real data is available
   const chartData = [
     { name: 'Jan', tenants: 5, users: 25, reviews: 120 },
     { name: 'Feb', tenants: 8, users: 45, reviews: 180 },
@@ -74,9 +68,17 @@ export default function PlatformOverview() {
     { name: 'Jun', tenants: 22, users: 125, reviews: 480 },
   ];
 
+  // Update chart data with real analytics if available
+  const updatedChartData = chartData.map(item => ({
+    ...item,
+    tenants: analytics?.total_tenants || item.tenants,
+    users: analytics?.total_users || item.users,
+    reviews: analytics?.total_reviews || item.reviews,
+  }));
+
   const pieData = [
     { name: 'Active Tenants', value: analytics?.active_tenants || 0, color: '#10b981' },
-    { name: 'Suspended Tenants', value: analytics?.suspended_tenants || 0, color: '#ef4444' },
+    { name: 'Suspended Tenants', value: (analytics?.total_tenants || 0) - (analytics?.active_tenants || 0), color: '#ef4444' },
   ];
 
   if (isLoading) {
@@ -114,7 +116,7 @@ export default function PlatformOverview() {
     );
   }
 
-  const stats = analytics || {
+  const defaults = {
     total_tenants: 0,
     active_tenants: 0,
     suspended_tenants: 0,
@@ -133,6 +135,9 @@ export default function PlatformOverview() {
     system_health_score: 0,
     last_updated: new Date().toISOString()
   };
+
+  // Merge analytics over defaults to avoid undefined values in templates
+  const stats = { ...defaults, ...(analytics as any || {}) } as typeof defaults;
 
   return (
     <div className="space-y-6">
@@ -311,7 +316,7 @@ export default function PlatformOverview() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={chartData}>
+              <AreaChart data={updatedChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />

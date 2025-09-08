@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ProtectedRouteDebug as ProtectedRoute } from "./components/auth/ProtectedRouteDebug";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { useRouteProgress } from "@/hooks/useRouteProgress";
@@ -12,6 +12,7 @@ import { TenantProvider } from "@/hooks/useTenantContext";
 
 // Lazy load pages for better performance
 const Login = lazy(() => import("./pages/Login"));
+const TenantLogin = lazy(() => import("./pages/TenantLogin"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const DashboardReviews = lazy(() => import("./pages/DashboardReviews"));
@@ -28,13 +29,22 @@ const TenantCreateWizard = lazy(() => import("./components/master-dashboard/tena
 
 // User management components
 const UserDirectory = lazy(() => import("./components/master-dashboard/users/UserDirectory"));
+const UserManagement = lazy(() => import("./components/master-dashboard/users/UserManagement"));
 const InviteUserForm = lazy(() => import("./components/master-dashboard/users/InviteUserForm"));
+
+// System administration components
+const SystemAdministration = lazy(() => import("./components/master-dashboard/system/SystemAdministration"));
+
+// Audit components
+const AuditLogs = lazy(() => import("./components/master-dashboard/audit/AuditLogs"));
 
 // Authentication components
 const InvitationAcceptance = lazy(() => import("./components/auth/InvitationAcceptance"));
 
 // Review flow pages
 const ReviewFormPage = lazy(() => import("./pages/ReviewFormPage"));
+const TenantReviewForm = lazy(() => import("./pages/TenantReviewForm"));
+const TenantReviewThankYou = lazy(() => import("./pages/TenantReviewThankYou"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const FeedbackThankYouPage = lazy(() => import("./pages/FeedbackThankYouPage"));
 const ReviewThankYouPage = lazy(() => import("./pages/ReviewThankYouPage"));
@@ -64,11 +74,10 @@ const RouterContent = () => {
             <Route path="tenants/new" element={<TenantCreateWizard />} />
             <Route path="tenants/:tenantId" element={<TenantDetails />} />
             <Route path="tenants/:tenantId/edit" element={<div>Edit Tenant (Coming Soon)</div>} />
-            <Route path="users" element={<UserDirectory />} />
+            <Route path="users" element={<UserManagement />} />
             <Route path="users/invite" element={<InviteUserForm />} />
-            <Route path="system" element={<div>System Administration (Coming Soon)</div>} />
-            <Route path="analytics" element={<div>Analytics (Coming Soon)</div>} />
-            <Route path="audit" element={<div>Audit Logs (Coming Soon)</div>} />
+            <Route path="system" element={<SystemAdministration />} />
+            <Route path="audit" element={<AuditLogs />} />
           </Route>
           
           {/* Dashboard routes - protected (managers only) */}
@@ -84,14 +93,17 @@ const RouterContent = () => {
           
           {/* Authentication routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/tenant-login" element={<TenantLogin />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/accept-invitation" element={<InvitationAcceptance />} />
           
           {/* Public customer review form */}
           <Route path="/review" element={<ReviewFormPage />} />
+          <Route path="/review/:tenantId" element={<TenantReviewForm />} />
           <Route path="/review/feedback" element={<FeedbackPage />} />
           <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
           <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
+          <Route path="/review/tenant-thank-you" element={<TenantReviewThankYou />} />
           
           {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
@@ -107,7 +119,13 @@ const App = () => (
         <TenantProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter basename="/">
+          <BrowserRouter 
+            basename="/"
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true
+            }}
+          >
             <RouterContent />
           </BrowserRouter>
         </TenantProvider>

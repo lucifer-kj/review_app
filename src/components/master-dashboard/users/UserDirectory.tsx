@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { UserManagementService, User, UserInvitation } from "@/services/userManagementService";
+import { UserManagementService, User } from "@/services/userManagementService";
+import { InvitationService } from "@/services/invitationService";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useState } from "react";
@@ -39,7 +40,7 @@ export default function UserDirectory() {
 
   const { data: invitations, isLoading: invitationsLoading, error: invitationsError } = useQuery({
     queryKey: ['pending-invitations'],
-    queryFn: () => UserManagementService.getPendingInvitations(),
+    queryFn: () => InvitationService.getAllInvitations(),
     refetchInterval: 30000,
   });
 

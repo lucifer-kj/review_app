@@ -9,6 +9,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TenantService } from "@/services/tenantService";
+import { InvitationService } from "@/services/invitationService";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -24,20 +26,48 @@ export default function TenantCreateWizard() {
   });
 
   const createTenantMutation = useMutation({
-    mutationFn: (data: typeof formData) => 
-      TenantService.createTenant({
+    mutationFn: async (data: typeof formData) => {
+      // Step 1: Create the tenant
+      const tenantResult = await TenantService.createTenant({
         name: data.name,
         domain: data.domain || undefined,
         plan_type: data.planType as 'basic' | 'pro' | 'enterprise',
-        status: 'active',
         settings: { description: data.description },
         billing_email: data.adminEmail,
-      }, data.adminEmail),
-    onSuccess: (tenant) => {
-      toast.success("Tenant created successfully!");
+      });
+
+      if (!tenantResult.success || !tenantResult.data) {
+        throw new Error(tenantResult.error || 'Failed to create tenant');
+      }
+
+      const tenant = tenantResult.data;
+
+      // Step 2: Create user and send invitation
+      const userResult = await InvitationService.createUserAndInvite(
+        data.adminEmail,
+        data.name,
+        tenant.id,
+        'tenant_admin'
+      );
+
+      if (!userResult.success) {
+        throw new Error(userResult.error || 'Failed to create admin user');
+      }
+
+      return {
+        tenant,
+        user: userResult.data,
+        success: true,
+      };
+    },
+    onSuccess: (result) => {
+      const message = result.user.emailSent 
+        ? "Tenant created successfully! Invitation email sent to admin."
+        : "Tenant created successfully! Admin user can login immediately.";
+      toast.success(message);
       queryClient.invalidateQueries({ queryKey: ['tenants'] });
       queryClient.invalidateQueries({ queryKey: ['platform-analytics'] });
-      navigate(`/master/tenants/${tenant.id}`);
+      navigate(`/master/tenants/${result.tenant.id}`);
     },
     onError: (error: any) => {
       toast.error(error.message || "Failed to create tenant");
@@ -121,7 +151,7 @@ export default function TenantCreateWizard() {
                   disabled={createTenantMutation.isPending}
                 />
                 <p className="text-xs text-muted-foreground">
-                  This user will be invited as the tenant admin
+                  A user account will be created and they can login immediately
                 </p>
               </div>
 

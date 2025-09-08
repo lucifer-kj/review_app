@@ -9,19 +9,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 
 export function MasterHeader() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, signOut, isTestUser, isBypassUser } = useAuth();
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      await signOut();
       navigate("/");
       toast({
         title: "Signed Out",
@@ -34,6 +32,18 @@ export function MasterHeader() {
         variant: "destructive",
       });
     }
+  };
+
+  const getUserDisplayName = () => {
+    if (isTestUser) return "Test User";
+    if (isBypassUser) return "Bypass User";
+    return user?.email || "Super Admin";
+  };
+
+  const getUserRole = () => {
+    if (isTestUser) return "Test Account";
+    if (isBypassUser) return "Bypass Account";
+    return "Super Administrator";
   };
 
   return (
@@ -63,10 +73,10 @@ export function MasterHeader() {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <div className="flex flex-col space-y-1 p-2">
                 <p className="text-sm font-medium leading-none">
-                  {user?.email || "Super Admin"}
+                  {getUserDisplayName()}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  Super Administrator
+                  {getUserRole()}
                 </p>
               </div>
               <DropdownMenuSeparator />

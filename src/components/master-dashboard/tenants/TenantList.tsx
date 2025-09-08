@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Plus, Building2, Search, MoreHorizontal, Users, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { TenantService } from "@/services/tenantService";
+import { MasterDashboardService } from "@/services/masterDashboardService";
+import { useMemo } from "react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useState } from "react";
@@ -18,17 +19,49 @@ import {
 
 export default function TenantList() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 9;
 
-  const { data: tenants, isLoading, error } = useQuery({
-    queryKey: ['tenants'],
-    queryFn: () => TenantService.getTenants(),
-    refetchInterval: 30000, // Refresh every 30 seconds
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['tenants', { searchTerm, page, pageSize }],
+    queryFn: () => MasterDashboardService.getTenantList({
+      search: searchTerm || undefined,
+      status: 'all',
+      page,
+      pageSize,
+    }),
+    keepPreviousData: true,
+    refetchInterval: 30000,
   });
 
-  const filteredTenants = tenants?.filter(tenant =>
-    tenant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tenant.domain?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  // Fetch usage statistics for all tenants
+  const tenantIds = data?.items?.map(t => t.id) ?? [];
+  const { data: usageStats } = useQuery({
+    queryKey: ['tenant-usage-stats', tenantIds],
+    queryFn: async () => {
+      if (tenantIds.length === 0) return {};
+
+      const stats: Record<string, { users_count: number; reviews_count: number }> = {};
+      await Promise.all(
+        tenantIds.map(async (tenantId) => {
+          const result = await MasterDashboardService.getTenantUsageStats(tenantId);
+          if (result.success && result.data) {
+            stats[tenantId] = {
+              users_count: result.data.users_count,
+              reviews_count: result.data.reviews_count
+            };
+          } else {
+            stats[tenantId] = { users_count: 0, reviews_count: 0 };
+          }
+        })
+      );
+      return stats;
+    },
+    enabled: tenantIds.length > 0,
+    refetchInterval: 30000,
+  });
+
+  const filteredTenants = data?.items ?? [];
 
   if (isLoading) {
     return (
@@ -179,19 +212,17 @@ export default function TenantList() {
                     >
                       {tenant.status}
                     </Badge>
-                    <Badge variant="outline">
-                      {tenant.plan_type}
-                    </Badge>
+                    {/* Plan badge hidden until available */}
                   </div>
                   
                   <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                     <div className="flex items-center space-x-1">
                       <Users className="h-4 w-4" />
-                      <span>0 users</span>
+                      <span>{usageStats?.[tenant.id]?.users_count ?? 0} users</span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <BarChart3 className="h-4 w-4" />
-                      <span>0 reviews</span>
+                      <span>{usageStats?.[tenant.id]?.reviews_count ?? 0} reviews</span>
                     </div>
                   </div>
                   
@@ -204,6 +235,21 @@ export default function TenantList() {
           ))}
         </div>
       )}
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between pt-2">
+        <div className="text-sm text-muted-foreground">
+          Page {data?.page ?? 1} of {data ? Math.max(1, Math.ceil(data.total / (data.pageSize || pageSize))) : 1}
+        </div>
+        <div className="space-x-2">
+          <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={(data?.page ?? 1) <= 1}>
+            Previous
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={data ? (data.page * data.pageSize) >= data.total : true}>
+            Next
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

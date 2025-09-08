@@ -73,6 +73,15 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Get tenant context from request (could be from URL params, headers, or other means)
+    // For now, we'll use a default tenant or allow tenant_id to be passed
+    let tenantId = null;
+
+    // Try to get tenant_id from request body or URL params
+    if (body.tenantId) {
+      tenantId = body.tenantId;
+    }
+
     // Save review to database
     const { data, error } = await supabase
       .from('reviews')
@@ -83,6 +92,7 @@ const handler = async (req: Request): Promise<Response> => {
         rating: ratingNum,
         google_review: ratingNum >= 4,
         redirect_opened: false,
+        tenant_id: tenantId, // Include tenant context
         metadata: {
           trackingId,
           managerName,

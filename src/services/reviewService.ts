@@ -197,9 +197,20 @@ export class ReviewService extends BaseService {
 
   static async createReview(reviewData: CreateReviewData): Promise<ServiceResponse<Review>> {
     try {
+      // Ensure tenant_id is included in the review data
+      let finalReviewData = { ...reviewData };
+
+      // If tenant_id is not provided, try to get it from current context
+      if (!finalReviewData.tenant_id) {
+        const { data: tenantId } = await supabase.rpc('get_current_tenant_id');
+        if (tenantId) {
+          finalReviewData.tenant_id = tenantId;
+        }
+      }
+
       const { data, error } = await supabase
         .from('reviews')
-        .insert([reviewData])
+        .insert([finalReviewData])
         .select()
         .single();
 
@@ -296,6 +307,44 @@ export class ReviewService extends BaseService {
       };
     } catch (error) {
       return this.handleError(error, 'ReviewService.deleteReview');
+    }
+  }
+
+  /**
+   * Submit a new review (for public forms)
+   */
+  static async submitReview(reviewData: {
+    tenant_id: string;
+    customer_name: string;
+    customer_email?: string;
+    rating: number;
+    review_text?: string;
+  }): Promise<ServiceResponse<Review>> {
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .insert([{
+          tenant_id: reviewData.tenant_id,
+          customer_name: reviewData.customer_name,
+          customer_email: reviewData.customer_email,
+          rating: reviewData.rating,
+          review_text: reviewData.review_text,
+          status: 'published',
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        return this.handleError(error, 'ReviewService.submitReview');
+      }
+
+      return {
+        data: data,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'ReviewService.submitReview');
     }
   }
 
