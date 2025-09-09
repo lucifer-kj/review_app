@@ -19,8 +19,10 @@ import {
   AlertCircle,
   ExternalLink,
   CheckCircle2,
-  Circle
+  Circle,
+  Key
 } from "lucide-react";
+import ChangePasswordDialog from "@/components/ChangePasswordDialog";
 import type { BusinessSettings } from "@/types";
 
 const DashboardSettings = () => {
@@ -362,6 +364,51 @@ const DashboardSettings = () => {
                 <li>Click on "View on Google Maps"</li>
                 <li>Copy the URL from your browser's address bar</li>
               </ol>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Account Security */}
+        <Card>
+          <CardHeader className="px-6 sm:px-8">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Key className="h-5 w-5" />
+              Account Security
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Manage your account password and security settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-6 sm:px-8">
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <h4 className="font-medium mb-2 text-sm sm:text-base">Change Password</h4>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-4">
+                  Update your account password to keep your account secure.
+                </p>
+                <ChangePasswordDialog>
+                  <Button variant="outline" className="w-full sm:w-auto">
+                    <Key className="h-4 w-4 mr-2" />
+                    Change Password
+                  </Button>
+                </ChangePasswordDialog>
+              </div>
+              
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-medium mb-2 text-sm sm:text-base text-blue-800">Backup Login</h4>
+                <p className="text-xs sm:text-sm text-blue-700 mb-2">
+                  You can also sign in using your email and password instead of magic links.
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open('/backup-login', '_blank')}
+                  className="text-blue-600 border-blue-300 hover:bg-blue-100"
+                >
+                  <Key className="h-4 w-4 mr-2" />
+                  Use Backup Login
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

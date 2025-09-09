@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ArrowLeft, Shield, AlertTriangle } from "lucide-react";
+import { Loader2, ArrowLeft, Shield, AlertTriangle, Key, Mail } from "lucide-react";
 import type { AuthError } from "@supabase/supabase-js";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 
@@ -250,6 +250,32 @@ const Login = () => {
                 >
                   Forgot password?
                 </Button>
+              </div>
+
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">Or</span>
+                  </div>
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => navigate('/backup-login')}
+                    disabled={loading}
+                  >
+                    <Key className="w-4 h-4 mr-2" />
+                    Use Backup Login
+                  </Button>
+                  <p className="text-xs text-gray-500 text-center">
+                    Alternative login method with email and password
+                  </p>
+                </div>
               </div>
             </>
           )}
