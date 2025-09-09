@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useToast } from '@/hooks/use-toast';
+import { UserSearchService } from '@/services/userSearchService';
 import { 
   Select,
   SelectContent,
@@ -72,7 +73,9 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const [allUsers, setAllUsers] = useState<UserSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [loadingAllUsers, setLoadingAllUsers] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserSearchResult | null>(null);
   const [selectedRole, setSelectedRole] = useState<'tenant_admin' | 'user'>('user');
@@ -83,40 +86,52 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
   const loadTenantUsers = async () => {
     try {
       setLoading(true);
+      
+      // For now, we'll work with the current schema and get all profiles
+      // TODO: Update this after the migration is applied
       const { data, error } = await supabase
         .from('profiles')
         .select(`
           id,
-          full_name,
           role,
-          created_at,
-          auth_users!inner(
-            email,
-            last_sign_in_at
-          )
+          created_at
         `)
-        .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
 
       if (error) {
         throw error;
       }
 
-      const tenantUsers: TenantUser[] = data.map(profile => ({
-        id: profile.id,
-        email: profile.auth_users?.email || '',
-        full_name: profile.full_name,
-        role: profile.role as 'tenant_admin' | 'user',
-        created_at: profile.created_at,
-        last_sign_in_at: profile.auth_users?.last_sign_in_at || null,
-      }));
+      // Fetch auth user data separately for each profile
+      const tenantUsers: TenantUser[] = [];
+      
+      for (const profile of data || []) {
+        try {
+          // Get auth user data using admin client
+          const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
+          
+          if (authUser?.user?.email) {
+            tenantUsers.push({
+              id: profile.id,
+              email: authUser.user.email,
+              full_name: authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0],
+              role: profile.role as 'tenant_admin' | 'user',
+              created_at: profile.created_at,
+              last_sign_in_at: authUser.user.last_sign_in_at || null,
+            });
+          }
+        } catch (authError) {
+          console.warn(`Failed to fetch auth data for user ${profile.id}:`, authError);
+          // Skip users without auth data for now
+        }
+      }
 
       setUsers(tenantUsers);
     } catch (error) {
       console.error('Error loading tenant users:', error);
       toast({
         title: "Error",
-        description: "Failed to load tenant users",
+        description: "Failed to load tenant users. Please ensure the database migration has been applied.",
         variant: "destructive"
       });
     } finally {
@@ -133,33 +148,51 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
 
     try {
       setSearching(true);
-      const { data, error } = await supabase
+      
+      // For now, we'll search through auth users directly
+      // TODO: Update this after the migration is applied
+      const { data: profiles, error } = await supabase
         .from('profiles')
         .select(`
           id,
-          full_name,
           role,
-          tenant_id,
-          auth_users!inner(
-            email
-          )
+          created_at
         `)
-        .or(`full_name.ilike.%${query}%,auth_users.email.ilike.%${query}%`)
-        .limit(10);
+        .limit(50);
 
       if (error) {
         throw error;
       }
 
-      const searchResults: UserSearchResult[] = data.map(profile => ({
-        id: profile.id,
-        email: profile.auth_users?.email || '',
-        full_name: profile.full_name,
-        current_tenant_id: profile.tenant_id,
-        current_role: profile.role,
-      }));
+      // Search through auth users and filter by query
+      const searchResults: UserSearchResult[] = [];
+      
+      for (const profile of profiles || []) {
+        try {
+          const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
+          
+          if (authUser?.user?.email) {
+            const fullName = authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0];
+            const email = authUser.user.email;
+            
+            // Check if query matches name or email
+            if (fullName.toLowerCase().includes(query.toLowerCase()) || 
+                email.toLowerCase().includes(query.toLowerCase())) {
+              searchResults.push({
+                id: profile.id,
+                email: email,
+                full_name: fullName,
+                current_tenant_id: null, // Will be updated after migration
+                current_role: profile.role,
+              });
+            }
+          }
+        } catch (authError) {
+          console.warn(`Failed to fetch auth data for user ${profile.id}:`, authError);
+        }
+      }
 
-      setSearchResults(searchResults);
+      setSearchResults(searchResults.slice(0, 10));
     } catch (error) {
       console.error('Error searching users:', error);
       toast({
@@ -179,11 +212,11 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
     try {
       setAddingUser(true);
 
-      // Update user's tenant_id and role
+      // For now, we can only update the role since tenant_id doesn't exist yet
+      // TODO: Update this after the migration is applied
       const { error } = await supabase
         .from('profiles')
         .update({
-          tenant_id: tenantId,
           role: selectedRole,
         })
         .eq('id', selectedUser.id);
@@ -194,7 +227,7 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
 
       toast({
         title: "Success",
-        description: `${selectedUser.full_name} has been added to ${tenantName}`,
+        description: `${selectedUser.full_name} role has been updated to ${selectedRole}`,
       });
 
       // Refresh users list
@@ -210,7 +243,7 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
       console.error('Error adding user to tenant:', error);
       toast({
         title: "Error",
-        description: "Failed to add user to tenant",
+        description: "Failed to add user to tenant. Please ensure the database migration has been applied.",
         variant: "destructive"
       });
     } finally {
@@ -258,10 +291,11 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
     }
 
     try {
+      // For now, we can only reset the role since tenant_id doesn't exist yet
+      // TODO: Update this after the migration is applied
       const { error } = await supabase
         .from('profiles')
         .update({
-          tenant_id: null,
           role: 'user', // Reset to default role
         })
         .eq('id', userId);
@@ -272,7 +306,7 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
 
       toast({
         title: "Success",
-        description: `${userName} has been removed from ${tenantName}`,
+        description: `${userName} role has been reset to user`,
       });
 
       // Refresh users list
@@ -281,7 +315,7 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
       console.error('Error removing user from tenant:', error);
       toast({
         title: "Error",
-        description: "Failed to remove user from tenant",
+        description: "Failed to remove user from tenant. Please ensure the database migration has been applied.",
         variant: "destructive"
       });
     }
@@ -298,6 +332,61 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
+
+  // Load all users when dialog opens
+  useEffect(() => {
+    if (showAddDialog && allUsers.length === 0) {
+      loadAllUsers();
+    }
+  }, [showAddDialog]);
+
+  const loadAllUsers = async () => {
+    try {
+      setLoadingAllUsers(true);
+      
+      // For now, we'll load all profiles and get auth data
+      // TODO: Update this after the migration is applied
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          role,
+          created_at
+        `)
+        .limit(50);
+
+      if (error) {
+        throw error;
+      }
+
+      // Get auth user data for each profile
+      const allUsers: UserSearchResult[] = [];
+      
+      for (const profile of profiles || []) {
+        try {
+          const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
+          
+          if (authUser?.user?.email) {
+            allUsers.push({
+              id: profile.id,
+              email: authUser.user.email,
+              full_name: authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0],
+              current_tenant_id: null, // Will be updated after migration
+              current_role: profile.role,
+            });
+          }
+        } catch (authError) {
+          console.warn(`Failed to fetch auth data for user ${profile.id}:`, authError);
+        }
+      }
+
+      setAllUsers(allUsers);
+    } catch (error) {
+      console.error('Error loading all users:', error);
+    } finally {
+      setLoadingAllUsers(false);
+    }
+  };
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -371,9 +460,10 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
                   )}
                 </div>
 
-                {searchResults.length > 0 && (
+                {/* Search Results */}
+                {searchQuery.length >= 2 && searchResults.length > 0 && (
                   <div className="space-y-2">
-                    <Label>Select User</Label>
+                    <Label>Search Results</Label>
                     <div className="max-h-40 overflow-y-auto border rounded-md">
                       {searchResults.map((user) => (
                         <div
@@ -406,6 +496,57 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* All Users Dropdown */}
+                {searchQuery.length < 2 && (
+                  <div className="space-y-2">
+                    <Label>All Users</Label>
+                    {loadingAllUsers ? (
+                      <div className="flex items-center justify-center py-4">
+                        <LoadingSpinner size="sm" />
+                        <span className="ml-2 text-sm text-gray-500">Loading users...</span>
+                      </div>
+                    ) : (
+                      <div className="max-h-40 overflow-y-auto border rounded-md">
+                        {allUsers.map((user) => (
+                          <div
+                            key={user.id}
+                            className={`p-3 cursor-pointer hover:bg-gray-50 border-b last:border-b-0 ${
+                              selectedUser?.id === user.id ? 'bg-blue-50 border-blue-200' : ''
+                            }`}
+                            onClick={() => setSelectedUser(user)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">{user.full_name}</p>
+                                <p className="text-sm text-gray-500 flex items-center gap-1">
+                                  <Mail className="w-3 h-3" />
+                                  {user.email}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                {user.current_tenant_id ? (
+                                  <Badge variant="outline" className="text-xs">
+                                    In Tenant
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Available
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        {allUsers.length === 0 && (
+                          <div className="p-4 text-center text-gray-500 text-sm">
+                            No users found
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
