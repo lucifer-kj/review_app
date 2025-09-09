@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Building2, Loader2, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Building2, Loader2, Save, Trash2, Users } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +15,7 @@ import { TenantService } from "@/services/tenantService";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import TenantUserManager from "./TenantUserManager";
 
 export default function TenantSettings() {
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -450,6 +451,12 @@ export default function TenantSettings() {
             </AlertDescription>
           </Alert>
         )}
+
+        {/* User Management Section */}
+        <TenantUserManager 
+          tenantId={tenantId!} 
+          tenantName={tenant?.name || 'Unknown Tenant'} 
+        />
 
         {/* Submit Button */}
         <div className="flex justify-between">

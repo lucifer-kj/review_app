@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { UnifiedEmailService } from "@/services/unifiedEmailService";
-import { Mail, Send, Loader2, Copy, ExternalLink, CheckCircle, AlertCircle } from "lucide-react";
+import { ReviewLimitService } from "@/services/reviewLimitService";
+import { Mail, Send, Loader2, Copy, ExternalLink, CheckCircle, AlertCircle, AlertTriangle, Crown } from "lucide-react";
 import { VALIDATION } from "@/constants";
 
 interface SendReviewEmailDialogProps {
@@ -13,6 +15,7 @@ interface SendReviewEmailDialogProps {
   onOpenChange: (open: boolean) => void;
   customerName?: string;
   customerEmail?: string;
+  tenantId?: string;
   onSuccess?: () => void;
 }
 
@@ -21,6 +24,7 @@ export const SendReviewEmailDialog = ({
   onOpenChange,
   customerName = "",
   customerEmail = "",
+  tenantId,
   onSuccess
 }: SendReviewEmailDialogProps) => {
   const [formData, setFormData] = useState({
@@ -35,10 +39,49 @@ export const SendReviewEmailDialog = ({
   const [emailSent, setEmailSent] = useState(false);
   const [emailData, setEmailData] = useState<{ to: string; subject: string; body: string; html?: string } | null>(null);
   const [sendingMethod, setSendingMethod] = useState<string>('auto');
+  const [canSend, setCanSend] = useState(true);
+  const [reviewLimits, setReviewLimits] = useState<any>(null);
   const { toast } = useToast();
+
+  // Check review limits when dialog opens
+  useEffect(() => {
+    if (open && tenantId) {
+      checkReviewLimits();
+    }
+  }, [open, tenantId]);
+
+  const checkReviewLimits = async () => {
+    try {
+      const response = await ReviewLimitService.getTenantReviewLimits(tenantId!);
+      if (response.success && response.data) {
+        setReviewLimits(response.data);
+        setCanSend(response.data.can_send);
+        
+        if (!response.data.can_send) {
+          toast({
+            title: "Review Sending Disabled",
+            description: `You've reached your review limit (${response.data.max_reviews} reviews on ${response.data.plan_type} plan).`,
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking review limits:', error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if review sending is disabled due to plan limits
+    if (tenantId && !canSend) {
+      toast({
+        title: "Review Sending Disabled",
+        description: "You've reached your review limit. Upgrade your plan to continue sending review requests.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!formData.customerName.trim()) {
       toast({
@@ -245,6 +288,26 @@ export const SendReviewEmailDialog = ({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Plan Limit Warning */}
+        {tenantId && reviewLimits && !canSend && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <div className="space-y-2">
+                <div className="font-medium">Review Sending Disabled</div>
+                <div className="text-sm">
+                  You've reached your review limit of {reviewLimits.max_reviews} reviews 
+                  on your {reviewLimits.plan_type} plan. Upgrade to continue sending review requests.
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <Crown className="w-4 h-4" />
+                  <span className="text-sm">Upgrade available for more capacity</span>
+                </div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {!emailGenerated ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -325,7 +388,10 @@ export const SendReviewEmailDialog = ({
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || isSending}>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || isSending || (tenantId && !canSend)}
+              >
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -335,6 +401,11 @@ export const SendReviewEmailDialog = ({
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Sending...
+                  </>
+                ) : tenantId && !canSend ? (
+                  <>
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Sending Disabled
                   </>
                 ) : (
                   <>

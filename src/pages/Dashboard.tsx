@@ -12,6 +12,10 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ReviewService } from "@/services/reviewService";
 import { SendReviewEmailDialog } from "@/components/SendReviewEmailDialog";
+import ReviewLimitBanner from "@/components/ReviewLimitBanner";
+import GoogleReviewLink from "@/components/GoogleReviewLink";
+import PlanUpgradePrompt from "@/components/PlanUpgradePrompt";
+import { useAuth } from "@/hooks/useAuth";
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -23,6 +27,7 @@ const Dashboard = () => {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -156,6 +161,28 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Review Limits and Google Review Link */}
+        {user?.tenant_id && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ReviewLimitBanner 
+              tenantId={user.tenant_id}
+              onUpgrade={() => navigate('/dashboard/settings')}
+            />
+            <GoogleReviewLink 
+              tenantId={user.tenant_id}
+              businessName="Your Business"
+            />
+          </div>
+        )}
+
+        {/* Plan Upgrade Prompt */}
+        {user?.tenant_id && (
+          <PlanUpgradePrompt 
+            tenantId={user.tenant_id}
+            onUpgrade={() => navigate('/dashboard/settings')}
+          />
+        )}
+
         {/* Action Buttons */}
         <div className="flex gap-4">
           <Button onClick={handleSendReview} size="lg" className="text-sm sm:text-base">
@@ -173,6 +200,7 @@ const Dashboard = () => {
       <SendReviewEmailDialog
         open={showReviewDialog}
         onOpenChange={setShowReviewDialog}
+        tenantId={user?.tenant_id}
         onSuccess={() => {
           setShowReviewDialog(false);
           toast({

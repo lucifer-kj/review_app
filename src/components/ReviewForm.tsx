@@ -2,17 +2,20 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { StarRating } from "./StarRating";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, User, Phone, Star, Send } from "lucide-react";
+import { Building2, User, Phone, Star, Send, AlertTriangle, Crown } from "lucide-react";
 import { PhoneInput } from "./PhoneInput";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
+import { Alert, AlertDescription } from "./ui/alert";
+import { ReviewLimitService } from "@/services/reviewLimitService";
 
 interface ReviewFormProps {
   onSubmit: (data: { name: string; phone: string; countryCode: string; rating: number }) => void;
   businessName?: string;
+  tenantId?: string;
 }
 
-export const ReviewForm = ({ onSubmit, businessName = "Business" }: ReviewFormProps) => {
+export const ReviewForm = ({ onSubmit, businessName = "Business", tenantId }: ReviewFormProps) => {
   const [searchParams] = useSearchParams();
   
   const [formData, setFormData] = useState({
@@ -22,6 +25,8 @@ export const ReviewForm = ({ onSubmit, businessName = "Business" }: ReviewFormPr
     rating: 0,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [canCollect, setCanCollect] = useState(true);
+  const [reviewLimits, setReviewLimits] = useState<any>(null);
   const { toast } = useToast();
 
   // Extract and sanitize URL parameters
@@ -47,6 +52,33 @@ export const ReviewForm = ({ onSubmit, businessName = "Business" }: ReviewFormPr
       setFormData(prev => ({ ...prev, rating: oneTapRating }));
     }
   }, [customerName, oneTapRating]);
+
+  // Check review limits if tenantId is provided
+  useEffect(() => {
+    if (tenantId) {
+      checkReviewLimits();
+    }
+  }, [tenantId]);
+
+  const checkReviewLimits = async () => {
+    try {
+      const response = await ReviewLimitService.getTenantReviewLimits(tenantId!);
+      if (response.success && response.data) {
+        setReviewLimits(response.data);
+        setCanCollect(response.data.can_collect);
+        
+        if (!response.data.can_collect) {
+          toast({
+            title: "Review Collection Disabled",
+            description: `This business has reached their review limit (${response.data.max_reviews} reviews on ${response.data.plan_type} plan).`,
+            variant: "destructive",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error checking review limits:', error);
+    }
+  };
 
   const validatePhone = (phone: string) => {
     // Remove all non-digit characters and check if it's between 7-15 digits
@@ -74,6 +106,16 @@ export const ReviewForm = ({ onSubmit, businessName = "Business" }: ReviewFormPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if review collection is disabled due to plan limits
+    if (tenantId && !canCollect) {
+      toast({
+        title: "Review Collection Disabled",
+        description: "This business has reached their review limit. Please contact them directly.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (!formData.name.trim()) {
       toast({
@@ -152,6 +194,26 @@ export const ReviewForm = ({ onSubmit, businessName = "Business" }: ReviewFormPr
               </p>
             </div>
           )}
+
+          {/* Plan Limit Warning */}
+          {tenantId && reviewLimits && !canCollect && (
+            <Alert variant="destructive" className="mt-6">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <div className="font-medium">Review Collection Temporarily Disabled</div>
+                  <div className="text-sm">
+                    This business has reached their review limit of {reviewLimits.max_reviews} reviews 
+                    on their {reviewLimits.plan_type} plan. Please contact them directly for feedback.
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Crown className="w-4 h-4" />
+                    <span className="text-sm">Upgrade available for more capacity</span>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8" role="form" aria-label="Review submission form">
@@ -223,7 +285,7 @@ export const ReviewForm = ({ onSubmit, businessName = "Business" }: ReviewFormPr
 
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || (tenantId && !canCollect)}
             className="w-full scale-in flex items-center justify-center gap-3"
             aria-describedby="submit-status"
           >
@@ -231,6 +293,11 @@ export const ReviewForm = ({ onSubmit, businessName = "Business" }: ReviewFormPr
               <>
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 Submitting...
+              </>
+            ) : tenantId && !canCollect ? (
+              <>
+                <AlertTriangle className="w-4 h-4" />
+                Review Collection Disabled
               </>
             ) : (
               <>
