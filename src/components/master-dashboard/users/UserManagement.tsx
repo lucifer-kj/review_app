@@ -19,7 +19,8 @@ import {
   Ban,
   Unlock,
   Send,
-  RefreshCw
+  RefreshCw,
+  Building2
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -39,7 +40,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 import { MagicLinkService } from "@/services/magicLinkService";
 import { UserService } from "@/services/userService";
+import { UserManagementService } from "@/services/userManagementService";
 import AdminClientTest from "@/components/debug/AdminClientTest";
+import TenantSelectionModal from "./TenantSelectionModal";
+import UserRoleModal from "./UserRoleModal";
 
 interface SupabaseUser {
   id: string;
@@ -59,6 +63,11 @@ export default function UserManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Modal states
+  const [tenantModalOpen, setTenantModalOpen] = useState(false);
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<SupabaseUser | null>(null);
+
   // Debounce search term
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -69,14 +78,14 @@ export default function UserManagement() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Fetch all users from profiles table with real-time updates
+  // Fetch all users from auth.users using admin client
   const { data: users, isLoading, error } = useQuery({
     queryKey: ['platform-users', { searchTerm: debouncedSearchTerm, page, pageSize }],
     queryFn: async () => {
       console.log('Fetching users...');
       
       try {
-        // First, try to get users from auth.users using admin client
+        // Get users from auth.users using admin client
         console.log('Attempting to fetch auth users...');
         const { data: authUsers, error: authError } = await withAdminAuth(async () => {
           return await supabaseAdmin.auth.admin.listUsers();
@@ -99,121 +108,36 @@ export default function UserManagement() {
           };
         }
 
-        // Get user IDs from auth users
-        const authUserIds = authUsers.users.map(user => user.id);
-        
-        // Try to get profiles for these users
-        console.log('Fetching profiles for auth users...');
-        let { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select(`
-            id,
-            email,
-            role,
-            tenant_id,
-            created_at,
-            updated_at
-          `)
-          .in('id', authUserIds)
-          .order('created_at', { ascending: false });
-
-        if (profilesError) {
-          console.error('Profiles fetch error:', profilesError);
-          // If profiles don't exist, create them from auth users
-          console.log('Creating profiles from auth users...');
-          const profilesToCreate = authUsers.users.map(authUser => ({
-            id: authUser.id,
-            email: authUser.email || '',
-            role: 'user', // Default role
-            tenant_id: null, // Will be set when they join a tenant
-            created_at: authUser.created_at,
-            updated_at: authUser.updated_at
-          }));
-
-          const { data: createdProfiles, error: createError } = await supabase
-            .from('profiles')
-            .upsert(profilesToCreate)
-            .select();
-
-          if (createError) {
-            console.error('Profile creation error:', createError);
-            // Return auth users without profiles
-            return {
-              users: authUsers.users.map(authUser => ({
-                id: authUser.id,
-                email: authUser.email || '',
-                role: 'user',
-                tenant_id: null,
-                tenant_name: 'No Tenant',
-                created_at: authUser.created_at,
-                updated_at: authUser.updated_at,
-                banned_until: authUser.banned_until,
-                email_confirmed_at: authUser.email_confirmed_at,
-                last_sign_in_at: authUser.last_sign_in_at,
-              })),
-              total: authUsers.users.length,
-              page: page,
-              pageSize: pageSize
-            };
-          }
-
-          // Use created profiles
-          profiles = createdProfiles;
-        }
-
-        console.log('Profiles fetched:', profiles?.length || 0);
-
         // Apply search filter
-        let filteredProfiles = profiles || [];
+        let filteredUsers = authUsers.users;
         if (debouncedSearchTerm) {
-          filteredProfiles = filteredProfiles.filter(profile => 
-            profile.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+          filteredUsers = filteredUsers.filter(user => 
+            (user as any).email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
           );
         }
 
         // Apply pagination
         const from = (page - 1) * pageSize;
         const to = from + pageSize;
-        const paginatedProfiles = filteredProfiles.slice(from, to);
-
-        // Get tenant names
-        const tenantIds = [...new Set(paginatedProfiles.map(user => user.tenant_id).filter(Boolean))];
-        let tenantMap: Record<string, string> = {};
-        
-        if (tenantIds.length > 0) {
-          const { data: tenants } = await supabase
-            .from('tenants')
-            .select('id, name')
-            .in('id', tenantIds);
-
-          tenantMap = tenants?.reduce((acc, tenant) => {
-            acc[tenant.id] = tenant.name;
-            return acc;
-          }, {} as Record<string, string>) || {};
-        }
-
-        // Create auth user map for additional data
-        const authUserMap = authUsers.users.reduce((acc, authUser) => {
-          acc[authUser.id] = {
-            banned_until: authUser.banned_until,
-            email_confirmed_at: authUser.email_confirmed_at,
-            last_sign_in_at: authUser.last_sign_in_at,
-          };
-          return acc;
-        }, {} as Record<string, any>);
+        const paginatedUsers = filteredUsers.slice(from, to);
 
         const result = {
-          users: paginatedProfiles.map(user => ({
-            ...user,
-            tenant_name: tenantMap[user.tenant_id] || 'No Tenant',
-            banned_until: authUserMap[user.id]?.banned_until || null,
-            email_confirmed_at: authUserMap[user.id]?.email_confirmed_at || null,
-            last_sign_in_at: authUserMap[user.id]?.last_sign_in_at || null,
+          users: paginatedUsers.map(authUser => ({
+            id: authUser.id,
+            email: (authUser as any).email || '',
+            role: 'user', // Default role for now
+            tenant_id: null, // Not supported in current schema
+            created_at: authUser.created_at,
+            updated_at: authUser.updated_at,
+            tenant_name: 'No Tenant', // Not supported in current schema
+            banned_until: null as any, // Not available in current auth user type
+            email_confirmed_at: (authUser as any).email_confirmed_at || null,
+            last_sign_in_at: (authUser as any).last_sign_in_at || null,
           })),
-          total: filteredProfiles.length,
-        page: page,
-        pageSize: pageSize
-      };
+          total: filteredUsers.length,
+          page: page,
+          pageSize: pageSize
+        };
 
         console.log('Final result:', result);
         return result;
@@ -230,62 +154,79 @@ export default function UserManagement() {
 
   // No need for separate profiles query since we get role info in main query
 
-  // Fetch pending invitations
+  // Fetch pending invitations - disabled for now since user_invitations table might not exist
   const { data: invitations } = useQuery({
     queryKey: ['pending-invitations'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_invitations')
-        .select(`
-          id,
-          email,
-          role,
-          expires_at,
-          used_at,
-          created_at,
-          tenant_id
-        `)
-        .is('used_at', null)
-        .gt('expires_at', new Date().toISOString())
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Get tenant names separately
-      const tenantIds = [...new Set(data?.map(inv => inv.tenant_id).filter(Boolean) || [])];
-      const { data: tenants } = await supabase
-        .from('tenants')
-        .select('id, name')
-        .in('id', tenantIds);
-
-      const tenantMap = tenants?.reduce((acc, tenant) => {
-        acc[tenant.id] = tenant.name;
-        return acc;
-      }, {} as Record<string, string>) || {};
-
-      return data?.map(invitation => ({
-        ...invitation,
-        tenant_name: tenantMap[invitation.tenant_id] || 'Unknown'
-      })) || [];
+      // TODO: Implement when user_invitations table is available
+      return [];
     },
     refetchInterval: 30000,
   });
 
-  // Promote user to super admin mutation
+  // Move user to tenant mutation
+  const moveUserToTenantMutation = useMutation({
+    mutationFn: async ({ userId, tenantId, role }: { userId: string; tenantId: string | null; role: 'tenant_admin' | 'user' }) => {
+      const result = await UserManagementService.moveUserToTenant(userId, tenantId, role);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to move user to tenant');
+      }
+      return result.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['platform-users'] });
+      toast({
+        title: "User Moved",
+        description: variables.tenantId 
+          ? `User has been moved to tenant successfully.`
+          : `User has been removed from tenant successfully.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Move Failed",
+        description: error.message || "Failed to move user to tenant.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Change user role mutation
+  const changeUserRoleMutation = useMutation({
+    mutationFn: async ({ userId, newRole }: { userId: string; newRole: 'super_admin' | 'tenant_admin' | 'user' }) => {
+      const result = await UserManagementService.promoteUser(userId, newRole);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to change user role');
+      }
+      return result.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['platform-users'] });
+      toast({
+        title: "Role Updated",
+        description: `User role has been changed to ${variables.newRole.replace('_', ' ')} successfully.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Role Change Failed",
+        description: error.message || "Failed to change user role.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Promote user to super admin mutation (legacy - keeping for compatibility)
   const promoteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: userId,
-          role: 'super_admin',
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
+      const result = await UserManagementService.promoteUser(userId, 'super_admin');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to promote user');
+      }
+      return result.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-profiles'] });
+      queryClient.invalidateQueries({ queryKey: ['platform-users'] });
       toast({
         title: "User Promoted",
         description: "User has been promoted to Super Admin successfully.",
@@ -387,13 +328,11 @@ export default function UserManagement() {
   // Ban user mutation
   const banUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await withAdminAuth(async () => {
-        return await supabaseAdmin.auth.admin.updateUserById(userId, {
-          ban_duration: '876000h' // 100 years (effectively permanent)
-        });
-      });
-
-      if (error) throw error;
+      const result = await UserManagementService.banUser(userId);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to ban user');
+      }
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platform-users'] });
@@ -414,13 +353,11 @@ export default function UserManagement() {
   // Unban user mutation
   const unbanUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await withAdminAuth(async () => {
-        return await supabaseAdmin.auth.admin.updateUserById(userId, {
-          ban_duration: 'none'
-        });
-      });
-
-      if (error) throw error;
+      const result = await UserManagementService.unbanUser(userId);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to unban user');
+      }
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platform-users'] });
@@ -441,13 +378,11 @@ export default function UserManagement() {
   // Suspend user mutation
   const suspendUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await withAdminAuth(async () => {
-        return await supabaseAdmin.auth.admin.updateUserById(userId, {
-          app_metadata: { suspended: true }
-        });
-      });
-
-      if (error) throw error;
+      const result = await UserManagementService.suspendUser(userId);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to suspend user');
+      }
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platform-users'] });
@@ -468,13 +403,11 @@ export default function UserManagement() {
   // Unsuspend user mutation
   const unsuspendUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await withAdminAuth(async () => {
-        return await supabaseAdmin.auth.admin.updateUserById(userId, {
-          app_metadata: { suspended: false }
-        });
-      });
-
-      if (error) throw error;
+      const result = await UserManagementService.unsuspendUser(userId);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to unsuspend user');
+      }
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platform-users'] });
@@ -563,6 +496,36 @@ export default function UserManagement() {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Never';
     return new Date(dateString).toLocaleDateString();
+  };
+
+  // Modal handlers
+  const handleOpenTenantModal = (user: SupabaseUser) => {
+    setSelectedUser(user);
+    setTenantModalOpen(true);
+  };
+
+  const handleOpenRoleModal = (user: SupabaseUser) => {
+    setSelectedUser(user);
+    setRoleModalOpen(true);
+  };
+
+  const handleTenantSelect = (tenantId: string | null, role: 'tenant_admin' | 'user') => {
+    if (selectedUser) {
+      moveUserToTenantMutation.mutate({
+        userId: selectedUser.id,
+        tenantId,
+        role
+      });
+    }
+  };
+
+  const handleRoleChange = (newRole: 'super_admin' | 'tenant_admin' | 'user') => {
+    if (selectedUser) {
+      changeUserRoleMutation.mutate({
+        userId: selectedUser.id,
+        newRole
+      });
+    }
   };
 
   if (isLoading) {
@@ -913,7 +876,29 @@ export default function UserManagement() {
                           
                           <DropdownMenuSeparator />
                           
-                          {/* Role Management */}
+                          {/* Tenant Management - Disabled until schema is updated */}
+                          <DropdownMenuItem 
+                            onClick={() => handleOpenTenantModal(user)}
+                            disabled={true}
+                            className="opacity-50"
+                          >
+                            <Building2 className="mr-2 h-4 w-4" />
+                            {tenantId ? 'Move to Different Tenant' : 'Assign to Tenant'} (Coming Soon)
+                          </DropdownMenuItem>
+                          
+                          {/* Role Management - Disabled until schema is updated */}
+                          <DropdownMenuItem 
+                            onClick={() => handleOpenRoleModal(user)}
+                            disabled={true}
+                            className="opacity-50"
+                          >
+                            <Crown className="mr-2 h-4 w-4" />
+                            Change Role (Coming Soon)
+                          </DropdownMenuItem>
+                          
+                          <DropdownMenuSeparator />
+                          
+                          {/* Legacy Role Management (keeping for compatibility) */}
                           {role !== 'super_admin' && (
                             <DropdownMenuItem 
                               onClick={() => promoteUserMutation.mutate(user.id)}
@@ -1027,6 +1012,30 @@ export default function UserManagement() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Modals */}
+      {selectedUser && (
+        <>
+          <TenantSelectionModal
+            isOpen={tenantModalOpen}
+            onClose={() => setTenantModalOpen(false)}
+            onSelect={handleTenantSelect}
+            currentTenantId={selectedUser.tenant_id}
+            currentRole={selectedUser.role}
+            userId={selectedUser.id}
+            userEmail={selectedUser.email}
+          />
+          
+          <UserRoleModal
+            isOpen={roleModalOpen}
+            onClose={() => setRoleModalOpen(false)}
+            onConfirm={handleRoleChange}
+            currentRole={selectedUser.role || 'user'}
+            userEmail={selectedUser.email}
+            userId={selectedUser.id}
+          />
+        </>
       )}
     </div>
   );

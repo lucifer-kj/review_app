@@ -338,7 +338,7 @@
 
   /* Enhanced Mobile-first responsive utilities */
   .mobile-container {
-    @apply px-6 sm:px-8 lg:px-12 xl:px-16;
+    @apply px-3 sm:px-6 md:px-8 lg:px-12 xl:px-16;
   }
 
   .mobile-text {
@@ -346,16 +346,96 @@
   }
 
   .mobile-heading {
-    @apply text-xl sm:text-2xl lg:text-3xl xl:text-4xl;
+    @apply text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl;
+  }
+
+  .mobile-subheading {
+    @apply text-base sm:text-lg md:text-xl lg:text-2xl;
+  }
+
+  .mobile-body {
+    @apply text-sm sm:text-base;
+  }
+
+  .mobile-caption {
+    @apply text-xs sm:text-sm;
+  }
+
+  /* Mobile touch targets */
+  .mobile-touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  .mobile-button {
+    @apply h-10 px-4 py-2 text-sm font-medium;
+  }
+
+  .mobile-button-sm {
+    @apply h-8 px-3 py-1 text-xs font-medium;
+  }
+
+  .mobile-button-lg {
+    @apply h-12 px-6 py-3 text-base font-medium;
   }
 
   /* Enhanced Mobile table improvements */
   .mobile-table {
-    @apply overflow-x-auto -mx-6 sm:mx-0 rounded-lg;
+    @apply overflow-x-auto -mx-3 sm:-mx-6 md:mx-0 rounded-lg;
   }
 
   .mobile-table-container {
     @apply min-w-full inline-block align-middle;
+  }
+
+  /* Mobile spacing utilities */
+  .mobile-space-y {
+    @apply space-y-3 sm:space-y-4 md:space-y-6;
+  }
+
+  .mobile-space-x {
+    @apply space-x-2 sm:space-x-3 md:space-x-4;
+  }
+
+  .mobile-gap {
+    @apply gap-2 sm:gap-3 md:gap-4;
+  }
+
+  .mobile-gap-lg {
+    @apply gap-3 sm:gap-4 md:gap-6;
+  }
+
+  /* Mobile form improvements */
+  .mobile-form-field {
+    @apply space-y-2 sm:space-y-3;
+  }
+
+  .mobile-form-label {
+    @apply text-sm font-medium sm:text-base;
+  }
+
+  .mobile-form-input {
+    @apply h-10 px-3 text-sm sm:h-11 sm:px-4 sm:text-base;
+  }
+
+  .mobile-form-textarea {
+    @apply min-h-[80px] px-3 py-2 text-sm sm:min-h-[100px] sm:px-4 sm:py-3 sm:text-base;
+  }
+
+  /* Mobile card improvements */
+  .mobile-card {
+    @apply rounded-lg border bg-card p-3 shadow-sm sm:p-4 md:p-6;
+  }
+
+  .mobile-card-header {
+    @apply space-y-1 sm:space-y-1.5;
+  }
+
+  .mobile-card-title {
+    @apply text-base font-semibold sm:text-lg;
+  }
+
+  .mobile-card-description {
+    @apply text-sm text-muted-foreground sm:text-base;
   }
 
   /* Enhanced Card Styles - Reduced hover effects */

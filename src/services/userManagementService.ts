@@ -294,4 +294,233 @@ export class UserManagementService extends BaseService {
       return this.handleError(error, 'UserManagementService.deleteUser');
     }
   }
+
+  /**
+   * Move user to different tenant
+   */
+  static async moveUserToTenant(
+    userId: string, 
+    newTenantId: string | null, 
+    newRole: 'super_admin' | 'tenant_admin' | 'user' = 'user'
+  ): Promise<ServiceResponse<UserProfile>> {
+    try {
+      // Update user's tenant_id and role
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          tenant_id: newTenantId,
+          role: newRole,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        return this.handleError(error, 'UserManagementService.moveUserToTenant');
+      }
+
+      // Update auth user metadata
+      const { error: authError } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.updateUserById(userId, {
+          user_metadata: {
+            tenant_id: newTenantId,
+            role: newRole,
+          }
+        });
+      });
+
+      if (authError) {
+        console.error('Auth metadata update error:', authError);
+        // Don't fail the entire operation, just log the error
+      }
+
+      // Get updated user from auth
+      const { data: authUser } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.getUserById(userId);
+      });
+
+      const userProfile: UserProfile = {
+        id: data.id,
+        email: authUser?.user?.email || '',
+        full_name: data.full_name,
+        role: data.role,
+        tenant_id: data.tenant_id,
+        created_at: data.created_at,
+        last_sign_in_at: authUser?.user?.last_sign_in_at || null,
+        email_confirmed_at: authUser?.user?.email_confirmed_at || null,
+      };
+
+      return {
+        data: userProfile,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'UserManagementService.moveUserToTenant');
+    }
+  }
+
+  /**
+   * Promote user to different role
+   */
+  static async promoteUser(
+    userId: string, 
+    newRole: 'super_admin' | 'tenant_admin' | 'user'
+  ): Promise<ServiceResponse<UserProfile>> {
+    try {
+      // Update user's role
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          role: newRole,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) {
+        return this.handleError(error, 'UserManagementService.promoteUser');
+      }
+
+      // Update auth user metadata
+      const { error: authError } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.updateUserById(userId, {
+          user_metadata: {
+            role: newRole,
+          }
+        });
+      });
+
+      if (authError) {
+        console.error('Auth metadata update error:', authError);
+        // Don't fail the entire operation, just log the error
+      }
+
+      // Get updated user from auth
+      const { data: authUser } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.getUserById(userId);
+      });
+
+      const userProfile: UserProfile = {
+        id: data.id,
+        email: authUser?.user?.email || '',
+        full_name: data.full_name,
+        role: data.role,
+        tenant_id: data.tenant_id,
+        created_at: data.created_at,
+        last_sign_in_at: authUser?.user?.last_sign_in_at || null,
+        email_confirmed_at: authUser?.user?.email_confirmed_at || null,
+      };
+
+      return {
+        data: userProfile,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'UserManagementService.promoteUser');
+    }
+  }
+
+  /**
+   * Ban user (admin function)
+   */
+  static async banUser(userId: string, duration?: string): Promise<ServiceResponse<boolean>> {
+    try {
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.updateUserById(userId, {
+          ban_duration: duration || '876000h' // Default to 100 years (effectively permanent)
+        });
+      });
+
+      if (error) {
+        return this.handleError(error, 'UserManagementService.banUser');
+      }
+
+      return {
+        data: true,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'UserManagementService.banUser');
+    }
+  }
+
+  /**
+   * Unban user (admin function)
+   */
+  static async unbanUser(userId: string): Promise<ServiceResponse<boolean>> {
+    try {
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.updateUserById(userId, {
+          ban_duration: 'none'
+        });
+      });
+
+      if (error) {
+        return this.handleError(error, 'UserManagementService.unbanUser');
+      }
+
+      return {
+        data: true,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'UserManagementService.unbanUser');
+    }
+  }
+
+  /**
+   * Suspend user (admin function)
+   */
+  static async suspendUser(userId: string): Promise<ServiceResponse<boolean>> {
+    try {
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.updateUserById(userId, {
+          app_metadata: { suspended: true }
+        });
+      });
+
+      if (error) {
+        return this.handleError(error, 'UserManagementService.suspendUser');
+      }
+
+      return {
+        data: true,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'UserManagementService.suspendUser');
+    }
+  }
+
+  /**
+   * Unsuspend user (admin function)
+   */
+  static async unsuspendUser(userId: string): Promise<ServiceResponse<boolean>> {
+    try {
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.updateUserById(userId, {
+          app_metadata: { suspended: false }
+        });
+      });
+
+      if (error) {
+        return this.handleError(error, 'UserManagementService.unsuspendUser');
+      }
+
+      return {
+        data: true,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'UserManagementService.unsuspendUser');
+    }
+  }
 }

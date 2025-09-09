@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useToast } from '@/hooks/use-toast';
-import { UserSearchService } from '@/services/userSearchService';
+import { SimpleUserService } from '@/services/simpleUserService';
 import { 
   Select,
   SelectContent,
@@ -87,51 +87,31 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
     try {
       setLoading(true);
       
-      // For now, we'll work with the current schema and get all profiles
-      // TODO: Update this after the migration is applied
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          role,
-          created_at
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      // Fetch auth user data separately for each profile
-      const tenantUsers: TenantUser[] = [];
+      const response = await SimpleUserService.getTenantUsers(tenantId);
       
-      for (const profile of data || []) {
-        try {
-          // Get auth user data using admin client
-          const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
-          
-          if (authUser?.user?.email) {
-            tenantUsers.push({
-              id: profile.id,
-              email: authUser.user.email,
-              full_name: authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0],
-              role: profile.role as 'tenant_admin' | 'user',
-              created_at: profile.created_at,
-              last_sign_in_at: authUser.user.last_sign_in_at || null,
-            });
-          }
-        } catch (authError) {
-          console.warn(`Failed to fetch auth data for user ${profile.id}:`, authError);
-          // Skip users without auth data for now
-        }
+      if (response.success && response.data) {
+        const tenantUsers: TenantUser[] = response.data.map(user => ({
+          id: user.id,
+          email: user.email,
+          full_name: user.full_name,
+          role: user.role as 'tenant_admin' | 'user',
+          created_at: user.created_at,
+          last_sign_in_at: user.last_sign_in_at,
+        }));
+        setUsers(tenantUsers);
+      } else {
+        console.error('Failed to load tenant users:', response.error);
+        toast({
+          title: "Error",
+          description: response.error || "Failed to load tenant users",
+          variant: "destructive"
+        });
       }
-
-      setUsers(tenantUsers);
     } catch (error) {
       console.error('Error loading tenant users:', error);
       toast({
         title: "Error",
-        description: "Failed to load tenant users. Please ensure the database migration has been applied.",
+        description: "Failed to load tenant users",
         variant: "destructive"
       });
     } finally {
@@ -148,51 +128,18 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
 
     try {
       setSearching(true);
+      const response = await SimpleUserService.searchUsers(query, 10);
       
-      // For now, we'll search through auth users directly
-      // TODO: Update this after the migration is applied
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          role,
-          created_at
-        `)
-        .limit(50);
-
-      if (error) {
-        throw error;
+      if (response.success && response.data) {
+        setSearchResults(response.data);
+      } else {
+        console.error('Search failed:', response.error);
+        toast({
+          title: "Search Error",
+          description: response.error || "Failed to search users",
+          variant: "destructive"
+        });
       }
-
-      // Search through auth users and filter by query
-      const searchResults: UserSearchResult[] = [];
-      
-      for (const profile of profiles || []) {
-        try {
-          const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
-          
-          if (authUser?.user?.email) {
-            const fullName = authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0];
-            const email = authUser.user.email;
-            
-            // Check if query matches name or email
-            if (fullName.toLowerCase().includes(query.toLowerCase()) || 
-                email.toLowerCase().includes(query.toLowerCase())) {
-              searchResults.push({
-                id: profile.id,
-                email: email,
-                full_name: fullName,
-                current_tenant_id: null, // Will be updated after migration
-                current_role: profile.role,
-              });
-            }
-          }
-        } catch (authError) {
-          console.warn(`Failed to fetch auth data for user ${profile.id}:`, authError);
-        }
-      }
-
-      setSearchResults(searchResults.slice(0, 10));
     } catch (error) {
       console.error('Error searching users:', error);
       toast({
@@ -212,38 +159,31 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
     try {
       setAddingUser(true);
 
-      // For now, we can only update the role since tenant_id doesn't exist yet
-      // TODO: Update this after the migration is applied
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          role: selectedRole,
-        })
-        .eq('id', selectedUser.id);
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Success",
-        description: `${selectedUser.full_name} role has been updated to ${selectedRole}`,
-      });
-
-      // Refresh users list
-      await loadTenantUsers();
+      const response = await SimpleUserService.addUserToTenant(selectedUser.id, tenantId, selectedRole);
       
-      // Reset form
-      setSelectedUser(null);
-      setSelectedRole('user');
-      setSearchQuery('');
-      setSearchResults([]);
-      setShowAddDialog(false);
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: `${selectedUser.full_name} has been added to ${tenantName}`,
+        });
+
+        // Refresh users list
+        await loadTenantUsers();
+        
+        // Reset form
+        setSelectedUser(null);
+        setSelectedRole('user');
+        setSearchQuery('');
+        setSearchResults([]);
+        setShowAddDialog(false);
+      } else {
+        throw new Error(response.error || 'Failed to add user to tenant');
+      }
     } catch (error) {
       console.error('Error adding user to tenant:', error);
       toast({
         title: "Error",
-        description: "Failed to add user to tenant. Please ensure the database migration has been applied.",
+        description: "Failed to add user to tenant",
         variant: "destructive"
       });
     } finally {
@@ -256,22 +196,19 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
     try {
       setUpdatingRole(userId);
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', userId);
+      const response = await SimpleUserService.updateUserRole(userId, newRole);
+      
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "User role updated successfully",
+        });
 
-      if (error) {
-        throw error;
+        // Refresh users list
+        await loadTenantUsers();
+      } else {
+        throw new Error(response.error || 'Failed to update user role');
       }
-
-      toast({
-        title: "Success",
-        description: "User role updated successfully",
-      });
-
-      // Refresh users list
-      await loadTenantUsers();
     } catch (error) {
       console.error('Error updating user role:', error);
       toast({
@@ -291,31 +228,24 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
     }
 
     try {
-      // For now, we can only reset the role since tenant_id doesn't exist yet
-      // TODO: Update this after the migration is applied
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          role: 'user', // Reset to default role
-        })
-        .eq('id', userId);
+      const response = await SimpleUserService.removeUserFromTenant(userId, tenantId);
+      
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: `${userName} has been removed from ${tenantName}`,
+        });
 
-      if (error) {
-        throw error;
+        // Refresh users list
+        await loadTenantUsers();
+      } else {
+        throw new Error(response.error || 'Failed to remove user from tenant');
       }
-
-      toast({
-        title: "Success",
-        description: `${userName} role has been reset to user`,
-      });
-
-      // Refresh users list
-      await loadTenantUsers();
     } catch (error) {
       console.error('Error removing user from tenant:', error);
       toast({
         title: "Error",
-        description: "Failed to remove user from tenant. Please ensure the database migration has been applied.",
+        description: "Failed to remove user from tenant",
         variant: "destructive"
       });
     }
@@ -344,43 +274,20 @@ export default function TenantUserManager({ tenantId, tenantName }: TenantUserMa
     try {
       setLoadingAllUsers(true);
       
-      // For now, we'll load all profiles and get auth data
-      // TODO: Update this after the migration is applied
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          role,
-          created_at
-        `)
-        .limit(50);
-
-      if (error) {
-        throw error;
-      }
-
-      // Get auth user data for each profile
-      const allUsers: UserSearchResult[] = [];
+      const response = await SimpleUserService.getAllUsers(50);
       
-      for (const profile of profiles || []) {
-        try {
-          const { data: authUser } = await supabase.auth.admin.getUserById(profile.id);
-          
-          if (authUser?.user?.email) {
-            allUsers.push({
-              id: profile.id,
-              email: authUser.user.email,
-              full_name: authUser.user.user_metadata?.full_name || authUser.user.email.split('@')[0],
-              current_tenant_id: null, // Will be updated after migration
-              current_role: profile.role,
-            });
-          }
-        } catch (authError) {
-          console.warn(`Failed to fetch auth data for user ${profile.id}:`, authError);
-        }
+      if (response.success && response.data) {
+        const allUsers: UserSearchResult[] = response.data.map(user => ({
+          id: user.id,
+          email: user.email,
+          full_name: user.full_name,
+          current_tenant_id: null, // Will be updated after migration
+          current_role: user.role,
+        }));
+        setAllUsers(allUsers);
+      } else {
+        console.error('Failed to load all users:', response.error);
       }
-
-      setAllUsers(allUsers);
     } catch (error) {
       console.error('Error loading all users:', error);
     } finally {
