@@ -1,4 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
 import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 import { BaseService, type ServiceResponse } from "./baseService";
 
@@ -9,29 +8,39 @@ export interface CreateUserWithMagicLinkData {
   tenantId?: string;
 }
 
+/**
+ * Streamlined Magic Link Service
+ * 
+ * This service ONLY handles Supabase magic link invitations.
+ * Uses Supabase's native email templates and authentication flow.
+ */
 export class MagicLinkService extends BaseService {
   /**
-   * Create a new user and send them a magic link
-   * This replaces the old invitation system
+   * Invite user with magic link - PRIMARY method
+   * 
+   * This creates a user in Supabase auth and sends them a magic link email
+   * using Supabase's built-in invitation system.
    */
-  static async createUserWithMagicLink(
+  static async inviteUserWithMagicLink(
     userData: CreateUserWithMagicLinkData
   ): Promise<ServiceResponse<{ email: string; magicLinkSent: boolean }>> {
     try {
-      // Send magic link using Supabase Auth (this will create the user)
-      const { error: magicLinkError } = await withAdminAuth(async () => {
+      // Send magic link using Supabase Auth
+      // This will create the user in auth.users and send invitation email
+      const { error } = await withAdminAuth(async () => {
         return await supabaseAdmin.auth.admin.inviteUserByEmail(userData.email, {
           data: {
             full_name: userData.fullName,
             role: userData.role,
             tenant_id: userData.tenantId,
           },
-          redirectTo: `${window.location.origin}/dashboard`,
+          // Use Supabase's magic link callback system
+          redirectTo: `${window.location.origin}/auth/callback?type=invite`,
         });
       });
 
-      if (magicLinkError) {
-        return this.handleError(magicLinkError, 'MagicLinkService.createUserWithMagicLink');
+      if (error) {
+        return this.handleError(error, 'MagicLinkService.inviteUserWithMagicLink');
       }
 
       return {
@@ -43,21 +52,25 @@ export class MagicLinkService extends BaseService {
         success: true,
       };
     } catch (error) {
-      return this.handleError(error, 'MagicLinkService.createUserWithMagicLink');
+      return this.handleError(error, 'MagicLinkService.inviteUserWithMagicLink');
     }
   }
 
   /**
-   * Send magic link to existing user
+   * Send magic link to existing user (for re-invitations)
+   * @deprecated Use inviteUserWithMagicLink with proper user data instead
    */
   static async sendMagicLinkToUser(
     email: string,
     redirectTo: string = '/dashboard'
   ): Promise<ServiceResponse<boolean>> {
     try {
+      console.warn('sendMagicLinkToUser is deprecated, use inviteUserWithMagicLink instead');
+      
       const { error } = await withAdminAuth(async () => {
         return await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-          redirectTo: `${window.location.origin}${redirectTo}`,
+          // Use Supabase's magic link callback system
+          redirectTo: `${window.location.origin}/auth/callback?type=invite`,
         });
       });
 
@@ -76,56 +89,13 @@ export class MagicLinkService extends BaseService {
   }
 
   /**
-   * Create a tenant with admin user using magic link
+   * Legacy method for backward compatibility
+   * @deprecated Use inviteUserWithMagicLink instead
    */
-  static async createTenantWithMagicLink(
-    tenantName: string,
-    adminEmail: string,
-    adminName: string
-  ): Promise<ServiceResponse<{ tenantId: string; adminEmail: string }>> {
-    try {
-      // Create tenant
-      const { data: tenant, error: tenantError } = await supabase
-        .from('tenants')
-        .insert({
-          name: tenantName,
-          status: 'active',
-        })
-        .select()
-        .single();
-
-      if (tenantError) {
-        return this.handleError(tenantError, 'MagicLinkService.createTenantWithMagicLink');
-      }
-
-      // Create admin user with magic link
-      const userResult = await this.createUserWithMagicLink({
-        email: adminEmail,
-        fullName: adminName,
-        role: 'tenant_admin',
-        tenantId: tenant.id,
-      });
-
-      if (!userResult.success) {
-        // Clean up tenant if user creation fails
-        await supabase
-          .from('tenants')
-          .delete()
-          .eq('id', tenant.id);
-
-        return userResult;
-      }
-
-      return {
-        data: {
-          tenantId: tenant.id,
-          adminEmail: adminEmail,
-        },
-        error: null,
-        success: true,
-      };
-    } catch (error) {
-      return this.handleError(error, 'MagicLinkService.createTenantWithMagicLink');
-    }
+  static async createUserWithMagicLink(
+    userData: CreateUserWithMagicLinkData
+  ): Promise<ServiceResponse<{ email: string; magicLinkSent: boolean }>> {
+    console.warn('createUserWithMagicLink is deprecated, use inviteUserWithMagicLink instead');
+    return this.inviteUserWithMagicLink(userData);
   }
 }

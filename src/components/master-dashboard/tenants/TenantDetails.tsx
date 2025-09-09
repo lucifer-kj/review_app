@@ -158,6 +158,12 @@ export default function TenantDetails() {
           </div>
         </div>
         <div className="flex space-x-2">
+          <Button asChild>
+            <Link to={`/master/users/invite?tenantId=${tenantId}`}>
+              <Mail className="mr-2 h-4 w-4" />
+              Invite User
+            </Link>
+          </Button>
           <Button variant="outline" asChild>
             <Link to={`/master/tenants/${tenantId}/edit`}>
               <Edit className="mr-2 h-4 w-4" />
@@ -286,13 +292,23 @@ export default function TenantDetails() {
         <TabsContent value="users" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5" />
-                <span>Tenant Users ({tenantUsers?.length || 0})</span>
-              </CardTitle>
-              <CardDescription>
-                Users associated with this tenant organization
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Users className="h-5 w-5" />
+                    <span>Tenant Users ({tenantUsers?.length || 0})</span>
+                  </CardTitle>
+                  <CardDescription>
+                    Users associated with this tenant organization
+                  </CardDescription>
+                </div>
+                <Button asChild>
+                  <Link to={`/master/users/invite?tenantId=${tenantId}`}>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Invite User
+                  </Link>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {tenantUsers && tenantUsers.length > 0 ? (

@@ -10,8 +10,6 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TenantService } from "@/services/tenantService";
 import { MagicLinkService } from "@/services/magicLinkService";
-import { supabase } from "@/integrations/supabase/client";
-import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -21,35 +19,36 @@ export default function TenantCreateWizard() {
   const [formData, setFormData] = useState({
     name: "",
     domain: "",
-    adminEmail: "",
     planType: "basic",
     description: "",
   });
 
   const createTenantMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      // Use the magic link service to create tenant with admin
-      const result = await MagicLinkService.createTenantWithMagicLink(
-        data.name,
-        data.adminEmail,
-        data.adminEmail.split('@')[0] // Use email prefix as name
-      );
+      // Create tenant workspace only
+      const tenantResult = await TenantService.createTenant({
+        name: data.name,
+        domain: data.domain,
+        plan_type: data.planType as 'basic' | 'pro' | 'enterprise',
+        settings: {
+          description: data.description,
+        },
+      });
 
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create tenant');
+      if (!tenantResult.success || !tenantResult.data) {
+        throw new Error(tenantResult.error || 'Failed to create tenant');
       }
 
       return {
-        tenant: { id: result.data.tenantId, name: data.name },
-        invitation: { invitationId: 'created', emailSent: true },
+        tenant: tenantResult.data,
         success: true,
       };
     },
     onSuccess: (result) => {
-      const message = result.invitation.emailSent 
-        ? "Tenant created successfully! Magic link sent to admin. They can now sign in using the link in their email."
-        : "Tenant created successfully! Admin account created.";
-      toast.success(message);
+      toast.success("Tenant workspace created successfully! You can now invite users to this workspace.", {
+        description: "Click 'Invite User' to add admin and regular users to this workspace.",
+        duration: 5000
+      });
       queryClient.invalidateQueries({ queryKey: ['tenants'] });
       queryClient.invalidateQueries({ queryKey: ['platform-analytics'] });
       navigate(`/master/tenants/${result.tenant.id}`);
@@ -83,9 +82,9 @@ export default function TenantCreateWizard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tenant Information</CardTitle>
+          <CardTitle>Create Tenant Workspace</CardTitle>
           <CardDescription>
-            Enter the details for the new tenant organization
+            Create a new isolated workspace for an organization. You can invite users to this workspace after creation.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -123,40 +122,22 @@ export default function TenantCreateWizard() {
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="adminEmail">Admin Email *</Label>
-                <Input
-                  id="adminEmail"
-                  type="email"
-                  value={formData.adminEmail}
-                  onChange={(e) => setFormData({ ...formData, adminEmail: e.target.value })}
-                  placeholder="admin@company.com"
-                  required
-                  disabled={createTenantMutation.isPending}
-                />
-                <p className="text-xs text-muted-foreground">
-                  A user account will be created and they can login immediately
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="planType">Plan Type</Label>
-                <Select
-                  value={formData.planType}
-                  onValueChange={(value) => setFormData({ ...formData, planType: value })}
-                  disabled={createTenantMutation.isPending}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select plan type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="basic">Basic</SelectItem>
-                    <SelectItem value="pro">Pro</SelectItem>
-                    <SelectItem value="enterprise">Enterprise</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="planType">Plan Type</Label>
+              <Select
+                value={formData.planType}
+                onValueChange={(value) => setFormData({ ...formData, planType: value })}
+                disabled={createTenantMutation.isPending}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select plan type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="basic">Basic</SelectItem>
+                  <SelectItem value="pro">Pro</SelectItem>
+                  <SelectItem value="enterprise">Enterprise</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -181,7 +162,7 @@ export default function TenantCreateWizard() {
                 ) : (
                   <Building2 className="mr-2 h-4 w-4" />
                 )}
-                {createTenantMutation.isPending ? "Creating..." : "Create Tenant"}
+                {createTenantMutation.isPending ? "Creating Workspace..." : "Create Workspace"}
               </Button>
               <Button 
                 type="button" 
