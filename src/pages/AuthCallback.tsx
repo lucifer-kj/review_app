@@ -53,9 +53,9 @@ export default function AuthCallback() {
           const inviteType = searchParams.get('type');
           
           if (inviteType === 'invite') {
-            console.log('Invitation callback detected, redirecting to dashboard');
-            // Redirect to dashboard for invited users
-            navigate('/dashboard');
+            console.log('Invitation callback detected, redirecting to accept invitation');
+            // Redirect to accept invitation page for invited users
+            navigate('/accept-invitation');
           } else {
             // Redirect based on user role
             console.log('Checking user role...');

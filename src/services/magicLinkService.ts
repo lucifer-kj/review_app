@@ -36,7 +36,7 @@ export class MagicLinkService extends BaseService {
             tenant_id: userData.tenantId,
           },
           // Use environment-configured frontend URL for redirect
-          redirectTo: `${env.frontend.url}/auth/callback?type=invite`,
+          redirectTo: `${env.frontend.url}/accept-invitation`,
         });
       });
 
@@ -71,7 +71,7 @@ export class MagicLinkService extends BaseService {
       const { error } = await withAdminAuth(async () => {
         return await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
           // Use environment-configured frontend URL for redirect
-          redirectTo: `${env.frontend.url}/auth/callback?type=invite`,
+          redirectTo: `${env.frontend.url}/accept-invitation`,
         });
       });
 

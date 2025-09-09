@@ -92,22 +92,80 @@ export class MasterDashboardService {
     try {
       // Try to call the SQL function first
       const { data, error } = await supabase.rpc('get_platform_analytics');
-      if (error) throw error;
+      if (error) {
+        console.warn('Platform analytics function failed, falling back to direct queries:', error);
+        throw error;
+      }
 
-      // Return the real data from the database
+      if (data && data.length > 0) {
+        const analytics = data[0];
+        return {
+          total_tenants: Number(analytics.total_tenants) || 0,
+          active_tenants: Number(analytics.active_tenants) || 0,
+          total_users: Number(analytics.total_users) || 0,
+          total_reviews: Number(analytics.total_reviews) || 0,
+          reviews_this_month: Number(analytics.reviews_this_month) || 0,
+          reviews_last_month: Number(analytics.reviews_last_month) || 0,
+          average_rating: Number(analytics.average_rating) || 0,
+          revenue_current_month: 0, // Placeholder until billing is implemented
+          growth_rate: 0, // Placeholder until growth calculation is implemented
+          system_health_score: 95, // Mock for now
+        };
+      }
+
+      // Fallback to direct queries if function returns empty
+      const [tenantsResult, usersResult, reviewsResult] = await Promise.all([
+        supabase.from('tenants').select('id, status', { count: 'exact', head: true }),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('reviews').select('id, rating, created_at', { count: 'exact', head: true })
+      ]);
+
+      const totalTenants = tenantsResult.count || 0;
+      const totalUsers = usersResult.count || 0;
+      const totalReviews = reviewsResult.count || 0;
+
+      // Calculate active tenants
+      const { data: activeTenantsData } = await supabase
+        .from('tenants')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'active');
+      
+      const activeTenants = activeTenantsData ? 0 : (activeTenantsData as any)?.length || 0;
+
+      // Calculate reviews this month
+      const thisMonth = new Date();
+      thisMonth.setDate(1);
+      const { data: thisMonthReviews } = await supabase
+        .from('reviews')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', thisMonth.toISOString());
+      
+      const reviewsThisMonth = thisMonthReviews ? 0 : (thisMonthReviews as any)?.length || 0;
+
+      // Calculate average rating
+      const { data: ratingData } = await supabase
+        .from('reviews')
+        .select('rating')
+        .not('rating', 'is', null);
+      
+      const averageRating = ratingData && ratingData.length > 0 
+        ? ratingData.reduce((sum, r) => sum + r.rating, 0) / ratingData.length 
+        : 0;
+
       return {
-        total_tenants: data?.total_tenants ?? 0,
-        active_tenants: data?.active_tenants ?? 0,
-        total_users: data?.total_users ?? 0,
-        total_reviews: data?.total_reviews ?? 0,
-        reviews_this_month: data?.reviews_this_month ?? 0,
-        reviews_last_month: data?.reviews_last_month ?? 0,
-        average_rating: data?.average_rating ?? 0,
+        total_tenants: totalTenants,
+        active_tenants: activeTenants,
+        total_users: totalUsers,
+        total_reviews: totalReviews,
+        reviews_this_month: reviewsThisMonth,
+        reviews_last_month: 0, // Placeholder
+        average_rating: averageRating,
         revenue_current_month: 0, // Placeholder until billing is implemented
         growth_rate: 0, // Placeholder until growth calculation is implemented
         system_health_score: 95, // Mock for now
       };
-    } catch (_e) {
+    } catch (error) {
+      console.error('Error fetching platform metrics:', error);
       // Safe fallback to mock to keep UI functional
       return mockMetrics;
     }
@@ -169,25 +227,29 @@ export class MasterDashboardService {
     try {
       // Try to call the SQL function first
       const { data, error } = await supabase.rpc('get_tenant_usage_stats', { p_tenant_id: tenantId });
-      if (error) throw error;
+      if (error) {
+        console.warn('Tenant usage stats function failed, falling back to direct queries:', error);
+        throw error;
+      }
 
       if (data && data.length > 0) {
         return {
           success: true,
           data: {
-            users_count: data[0].users_count || 0,
-            reviews_count: data[0].reviews_count || 0,
-            storage_used: data[0].storage_used || 0,
-            api_calls_count: data[0].api_calls_count || 0,
+            users_count: Number(data[0].users_count) || 0,
+            reviews_count: Number(data[0].reviews_count) || 0,
+            storage_used: Number(data[0].storage_used) || 0,
+            api_calls_count: Number(data[0].api_calls_count) || 0,
             last_activity: data[0].last_activity,
           }
         };
       }
 
       // Fallback to manual queries
-      const [userCountResult, reviewCountResult] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId),
-        supabase.from('reviews').select('*', { count: 'exact', head: true }).eq('tenant_id', tenantId)
+      const [userCountResult, reviewCountResult, lastActivityResult] = await Promise.all([
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+        supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId),
+        supabase.from('reviews').select('created_at').eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(1)
       ]);
 
       return {
@@ -195,9 +257,9 @@ export class MasterDashboardService {
         data: {
           users_count: userCountResult.count || 0,
           reviews_count: reviewCountResult.count || 0,
-          storage_used: 0, // Placeholder
-          api_calls_count: 0, // Placeholder
-          last_activity: null,
+          storage_used: 0, // Placeholder until storage tracking is implemented
+          api_calls_count: 0, // Placeholder until API tracking is implemented
+          last_activity: lastActivityResult.data?.[0]?.created_at || null,
         }
       };
     } catch (error) {

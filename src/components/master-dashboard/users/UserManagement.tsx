@@ -38,6 +38,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 import { MagicLinkService } from "@/services/magicLinkService";
+import { UserService } from "@/services/userService";
 import AdminClientTest from "@/components/debug/AdminClientTest";
 
 interface SupabaseUser {

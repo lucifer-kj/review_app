@@ -31,7 +31,7 @@ const TenantSettings = lazy(() => import("./components/master-dashboard/tenants/
 
 // User management components
 const UserDirectory = lazy(() => import("./components/master-dashboard/users/UserDirectory"));
-const UserManagement = lazy(() => import("./components/master-dashboard/users/UserManagement"));
+const UserManagement = lazy(() => import("./components/master-dashboard/users/UserManagementSimple"));
 const InviteUserForm = lazy(() => import("./components/master-dashboard/users/InviteUserForm"));
 
 // System administration components
@@ -40,8 +40,9 @@ const SystemAdministration = lazy(() => import("./components/master-dashboard/sy
 // Audit components
 const AuditLogs = lazy(() => import("./components/master-dashboard/audit/AuditLogs"));
 
-// Authentication components - removed InvitationAcceptance (using magic links now)
+// Authentication components
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 const TestCallback = lazy(() => import("./pages/TestCallback"));
 
 // Review flow pages
@@ -68,6 +69,9 @@ const RouterContent = () => {
           
           {/* Auth callback route for magic links */}
           <Route path="/auth/callback" element={<AuthCallback />} />
+          
+          {/* Accept invitation route */}
+          <Route path="/accept-invitation" element={<AcceptInvitation />} />
           
           {/* Test callback route for debugging */}
           <Route path="/test-callback" element={<TestCallback />} />
