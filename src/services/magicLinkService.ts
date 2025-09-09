@@ -1,5 +1,6 @@
 import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 import { BaseService, type ServiceResponse } from "./baseService";
+import { env } from "@/utils/env";
 
 export interface CreateUserWithMagicLinkData {
   email: string;
@@ -34,8 +35,8 @@ export class MagicLinkService extends BaseService {
             role: userData.role,
             tenant_id: userData.tenantId,
           },
-          // Use Supabase's magic link callback system
-          redirectTo: `${window.location.origin}/auth/callback?type=invite`,
+          // Use environment-configured frontend URL for redirect
+          redirectTo: `${env.frontend.url}/auth/callback?type=invite`,
         });
       });
 
@@ -69,8 +70,8 @@ export class MagicLinkService extends BaseService {
       
       const { error } = await withAdminAuth(async () => {
         return await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-          // Use Supabase's magic link callback system
-          redirectTo: `${window.location.origin}/auth/callback?type=invite`,
+          // Use environment-configured frontend URL for redirect
+          redirectTo: `${env.frontend.url}/auth/callback?type=invite`,
         });
       });
 

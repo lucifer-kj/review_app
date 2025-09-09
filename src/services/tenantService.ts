@@ -3,6 +3,7 @@ import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 import { AuditLogService } from "./auditLogService";
 import { BaseService, type ServiceResponse } from "./baseService";
 import { logger } from "@/utils/logger";
+import { env } from "@/utils/env";
 
 export interface Tenant {
   id: string;
@@ -319,7 +320,7 @@ export class TenantService extends BaseService {
   static async createTenant(tenantData: CreateTenantData): Promise<ServiceResponse<Tenant>> {
     try {
       // Generate unique review form URL for the tenant
-      const reviewFormUrl = `${import.meta.env.VITE_FRONTEND_URL || window.location.origin}/review/${crypto.randomUUID()}`;
+      const reviewFormUrl = `${env.frontend.url}/review/${crypto.randomUUID()}`;
 
       // Use admin client to bypass RLS policies
       const { data, error } = await withAdminAuth(async () => {
