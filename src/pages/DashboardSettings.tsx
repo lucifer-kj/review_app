@@ -749,7 +749,7 @@ const DashboardSettings = () => {
                     className="min-h-[120px] text-sm sm:text-base"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Available variables: {{customer_name}}, {{business_name}}, {{review_link}}, {{business_email}}, {{business_phone}}
+                    Available variables: {`{{customer_name}}`}, {`{{business_name}}`}, {`{{review_link}}`}, {`{{business_email}}`}, {`{{business_phone}}`}
                   </p>
                 </div>
               </div>
