@@ -26,19 +26,37 @@ export default function TenantList() {
   const pageSize = 9;
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['tenants', { searchTerm, page, pageSize }],
-    queryFn: () => MasterDashboardService.getTenantList({
-      search: searchTerm || undefined,
-      status: 'all',
-      page,
-      pageSize,
-    }),
+  const { data: tenantsResponse, isLoading, error } = useQuery({
+    queryKey: ['tenants'],
+    queryFn: () => TenantService.getAllTenants(),
     refetchInterval: 30000,
   });
 
+  // Filter tenants based on search term
+  const filteredTenants = useMemo(() => {
+    if (!tenantsResponse?.data) return [];
+    
+    return tenantsResponse.data.filter(tenant =>
+      tenant.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [tenantsResponse?.data, searchTerm]);
+
+  // Paginate the filtered results
+  const paginatedTenants = useMemo(() => {
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredTenants.slice(startIndex, endIndex);
+  }, [filteredTenants, page, pageSize]);
+
+  const data = {
+    items: paginatedTenants,
+    total: filteredTenants.length,
+    page,
+    pageSize,
+  };
+
   // Fetch usage statistics for all tenants
-  const tenantIds = (data as any)?.items?.map((t: any) => t.id) ?? [];
+  const tenantIds = paginatedTenants.map(t => t.id);
   const { data: usageStats } = useQuery({
     queryKey: ['tenant-usage-stats', tenantIds],
     queryFn: async () => {
@@ -63,8 +81,6 @@ export default function TenantList() {
     enabled: tenantIds.length > 0,
     refetchInterval: 30000,
   });
-
-  const filteredTenants = (data as any)?.items ?? [];
 
   // Suspend tenant mutation
   const suspendTenantMutation = useMutation({
@@ -173,7 +189,7 @@ export default function TenantList() {
       </div>
 
       {/* Tenants Grid */}
-      {filteredTenants.length === 0 ? (
+      {paginatedTenants.length === 0 ? (
         <Card>
           <CardHeader>
             <CardTitle>Tenant Organizations</CardTitle>
@@ -206,7 +222,7 @@ export default function TenantList() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTenants.map((tenant) => (
+          {paginatedTenants.map((tenant) => (
             <Card key={tenant.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -299,13 +315,13 @@ export default function TenantList() {
       {/* Pagination */}
       <div className="flex items-center justify-between pt-2">
         <div className="text-sm text-muted-foreground">
-          Page {(data as any)?.page ?? 1} of {data ? Math.max(1, Math.ceil((data as any).total / ((data as any).pageSize || pageSize))) : 1}
+          Page {page} of {Math.max(1, Math.ceil(data.total / pageSize))}
         </div>
         <div className="space-x-2">
-          <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={((data as any)?.page ?? 1) <= 1}>
+          <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>
             Previous
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={data ? ((data as any).page * (data as any).pageSize) >= (data as any).total : true}>
+          <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page * pageSize >= data.total}>
             Next
           </Button>
         </div>
