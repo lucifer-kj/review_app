@@ -43,6 +43,7 @@ const AuditLogs = lazy(() => import("./components/master-dashboard/audit/AuditLo
 // Authentication components
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
+const TestAcceptInvitation = lazy(() => import("./pages/TestAcceptInvitation"));
 const TestCallback = lazy(() => import("./pages/TestCallback"));
 
 // Review flow pages
@@ -73,7 +74,8 @@ const RouterContent = () => {
           {/* Accept invitation route */}
           <Route path="/accept-invitation" element={<AcceptInvitation />} />
           
-          {/* Test callback route for debugging */}
+          {/* Test routes for debugging */}
+          <Route path="/test-accept-invitation" element={<TestAcceptInvitation />} />
           <Route path="/test-callback" element={<TestCallback />} />
           
           {/* Master Dashboard routes - super admin only */}

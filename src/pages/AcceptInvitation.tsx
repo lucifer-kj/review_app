@@ -26,14 +26,44 @@ export default function AcceptInvitation() {
       try {
         console.log('Handling invitation callback...');
         console.log('URL params:', Object.fromEntries(searchParams.entries()));
+        console.log('Hash:', window.location.hash);
         
-        // Check for magic link parameters
+        // Check for magic link hash fragment (Supabase format)
+        const hash = window.location.hash;
+        const urlParams = new URLSearchParams(hash.substring(1)); // Remove # and parse
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
+        const type = urlParams.get('type');
+        
+        // Also check URL parameters for compatibility
         const tokenHash = searchParams.get('token_hash');
-        const type = searchParams.get('type');
+        const typeParam = searchParams.get('type');
         const emailParam = searchParams.get('email');
         
-        if (tokenHash && type === 'email') {
-          console.log('Magic link detected, verifying OTP...');
+        if (accessToken && refreshToken) {
+          console.log('Magic link hash detected, setting session...');
+          
+          // Set the session using the tokens from hash
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (sessionError) {
+            console.error('Session setting error:', sessionError);
+            setError('Invalid or expired magic link');
+            return;
+          }
+
+          console.log('Session set successfully');
+          
+          // Get user data from the session
+          if (sessionData.user) {
+            setEmail(sessionData.user.email || '');
+            setFullName(sessionData.user.user_metadata?.full_name || '');
+          }
+        } else if (tokenHash && typeParam === 'email') {
+          console.log('Magic link parameters detected, verifying OTP...');
           
           // Verify the magic link token
           const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
