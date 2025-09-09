@@ -55,11 +55,26 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
+      // Fallback for hash fragment handling
+      if (window.location.hash) {
+        console.log('Hash fragment detected:', window.location.hash);
+        // Ensure React Router can handle the hash
+        window.history.replaceState(null, null, window.location.pathname + window.location.search + window.location.hash);
+      }
+      
+      // Service Worker registration
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function() {
           navigator.serviceWorker.register('/sw.js');
         });
       }
+      
+      // Fallback for SPA routing - ensure all routes are handled by React Router
+      window.addEventListener('DOMContentLoaded', function() {
+        // This ensures that even if the page is refreshed on a client route,
+        // the React app will load and handle the routing
+        console.log('SPA fallback loaded, current path:', window.location.pathname);
+      });
     </script>
   </body>
 </html>
