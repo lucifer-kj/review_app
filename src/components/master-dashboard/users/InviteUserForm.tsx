@@ -18,9 +18,9 @@ export default function InviteUserForm() {
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     email: "",
+    fullName: "",
     role: "user" as "user" | "tenant_admin",
     tenantId: "",
-    message: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -39,13 +39,12 @@ export default function InviteUserForm() {
       // Get tenant name for metadata
       const tenant = tenants?.data?.find(t => t.id === data.tenantId);
       
-      // Use Supabase Magic Link directly
-      const result = await MagicLinkService.sendMagicLink({
+      // Use MagicLinkService to create user and send magic link
+      const result = await MagicLinkService.createUserWithMagicLink({
         email: data.email,
+        fullName: data.fullName,
         role: data.role,
         tenantId: data.tenantId,
-        tenantName: tenant?.name || 'Unknown Tenant',
-        redirectTo: `${window.location.origin}/dashboard`
       });
 
       if (!result.success) {
@@ -57,7 +56,7 @@ export default function InviteUserForm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-invitations'] });
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
-      toast.success("Magic link sent successfully!");
+      toast.success("User created and magic link sent successfully!");
       navigate("/master/users");
     },
     onError: (error: any) => {
@@ -76,6 +75,10 @@ export default function InviteUserForm() {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!formData.fullName) {
+      newErrors.fullName = "Full name is required";
     }
 
     if (!formData.tenantId) {
@@ -114,18 +117,18 @@ export default function InviteUserForm() {
           </Link>
         </Button>
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Send Magic Link</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Create New User</h2>
           <p className="text-muted-foreground">
-            Send a magic link to a new platform user
+            Create a new user and send them a magic link to access their dashboard
           </p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Magic Link</CardTitle>
+          <CardTitle>User Details</CardTitle>
           <CardDescription>
-            Enter the details to send a magic link to the user
+            Enter the user details to create their account and send a magic link
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -142,6 +145,21 @@ export default function InviteUserForm() {
               />
               {errors.email && (
                 <p className="text-sm text-red-500">{errors.email}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name *</Label>
+              <Input
+                id="fullName"
+                type="text"
+                placeholder="John Doe"
+                value={formData.fullName}
+                onChange={(e) => handleInputChange("fullName", e.target.value)}
+                className={errors.fullName ? "border-red-500" : ""}
+              />
+              {errors.fullName && (
+                <p className="text-sm text-red-500">{errors.fullName}</p>
               )}
             </div>
 
@@ -203,19 +221,6 @@ export default function InviteUserForm() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="message">Personal Message (Optional)</Label>
-              <Textarea
-                id="message"
-                placeholder="Add a personal message to the invitation..."
-                value={formData.message}
-                onChange={(e) => handleInputChange("message", e.target.value)}
-                rows={3}
-              />
-              <p className="text-xs text-muted-foreground">
-                This message will be included in the magic link email
-              </p>
-            </div>
 
             {sendMagicLinkMutation.error && (
               <Alert variant="destructive">
@@ -248,12 +253,12 @@ export default function InviteUserForm() {
                 {sendMagicLinkMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
+                    Creating User...
                   </>
                 ) : (
                   <>
                     <UserPlus className="mr-2 h-4 w-4" />
-                    Send Magic Link
+                    Create User & Send Magic Link
                   </>
                 )}
               </Button>

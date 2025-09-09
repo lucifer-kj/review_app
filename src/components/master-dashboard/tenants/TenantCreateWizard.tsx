@@ -9,7 +9,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { TenantService } from "@/services/tenantService";
-import { InvitationService } from "@/services/invitationService";
+import { MagicLinkService } from "@/services/magicLinkService";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
 import { toast } from "sonner";
@@ -28,61 +28,27 @@ export default function TenantCreateWizard() {
 
   const createTenantMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      // Use the database function that handles everything properly
-      const { data: result, error } = await supabase.rpc('create_tenant_with_admin', {
-        tenant_data: {
-          name: data.name,
-          domain: data.domain || null,
-          plan_type: data.planType,
-          settings: { description: data.description },
-          billing_email: data.adminEmail,
-        },
-        admin_email: data.adminEmail
-      });
+      // Use the magic link service to create tenant with admin
+      const result = await MagicLinkService.createTenantWithMagicLink(
+        data.name,
+        data.adminEmail,
+        data.adminEmail.split('@')[0] // Use email prefix as name
+      );
 
-      if (error) {
-        throw new Error(error.message || 'Failed to create tenant');
-      }
-
-      // Send invitation email using Supabase Admin Auth invite
-      let emailSent = false;
-      try {
-        const { error: inviteError } = await withAdminAuth(async () => {
-          return await supabaseAdmin.auth.admin.inviteUserByEmail(data.adminEmail, {
-            data: {
-              tenant_name: data.name,
-              tenant_id: result.tenant_id,
-              role: 'tenant_admin',
-            },
-            // Dynamic redirect URL for password creation
-            redirectTo: `${window.location.origin}/accept-invitation?tenant_id=${result.tenant_id}`,
-          });
-        });
-
-        if (!inviteError) {
-          emailSent = true;
-          console.log('Invitation email sent successfully to:', data.adminEmail);
-        } else {
-          console.warn('Failed to send invitation email:', inviteError);
-          // Still consider it successful since the tenant and invitation record were created
-          emailSent = true;
-        }
-      } catch (inviteError) {
-        console.warn('Failed to send invitation email:', inviteError);
-        // Still consider it successful since the tenant and invitation record were created
-        emailSent = true;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create tenant');
       }
 
       return {
-        tenant: { id: result.tenant_id, name: data.name },
-        invitation: { invitationId: 'created', emailSent },
+        tenant: { id: result.data.tenantId, name: data.name },
+        invitation: { invitationId: 'created', emailSent: true },
         success: true,
       };
     },
     onSuccess: (result) => {
       const message = result.invitation.emailSent 
-        ? "Tenant created successfully! Invitation email sent to admin. They will be redirected to the password creation page to set up their account."
-        : "Tenant created successfully! Admin invitation created.";
+        ? "Tenant created successfully! Magic link sent to admin. They can now sign in using the link in their email."
+        : "Tenant created successfully! Admin account created.";
       toast.success(message);
       queryClient.invalidateQueries({ queryKey: ['tenants'] });
       queryClient.invalidateQueries({ queryKey: ['platform-analytics'] });

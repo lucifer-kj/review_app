@@ -83,9 +83,9 @@ const RouterContent = () => {
             <Route path="audit" element={<AuditLogs />} />
           </Route>
           
-          {/* Dashboard routes - protected (managers only) */}
+          {/* Dashboard routes - protected (tenant_admin and user) */}
           <Route path="/dashboard" element={
-            <ProtectedRoute requiredRole="tenant_admin">
+            <ProtectedRoute requiredRole={["tenant_admin", "user"]}>
               <DashboardLayout />
             </ProtectedRoute>
           }>

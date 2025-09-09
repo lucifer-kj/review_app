@@ -15,6 +15,11 @@ interface LoginFormData {
   password: string;
 }
 
+interface UserProfile {
+  role: string;
+  tenant_id: string | null;
+}
+
 const Login = () => {
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
@@ -55,13 +60,21 @@ const Login = () => {
         .eq('id', data.user.id)
         .single();
 
-      if (profileError || !profile) {
+      if (profileError) {
+        console.error('Profile query error:', profileError);
         throw new Error('User profile not found. Please contact support.');
       }
 
-      // Check if user has valid role
-      if (!profile.role || !['super_admin', 'tenant_admin', 'user'].includes(profile.role)) {
-        throw new Error('Invalid user role. Please contact support.');
+      if (!profile) {
+        throw new Error('User profile not found. Please contact support.');
+      }
+
+      // Type guard to ensure profile has the expected structure
+      const userProfile = profile as any;
+
+      // Check if user has manager role (super_admin or tenant_admin only)
+      if (!userProfile.role || !['super_admin', 'tenant_admin'].includes(userProfile.role)) {
+        throw new Error('Access denied. This login is for managers only. Users and tenants will receive magic links via email from their managers.');
       }
         
       toast({
@@ -70,7 +83,7 @@ const Login = () => {
       });
         
       // Redirect based on user role
-      if (profile.role === 'super_admin') {
+      if (userProfile.role === 'super_admin') {
         navigate("/master", { replace: true });
       } else {
         navigate("/dashboard", { replace: true });
@@ -160,10 +173,10 @@ const Login = () => {
             <p className="text-sm text-gray-600">Review Management Platform</p>
           </div>
           <CardTitle className="text-xl mb-2">
-            {showPasswordReset ? "Reset Password" : "Sign In"}
+            {showPasswordReset ? "Reset Password" : "Manager Sign In"}
           </CardTitle>
           <CardDescription className="text-sm text-muted-foreground">
-            {showPasswordReset ? "Enter your email to reset password" : ""}
+            {showPasswordReset ? "Enter your email to reset password" : "For platform managers and administrators only"}
           </CardDescription>
         </CardHeader>
         
@@ -244,11 +257,9 @@ const Login = () => {
         
         <CardFooter className="text-center px-8 pb-8">
           <div className="space-y-3">
-            <div className="text-xs">
-              <Link to="/tenant-login" className="text-blue-600 hover:text-blue-500">
-                Tenant Login
-              </Link>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Users and tenants will receive magic links via email from their managers
+            </p>
             <p className="text-xs text-muted-foreground">
               Powered by Alpha Business Digital
             </p>

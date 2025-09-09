@@ -1,169 +1,131 @@
-/**
- * Magic Link Service using Supabase's Built-in Auth
- * Simple email-based authentication without complex invitation flows
- */
+import { supabase } from "@/integrations/supabase/client";
+import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
+import { BaseService, type ServiceResponse } from "./baseService";
 
-import { supabaseAdmin, isAdminClientConfigured } from '@/integrations/supabase/admin';
-import { supabase } from '@/integrations/supabase/client';
-
-export interface MagicLinkData {
+export interface CreateUserWithMagicLinkData {
   email: string;
+  fullName: string;
   role: 'super_admin' | 'tenant_admin' | 'user';
   tenantId?: string;
-  tenantName?: string;
-  redirectTo?: string;
 }
 
-export interface MagicLinkResult {
-  success: boolean;
-  error?: string;
-}
-
-export class MagicLinkService {
+export class MagicLinkService extends BaseService {
   /**
-   * Send magic link using Supabase's built-in system
-   * This creates a user and sends them a magic link email
+   * Create a new user and send them a magic link
+   * This replaces the old invitation system
    */
-  static async sendMagicLink(data: MagicLinkData): Promise<MagicLinkResult> {
+  static async createUserWithMagicLink(
+    userData: CreateUserWithMagicLinkData
+  ): Promise<ServiceResponse<{ email: string; magicLinkSent: boolean }>> {
     try {
-      // Check if admin client is configured
-      if (!isAdminClientConfigured()) {
-        return {
-          success: false,
-          error: 'Admin client not configured. Please check your service role key.'
-        };
-      }
-
-      // Prepare user metadata
-      const userMetadata: Record<string, any> = {
-        role: data.role,
-      };
-
-      if (data.tenantId) {
-        userMetadata.tenant_id = data.tenantId;
-      }
-
-      if (data.tenantName) {
-        userMetadata.tenant_name = data.tenantName;
-      }
-
-      // Set redirect URL
-      const redirectUrl = data.redirectTo || `${window.location.origin}/dashboard`;
-
-      console.log('Sending magic link:', {
-        email: data.email,
-        metadata: userMetadata,
-        redirectUrl
+      // Send magic link using Supabase Auth (this will create the user)
+      const { error: magicLinkError } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.inviteUserByEmail(userData.email, {
+          data: {
+            full_name: userData.fullName,
+            role: userData.role,
+            tenant_id: userData.tenantId,
+          },
+          redirectTo: `${window.location.origin}/dashboard`,
+        });
       });
 
-      // Create user and send magic link using Supabase Auth Admin
-      const { data: userData, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-        data.email,
-        {
-          data: userMetadata,
-          redirectTo: redirectUrl
-        }
-      );
-
-      if (error) {
-        console.error('Magic link error:', error);
-        return {
-          success: false,
-          error: error.message || 'Failed to send magic link'
-        };
+      if (magicLinkError) {
+        return this.handleError(magicLinkError, 'MagicLinkService.createUserWithMagicLink');
       }
 
-      console.log('Magic link sent successfully:', userData);
-
       return {
-        success: true
+        data: {
+          email: userData.email,
+          magicLinkSent: true,
+        },
+        error: null,
+        success: true,
       };
-
     } catch (error) {
-      console.error('Magic link service error:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
+      return this.handleError(error, 'MagicLinkService.createUserWithMagicLink');
     }
   }
 
   /**
-   * Send magic link for existing user (password reset style)
+   * Send magic link to existing user
    */
-  static async sendMagicLinkToExistingUser(email: string, redirectTo?: string): Promise<MagicLinkResult> {
+  static async sendMagicLinkToUser(
+    email: string,
+    redirectTo: string = '/dashboard'
+  ): Promise<ServiceResponse<boolean>> {
     try {
-      const redirectUrl = redirectTo || `${window.location.origin}/dashboard`;
-
-      console.log('Sending magic link to existing user:', {
-        email,
-        redirectUrl
-      });
-
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: redirectUrl
-        }
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+          redirectTo: `${window.location.origin}${redirectTo}`,
+        });
       });
 
       if (error) {
-        console.error('Magic link error:', error);
-        return {
-          success: false,
-          error: error.message || 'Failed to send magic link'
-        };
+        return this.handleError(error, 'MagicLinkService.sendMagicLinkToUser');
       }
 
-      console.log('Magic link sent successfully to existing user');
-
       return {
-        success: true
+        data: true,
+        error: null,
+        success: true,
       };
-
     } catch (error) {
-      console.error('Magic link service error:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
+      return this.handleError(error, 'MagicLinkService.sendMagicLinkToUser');
     }
   }
 
   /**
-   * Check if admin client is properly configured
+   * Create a tenant with admin user using magic link
    */
-  static isConfigured(): boolean {
-    return isAdminClientConfigured();
-  }
+  static async createTenantWithMagicLink(
+    tenantName: string,
+    adminEmail: string,
+    adminName: string
+  ): Promise<ServiceResponse<{ tenantId: string; adminEmail: string }>> {
+    try {
+      // Create tenant
+      const { data: tenant, error: tenantError } = await supabase
+        .from('tenants')
+        .insert({
+          name: tenantName,
+          status: 'active',
+        })
+        .select()
+        .single();
 
-  /**
-   * Get configuration status
-   */
-  static getConfigurationStatus(): {
-    configured: boolean;
-    message: string;
-    recommendations: string[];
-  } {
-    const configured = this.isConfigured();
-    
-    if (configured) {
+      if (tenantError) {
+        return this.handleError(tenantError, 'MagicLinkService.createTenantWithMagicLink');
+      }
+
+      // Create admin user with magic link
+      const userResult = await this.createUserWithMagicLink({
+        email: adminEmail,
+        fullName: adminName,
+        role: 'tenant_admin',
+        tenantId: tenant.id,
+      });
+
+      if (!userResult.success) {
+        // Clean up tenant if user creation fails
+        await supabase
+          .from('tenants')
+          .delete()
+          .eq('id', tenant.id);
+
+        return userResult;
+      }
+
       return {
-        configured: true,
-        message: 'Admin client is properly configured',
-        recommendations: []
+        data: {
+          tenantId: tenant.id,
+          adminEmail: adminEmail,
+        },
+        error: null,
+        success: true,
       };
+    } catch (error) {
+      return this.handleError(error, 'MagicLinkService.createTenantWithMagicLink');
     }
-
-    return {
-      configured: false,
-      message: 'Admin client is not configured',
-      recommendations: [
-        'Set VITE_SUPABASE_SERVICE_ROLE_KEY in your .env file',
-        'Ensure the service role key is valid and has admin privileges',
-        'Restart your development server after adding the key',
-        'Check Supabase dashboard for the correct service role key'
-      ]
-    };
   }
 }

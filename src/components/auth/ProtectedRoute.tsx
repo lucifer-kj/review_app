@@ -8,7 +8,7 @@ import { RoleService } from '@/services/roleService';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredRole?: 'super_admin' | 'tenant_admin' | 'user';
+  requiredRole?: 'super_admin' | 'tenant_admin' | 'user' | ('super_admin' | 'tenant_admin' | 'user')[];
 }
 
 export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
@@ -30,9 +30,19 @@ export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) 
 
       // If required role is specified, validate access
       if (requiredRole) {
-        const roleCheck = await RoleService.checkUserRole(user.id, requiredRole);
-        if (!roleCheck.data?.hasAccess) {
-          throw new Error(`Access denied: ${roleCheck.data?.reason || 'Insufficient permissions'}`);
+        const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+        let hasAccess = false;
+        
+        for (const role of roles) {
+          const roleCheck = await RoleService.checkUserRole(user.id, role);
+          if (roleCheck.data?.hasAccess) {
+            hasAccess = true;
+            break;
+          }
+        }
+        
+        if (!hasAccess) {
+          throw new Error(`Access denied: Insufficient permissions. Required one of: ${roles.join(', ')}`);
         }
       }
 

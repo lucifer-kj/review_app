@@ -22,8 +22,8 @@ export class InvitationService extends BaseService {
           tenant_id: tenantId,
           role: role,
         },
-        // Redirect to our custom password creation page
-        redirectTo: `${window.location.origin}/accept-invitation`,
+        // Redirect to dashboard after password creation
+        redirectTo: `${window.location.origin}/dashboard`,
       });
 
       if (error) {
@@ -83,15 +83,17 @@ export class InvitationService extends BaseService {
         // Send invitation email using Supabase Auth invite with dynamic redirect URL
         let emailSent = false;
         try {
-          const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-            data: {
-              tenant_name: tenantName,
-              tenant_id: tenantId,
-              invitation_id: invitationData.id,
-              role: role,
-            },
-            // Dynamic redirect URL for password creation
-            redirectTo: `${window.location.origin}/accept-invitation?tenant_id=${tenantId}&invitation_id=${invitationData.id}`,
+          const { error: inviteError } = await withAdminAuth(async () => {
+            return await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+              data: {
+                tenant_name: tenantName,
+                tenant_id: tenantId,
+                invitation_id: invitationData.id,
+                role: role,
+              },
+              // Redirect to dashboard after password creation
+              redirectTo: `${window.location.origin}/dashboard`,
+            });
           });
 
           if (!inviteError) {

@@ -37,7 +37,7 @@ import {
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseAdmin, withAdminAuth } from "@/integrations/supabase/admin";
-import { InvitationService } from "@/services/invitationService";
+import { MagicLinkService } from "@/services/magicLinkService";
 import AdminClientTest from "@/components/debug/AdminClientTest";
 
 interface SupabaseUser {
@@ -361,17 +361,11 @@ export default function UserManagement() {
   // Send magic link mutation
   const sendMagicLinkMutation = useMutation({
     mutationFn: async (email: string) => {
-      const { error } = await withAdminAuth(async () => {
-        return await supabaseAdmin.auth.admin.generateLink({
-        type: 'magiclink',
-        email: email,
-        options: {
-          redirectTo: `${window.location.origin}/dashboard`,
-        }
-      });
-
-      if (error) throw error;
-      });
+      const result = await MagicLinkService.sendMagicLinkToUser(email, '/dashboard');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send magic link');
+      }
+      return result.data;
     },
     onSuccess: (_, email) => {
       toast({
@@ -387,6 +381,7 @@ export default function UserManagement() {
       });
     },
   });
+
 
   // Ban user mutation
   const banUserMutation = useMutation({
@@ -442,6 +437,85 @@ export default function UserManagement() {
     },
   });
 
+  // Suspend user mutation
+  const suspendUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.updateUserById(userId, {
+          app_metadata: { suspended: true }
+        });
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-users'] });
+      toast({
+        title: "User Suspended",
+        description: "User has been suspended successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Suspend User",
+        description: error.message || "Failed to suspend user.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Unsuspend user mutation
+  const unsuspendUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.updateUserById(userId, {
+          app_metadata: { suspended: false }
+        });
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-users'] });
+      toast({
+        title: "User Unsuspended",
+        description: "User has been unsuspended successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Unsuspend User",
+        description: error.message || "Failed to unsuspend user.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.deleteUser(userId);
+      });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-users'] });
+      toast({
+        title: "User Deleted",
+        description: "User has been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Delete User",
+        description: error.message || "Failed to delete user.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getUserRole = (user: any) => {
     return user?.role || 'user';
   };
@@ -479,6 +553,10 @@ export default function UserManagement() {
   const isUserBanned = (user: any) => {
     if (!user.banned_until) return false;
     return new Date(user.banned_until) > new Date();
+  };
+
+  const isUserSuspended = (user: any) => {
+    return user?.app_metadata?.suspended === true;
   };
 
   const formatDate = (dateString: string | null) => {
@@ -650,9 +728,10 @@ export default function UserManagement() {
                 const tenantId = getUserTenant(user);
                 const tenantName = user.tenant_name || 'No Tenant';
                 const isBanned = isUserBanned(user);
+                const isSuspended = isUserSuspended(user);
                 
                 return (
-                  <div key={user.id} className={`flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors ${isBanned ? 'bg-red-50 border-red-200' : ''}`}>
+                  <div key={user.id} className={`flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors ${isBanned ? 'bg-red-50 border-red-200' : isSuspended ? 'bg-orange-50 border-orange-200' : ''}`}>
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center space-x-2">
                         {getRoleIcon(role)}
@@ -663,6 +742,12 @@ export default function UserManagement() {
                               <Badge variant="destructive" className="text-xs">
                                 <Ban className="h-3 w-3 mr-1" />
                                 Banned
+                              </Badge>
+                            )}
+                            {isSuspended && (
+                              <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800">
+                                <UserX className="h-3 w-3 mr-1" />
+                                Suspended
                               </Badge>
                             )}
                             {!user.email_confirmed_at && (
@@ -760,6 +845,70 @@ export default function UserManagement() {
                               Unban User
                             </DropdownMenuItem>
                           )}
+                          
+                          {/* Suspend/Unsuspend */}
+                          {!isUserSuspended(user) ? (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  <UserX className="mr-2 h-4 w-4" />
+                                  Suspend User
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Suspend User</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to suspend {user.email}? This will prevent them from accessing the platform.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => suspendUserMutation.mutate(user.id)}
+                                    className="bg-orange-600 hover:bg-orange-700"
+                                  >
+                                    Suspend User
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          ) : (
+                            <DropdownMenuItem 
+                              onClick={() => unsuspendUserMutation.mutate(user.id)}
+                              disabled={unsuspendUserMutation.isPending}
+                            >
+                              <UserCheck className="mr-2 h-4 w-4" />
+                              Unsuspend User
+                            </DropdownMenuItem>
+                          )}
+                          
+                          {/* Delete User */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">
+                                <UserX className="mr-2 h-4 w-4" />
+                                Delete User
+                              </DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to permanently delete {user.email}? This action cannot be undone and will remove all their data.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteUserMutation.mutate(user.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Delete User
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                           
                           <DropdownMenuSeparator />
                           
