@@ -30,18 +30,34 @@ export default function TenantDetails() {
   const [activeTab, setActiveTab] = useState("overview");
 
   // Fetch tenant details
-  const { data: tenant, isLoading, error } = useQuery({
+  const { data: tenantResponse, isLoading, error } = useQuery({
     queryKey: ['tenant-details', tenantId],
-    queryFn: () => MasterDashboardService.getTenantDetails(tenantId!),
+    queryFn: async () => {
+      const result = await TenantService.getTenantById(tenantId!);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch tenant details');
+      }
+      return result.data;
+    },
     enabled: !!tenantId,
   });
 
+  const tenant = tenantResponse;
+
   // Fetch tenant usage stats
-  const { data: usageStats } = useQuery({
+  const { data: usageStatsResponse } = useQuery({
     queryKey: ['tenant-usage-stats', tenantId],
-    queryFn: () => MasterDashboardService.getTenantUsageStats(tenantId!),
+    queryFn: async () => {
+      const result = await TenantService.getTenantUsageStats(tenantId!);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch usage stats');
+      }
+      return result.data;
+    },
     enabled: !!tenantId,
   });
+
+  const usageStats = usageStatsResponse;
 
   // Fetch tenant users
   const { data: tenantUsers } = useQuery({
@@ -134,7 +150,7 @@ export default function TenantDetails() {
     );
   }
 
-  const stats = usageStats?.data || {
+  const stats = usageStats || {
     users_count: 0,
     reviews_count: 0,
     storage_used: 0,

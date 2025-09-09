@@ -20,43 +20,24 @@ export class MagicLinkService extends BaseService {
   /**
    * Invite user with magic link - PRIMARY method
    * 
-   * This sends a magic link email using Supabase's signInWithOtp method
-   * which is the proper way to handle magic links.
+   * This creates a user in Supabase auth and sends them a magic link email
+   * using Supabase's built-in invitation system.
    */
   static async inviteUserWithMagicLink(
     userData: CreateUserWithMagicLinkData
   ): Promise<ServiceResponse<{ email: string; magicLinkSent: boolean }>> {
     try {
-      // First, create the user profile with admin client
-      const { error: profileError } = await withAdminAuth(async () => {
-        return await supabaseAdmin
-          .from('profiles')
-          .upsert({
-            email: userData.email,
-            full_name: userData.fullName,
-            role: userData.role,
-            tenant_id: userData.tenantId,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-      });
-
-      if (profileError) {
-        console.warn('Profile creation failed, continuing with magic link:', profileError);
-      }
-
-      // Send magic link using signInWithOtp (proper magic link method)
-      const { error } = await supabase.auth.signInWithOtp({
-        email: userData.email,
-        options: {
-          // Use environment-configured frontend URL for redirect
-          emailRedirectTo: `${env.frontend.url}/auth/callback?type=invite`,
+      // Use inviteUserByEmail which bypasses signup restrictions
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.inviteUserByEmail(userData.email, {
           data: {
             full_name: userData.fullName,
             role: userData.role,
             tenant_id: userData.tenantId,
           },
-        },
+          // Use environment-configured frontend URL for redirect
+          redirectTo: `${env.frontend.url}/auth/callback?type=invite`,
+        });
       });
 
       if (error) {
@@ -87,12 +68,11 @@ export class MagicLinkService extends BaseService {
     try {
       console.warn('sendMagicLinkToUser is deprecated, use inviteUserWithMagicLink instead');
       
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
+      const { error } = await withAdminAuth(async () => {
+        return await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
           // Use environment-configured frontend URL for redirect
-          emailRedirectTo: `${env.frontend.url}/auth/callback?type=invite`,
-        },
+          redirectTo: `${env.frontend.url}/auth/callback?type=invite`,
+        });
       });
 
       if (error) {

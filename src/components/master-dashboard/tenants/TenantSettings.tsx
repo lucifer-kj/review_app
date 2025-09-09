@@ -42,11 +42,19 @@ export default function TenantSettings() {
   });
 
   // Fetch tenant details
-  const { data: tenant, isLoading, error } = useQuery({
+  const { data: tenantResponse, isLoading, error } = useQuery({
     queryKey: ['tenant-details', tenantId],
-    queryFn: () => MasterDashboardService.getTenantDetails(tenantId!),
+    queryFn: async () => {
+      const result = await TenantService.getTenantById(tenantId!);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch tenant details');
+      }
+      return result.data;
+    },
     enabled: !!tenantId,
   });
+
+  const tenant = tenantResponse;
 
   // Update form data when tenant is loaded
   useEffect(() => {

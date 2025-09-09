@@ -112,15 +112,18 @@ export class TenantService extends BaseService {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('tenants')
-        .update({ 
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', tenantId)
-        .select()
-        .single();
+      // Use admin client to bypass RLS policies for super admin operations
+      const { data, error } = await withAdminAuth(async () => {
+        return await supabaseAdmin
+          .from('tenants')
+          .update({ 
+            status,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', tenantId)
+          .select()
+          .single();
+      });
 
       if (error) {
         return this.handleError(error, 'TenantService.updateTenantStatus');
@@ -162,15 +165,18 @@ export class TenantService extends BaseService {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('tenants')
-        .update({ 
-          ...updateData,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', tenantId)
-        .select()
-        .single();
+      // Use admin client to bypass RLS policies for super admin operations
+      const { data, error } = await withAdminAuth(async () => {
+        return await supabaseAdmin
+          .from('tenants')
+          .update({ 
+            ...updateData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', tenantId)
+          .select()
+          .single();
+      });
 
       if (error) {
         return this.handleError(error, 'TenantService.updateTenant');
@@ -212,11 +218,14 @@ export class TenantService extends BaseService {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('tenants')
-        .select('*')
-        .eq('id', id)
-        .single();
+      // Use admin client to bypass RLS policies for super admin operations
+      const { data, error } = await withAdminAuth(async () => {
+        return await supabaseAdmin
+          .from('tenants')
+          .select('*')
+          .eq('id', id)
+          .single();
+      });
 
       if (error) {
         return this.handleError(error, 'TenantService.getTenantById');
@@ -245,48 +254,53 @@ export class TenantService extends BaseService {
     }
 
     try {
-      // First, delete all related data
-      // Delete reviews
-      await supabase
-        .from('reviews')
-        .delete()
-        .eq('tenant_id', tenantId);
+      // Use admin client to bypass RLS policies for super admin operations
+      const { error } = await withAdminAuth(async () => {
+        // First, delete all related data
+        // Delete reviews
+        await supabaseAdmin
+          .from('reviews')
+          .delete()
+          .eq('tenant_id', tenantId);
 
-      // Delete business settings
-      await supabase
-        .from('business_settings')
-        .delete()
-        .eq('tenant_id', tenantId);
+        // Delete business settings
+        await supabaseAdmin
+          .from('business_settings')
+          .delete()
+          .eq('tenant_id', tenantId);
 
-      // Delete user invitations
-      await supabase
-        .from('user_invitations')
-        .delete()
-        .eq('tenant_id', tenantId);
+        // Delete user invitations
+        await supabaseAdmin
+          .from('user_invitations')
+          .delete()
+          .eq('tenant_id', tenantId);
 
-      // Delete profiles (users)
-      await supabase
-        .from('profiles')
-        .delete()
-        .eq('tenant_id', tenantId);
+        // Delete profiles (users)
+        await supabaseAdmin
+          .from('profiles')
+          .delete()
+          .eq('tenant_id', tenantId);
 
-      // Delete usage metrics
-      await supabase
-        .from('usage_metrics')
-        .delete()
-        .eq('tenant_id', tenantId);
+        // Delete usage metrics
+        await supabaseAdmin
+          .from('usage_metrics')
+          .delete()
+          .eq('tenant_id', tenantId);
 
-      // Delete audit logs
-      await supabase
-        .from('audit_logs')
-        .delete()
-        .eq('tenant_id', tenantId);
+        // Delete audit logs
+        await supabaseAdmin
+          .from('audit_logs')
+          .delete()
+          .eq('tenant_id', tenantId);
 
-      // Finally, delete the tenant
-      const { error } = await supabase
-        .from('tenants')
-        .delete()
-        .eq('id', tenantId);
+        // Finally, delete the tenant
+        const { error: deleteError } = await supabaseAdmin
+          .from('tenants')
+          .delete()
+          .eq('id', tenantId);
+
+        return deleteError;
+      });
 
       if (error) {
         return this.handleError(error, 'TenantService.deleteTenant');
@@ -389,42 +403,51 @@ export class TenantService extends BaseService {
     }
 
     try {
-      // Get reviews count
-      const { count: reviewsCount } = await supabase
-        .from('reviews')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', tenantId);
+      // Use admin client to bypass RLS policies for super admin operations
+      const { data, error } = await withAdminAuth(async () => {
+        // Get reviews count
+        const { count: reviewsCount } = await supabaseAdmin
+          .from('reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId);
 
-      // Get users count
-      const { count: usersCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', tenantId);
+        // Get users count
+        const { count: usersCount } = await supabaseAdmin
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId);
 
-      // Get last activity
-      const { data: lastReview } = await supabase
-        .from('reviews')
-        .select('created_at')
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        // Get last activity
+        const { data: lastReview } = await supabaseAdmin
+          .from('reviews')
+          .select('created_at')
+          .eq('tenant_id', tenantId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
 
-      // Get API calls count (from audit logs)
-      const { count: apiCallsCount } = await supabase
-        .from('audit_logs')
-        .select('*', { count: 'exact', head: true })
-        .eq('tenant_id', tenantId)
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()); // Last 30 days
+        // Get API calls count (from audit logs)
+        const { count: apiCallsCount } = await supabaseAdmin
+          .from('audit_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId)
+          .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()); // Last 30 days
 
-      return {
-        data: {
+        return {
           reviews_count: reviewsCount || 0,
           users_count: usersCount || 0,
           storage_used: 0, // TODO: Implement actual storage calculation
           api_calls_count: apiCallsCount || 0,
           last_activity: lastReview?.created_at || null,
-        },
+        };
+      });
+
+      if (error) {
+        return this.handleError(error, 'TenantService.getTenantUsageStats');
+      }
+
+      return {
+        data: data,
         error: null,
         success: true,
       };
