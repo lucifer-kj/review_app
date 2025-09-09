@@ -119,7 +119,8 @@ export const SendReviewEmailDialog = ({
         customerEmail: formData.customerEmail.trim(),
         customerName: formData.customerName.trim(),
         businessName: formData.businessName.trim(),
-        managerName: formData.managerName.trim() || undefined
+        managerName: formData.managerName.trim() || undefined,
+        tenantId: tenantId
       });
 
       setEmailData(generatedEmailData);

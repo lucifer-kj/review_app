@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from "./ui/alert";
 import { ReviewLimitService } from "@/services/reviewLimitService";
 
 interface ReviewFormProps {
-  onSubmit: (data: { name: string; phone: string; countryCode: string; rating: number }) => void;
+  onSubmit: (data: { name: string; phone: string; countryCode: string; rating: number; tenantId?: string }) => void;
   businessName?: string;
   tenantId?: string;
 }
@@ -42,6 +42,7 @@ export const ReviewForm = ({ onSubmit, businessName = "Business", tenantId }: Re
   const customerName = sanitizeInput(searchParams.get('customer'));
   const utmSource = sanitizeInput(searchParams.get('utm_source'));
   const oneTapRating = Number(sanitizeInput(searchParams.get('rating')) || 0);
+  const urlTenantId = sanitizeInput(searchParams.get('tenant_id'));
 
   // Pre-fill name if provided in URL
   useEffect(() => {
@@ -53,16 +54,17 @@ export const ReviewForm = ({ onSubmit, businessName = "Business", tenantId }: Re
     }
   }, [customerName, oneTapRating]);
 
-  // Check review limits if tenantId is provided
+  // Check review limits if tenantId is provided (from props or URL)
   useEffect(() => {
-    if (tenantId) {
-      checkReviewLimits();
+    const effectiveTenantId = tenantId || urlTenantId;
+    if (effectiveTenantId) {
+      checkReviewLimits(effectiveTenantId);
     }
-  }, [tenantId]);
+  }, [tenantId, urlTenantId]);
 
-  const checkReviewLimits = async () => {
+  const checkReviewLimits = async (effectiveTenantId: string) => {
     try {
-      const response = await ReviewLimitService.getTenantReviewLimits(tenantId!);
+      const response = await ReviewLimitService.getTenantReviewLimits(effectiveTenantId);
       if (response.success && response.data) {
         setReviewLimits(response.data);
         setCanCollect(response.data.can_collect);
@@ -107,8 +109,10 @@ export const ReviewForm = ({ onSubmit, businessName = "Business", tenantId }: Re
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const effectiveTenantId = tenantId || urlTenantId;
+    
     // Check if review collection is disabled due to plan limits
-    if (tenantId && !canCollect) {
+    if (effectiveTenantId && !canCollect) {
       toast({
         title: "Review Collection Disabled",
         description: "This business has reached their review limit. Please contact them directly.",
@@ -158,7 +162,11 @@ export const ReviewForm = ({ onSubmit, businessName = "Business", tenantId }: Re
     try {
       // Simulate form submission delay
       await new Promise(resolve => setTimeout(resolve, 800));
-      onSubmit(formData);
+      // Pass the effective tenant ID along with form data
+      onSubmit({
+        ...formData,
+        tenantId: effectiveTenantId
+      });
     } catch (error) {
       toast({
         title: "Submission Error",
@@ -271,7 +279,7 @@ export const ReviewForm = ({ onSubmit, businessName = "Business", tenantId }: Re
                 rating={formData.rating}
                 onRatingChange={handleRatingChange}
                 size={32}
-                aria-required="true"
+                aria-required={true}
                 aria-describedby="rating-error"
                 aria-invalid={formData.rating === 0 && isSubmitting}
               />

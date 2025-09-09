@@ -7,6 +7,7 @@ export interface EmailTemplateData {
   businessName: string;
   managerName?: string;
   trackingId?: string;
+  tenantId?: string;
 }
 
 export interface EmailData {
@@ -47,7 +48,8 @@ export class UnifiedEmailService {
       customerName,
       businessName,
       managerName,
-      trackingId
+      trackingId,
+      tenantId
     } = data;
 
     try {
@@ -55,7 +57,8 @@ export class UnifiedEmailService {
       const businessSettings = await BusinessSettingsService.getBusinessSettingsWithDefaults();
       
       const baseUrl = window.location.origin;
-      const reviewUrl = `${baseUrl}/review?utm_source=email&utm_campaign=review_request&customer=${encodeURIComponent(customerName)}&tracking_id=${trackingId || 'none'}`;
+      // Include tenant_id in the review URL for proper tenant isolation
+      const reviewUrl = `${baseUrl}/review?utm_source=email&utm_campaign=review_request&customer=${encodeURIComponent(customerName)}&tracking_id=${trackingId || 'none'}${tenantId ? `&tenant_id=${tenantId}` : ''}`;
       
       const subject = `We'd love your feedback, ${customerName}!`;
       

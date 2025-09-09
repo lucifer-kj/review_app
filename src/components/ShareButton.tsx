@@ -22,23 +22,31 @@ import {
 
 interface ShareButtonProps {
   reviewUrl?: string;
+  tenantId?: string;
   title?: string;
   description?: string;
 }
 
 export const ShareButton = ({ 
-  reviewUrl = `${window.location.origin}/review`,
+  reviewUrl,
+  tenantId,
   title = SHARE_CONFIG.TITLE,
   description = SHARE_CONFIG.DESCRIPTION
 }: ShareButtonProps) => {
+  // Generate review URL with tenant_id if provided
+  const defaultReviewUrl = tenantId 
+    ? `${window.location.origin}/review?tenant_id=${tenantId}`
+    : `${window.location.origin}/review`;
+  
+  const finalReviewUrl = reviewUrl || defaultReviewUrl;
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
-  const shareText = `${title}\n\n${description}\n\n${reviewUrl}`;
+  const shareText = `${title}\n\n${description}\n\n${finalReviewUrl}`;
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(reviewUrl);
+      await navigator.clipboard.writeText(finalReviewUrl);
       toast({
         title: "Link Copied!",
         description: "Review link has been copied to clipboard",
@@ -46,7 +54,7 @@ export const ShareButton = ({
     } catch (error) {
       // Fallback for older browsers
       const textArea = document.createElement("textarea");
-      textArea.value = reviewUrl;
+      textArea.value = finalReviewUrl;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand("copy");
@@ -65,7 +73,7 @@ export const ShareButton = ({
         await navigator.share({
           title,
           text: description,
-          url: reviewUrl,
+          url: finalReviewUrl,
         });
       } catch (error) {
         if (error instanceof Error && error.name !== 'AbortError') {

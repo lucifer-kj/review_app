@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,7 @@ const CopyLinkButton = lazy(() => import("@/components/CopyLinkButton").then(mod
 const DashboardLayout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -62,10 +64,10 @@ const DashboardLayout = () => {
         </div>
         <div className="flex items-center gap-3">
           <Suspense fallback={<LoadingSpinner />}>
-            <CopyLinkButton />
+            <CopyLinkButton tenantId={user?.tenant_id} />
           </Suspense>
           <Suspense fallback={<LoadingSpinner />}>
-            <ShareButton />
+            <ShareButton tenantId={user?.tenant_id} />
           </Suspense>
           
           <DropdownMenu>

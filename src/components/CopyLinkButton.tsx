@@ -4,16 +4,24 @@ import { Copy } from "lucide-react";
 
 interface CopyLinkButtonProps {
   reviewUrl?: string;
+  tenantId?: string;
 }
 
 export const CopyLinkButton = ({ 
-  reviewUrl = `${window.location.origin}/review`
+  reviewUrl,
+  tenantId
 }: CopyLinkButtonProps) => {
+  // Generate review URL with tenant_id if provided
+  const defaultReviewUrl = tenantId 
+    ? `${window.location.origin}/review?tenant_id=${tenantId}`
+    : `${window.location.origin}/review`;
+  
+  const finalReviewUrl = reviewUrl || defaultReviewUrl;
   const { toast } = useToast();
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(reviewUrl);
+      await navigator.clipboard.writeText(finalReviewUrl);
       toast({
         title: "Link Copied!",
         description: "Review link has been copied to clipboard",
@@ -21,7 +29,7 @@ export const CopyLinkButton = ({
     } catch (error) {
       // Fallback for older browsers
       const textArea = document.createElement("textarea");
-      textArea.value = reviewUrl;
+      textArea.value = finalReviewUrl;
       document.body.appendChild(textArea);
       textArea.select();
       document.execCommand("copy");

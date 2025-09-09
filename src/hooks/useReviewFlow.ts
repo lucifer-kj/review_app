@@ -10,6 +10,7 @@ interface ReviewFormData {
   phone: string;
   countryCode: string;
   rating: number;
+  tenantId?: string;
 }
 
 interface UseReviewFlowReturn {
@@ -73,6 +74,7 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
           rating: finalRating,
           google_review: finalRating >= 4,
           redirect_opened: false,
+          tenant_id: data.tenantId, // Include tenant_id for proper isolation
           metadata: {
             trackingId: sanitizedUtmParams.trackingId,
             managerName: undefined,
