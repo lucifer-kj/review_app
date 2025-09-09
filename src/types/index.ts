@@ -57,11 +57,27 @@ export interface AuthState {
 export interface BusinessSettings {
   id: string;
   user_id?: string;
+  tenant_id?: string;
   google_business_url?: string;
   business_name?: string;
   business_email?: string;
   business_phone?: string;
   business_address?: string;
+  review_form_url?: string;
+  email_template?: {
+    subject: string;
+    body: string;
+    footer?: string;
+  };
+  form_customization?: {
+    primary_color?: string;
+    secondary_color?: string;
+    logo_url?: string;
+    welcome_message?: string;
+    thank_you_message?: string;
+    required_fields?: string[];
+    optional_fields?: string[];
+  };
   created_at: string;
   updated_at: string;
 }

@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { BusinessSettingsService } from "@/services/businessSettingsService";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -20,7 +22,15 @@ import {
   ExternalLink,
   CheckCircle2,
   Circle,
-  Key
+  Key,
+  Eye,
+  EyeOff,
+  Palette,
+  Mail,
+  FormInput,
+  RefreshCw,
+  Copy,
+  Check
 } from "lucide-react";
 import ChangePasswordDialog from "@/components/ChangePasswordDialog";
 import type { BusinessSettings } from "@/types";
@@ -34,11 +44,29 @@ const DashboardSettings = () => {
     business_email: '',
     business_phone: '',
     business_address: '',
+    review_form_url: '',
+    email_template: {
+      subject: 'Share your experience with us',
+      body: 'Hi {{customer_name}},\n\nWe hope you enjoyed your experience with us! We\'d love to hear your feedback.\n\nPlease take a moment to share your review: {{review_link}}\n\nThank you for choosing us!\n\nBest regards,\n{{business_name}}',
+      footer: 'This email was sent by {{business_name}}. If you have any questions, please contact us at {{business_email}}.'
+    },
+    form_customization: {
+      primary_color: '#3b82f6',
+      secondary_color: '#1e40af',
+      logo_url: '',
+      welcome_message: 'We\'d love to hear about your experience with our services',
+      thank_you_message: 'Thank you for your feedback! Your review helps us improve our services.',
+      required_fields: ['customer_name', 'rating'],
+      optional_fields: ['customer_email', 'customer_phone', 'review_text']
+    },
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [copiedField, setCopiedField] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Calculate setup completion
@@ -53,6 +81,95 @@ const DashboardSettings = () => {
   const completedSteps = Object.values(setupProgress).filter(Boolean).length;
   const totalSteps = Object.keys(setupProgress).length;
   const setupPercentage = Math.round((completedSteps / totalSteps) * 100);
+
+  // Validation functions
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateUrl = (url: string) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const validateColor = (color: string) => {
+    const colorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+    return colorRegex.test(color);
+  };
+
+  const validateSettings = () => {
+    const errors: Record<string, string> = {};
+
+    if (settings.business_name && settings.business_name.length < 2) {
+      errors.business_name = "Business name must be at least 2 characters";
+    }
+
+    if (settings.business_email && !validateEmail(settings.business_email)) {
+      errors.business_email = "Please enter a valid email address";
+    }
+
+    if (settings.google_business_url && !validateUrl(settings.google_business_url)) {
+      errors.google_business_url = "Please enter a valid URL";
+    }
+
+    if (settings.review_form_url && !validateUrl(settings.review_form_url)) {
+      errors.review_form_url = "Please enter a valid URL";
+    }
+
+    if (settings.form_customization?.primary_color && !validateColor(settings.form_customization.primary_color)) {
+      errors.primary_color = "Please enter a valid hex color";
+    }
+
+    if (settings.form_customization?.secondary_color && !validateColor(settings.form_customization.secondary_color)) {
+      errors.secondary_color = "Please enter a valid hex color";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Preview functions
+  const generateEmailPreview = () => {
+    const template = settings.email_template?.body || '';
+    const subject = settings.email_template?.subject || '';
+    
+    return {
+      subject: subject
+        .replace(/\{\{customer_name\}\}/g, 'John Doe')
+        .replace(/\{\{business_name\}\}/g, settings.business_name || 'Your Business')
+        .replace(/\{\{business_email\}\}/g, settings.business_email || 'contact@business.com')
+        .replace(/\{\{business_phone\}\}/g, settings.business_phone || '+1 (555) 123-4567'),
+      body: template
+        .replace(/\{\{customer_name\}\}/g, 'John Doe')
+        .replace(/\{\{business_name\}\}/g, settings.business_name || 'Your Business')
+        .replace(/\{\{review_link\}\}/g, settings.review_form_url || 'https://example.com/review')
+        .replace(/\{\{business_email\}\}/g, settings.business_email || 'contact@business.com')
+        .replace(/\{\{business_phone\}\}/g, settings.business_phone || '+1 (555) 123-4567')
+    };
+  };
+
+  const copyToClipboard = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+      toast({
+        title: "Copied!",
+        description: `${field} copied to clipboard`,
+      });
+    } catch (err) {
+      toast({
+        title: "Copy Failed",
+        description: "Could not copy to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -90,6 +207,16 @@ const DashboardSettings = () => {
   }, [fetchSettings]);
 
   const handleSaveSettings = async () => {
+    // Validate settings before saving
+    if (!validateSettings()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const response = await BusinessSettingsService.updateSettings({
@@ -97,7 +224,10 @@ const DashboardSettings = () => {
         business_name: settings.business_name || '',
         business_email: settings.business_email || '',
         business_phone: settings.business_phone || '',
-        business_address: settings.business_address || ''
+        business_address: settings.business_address || '',
+        review_form_url: settings.review_form_url || '',
+        email_template: settings.email_template,
+        form_customization: settings.form_customization
       });
       
       if (response.success) {
@@ -105,6 +235,7 @@ const DashboardSettings = () => {
           title: "Settings Saved",
           description: "Your business settings have been updated successfully.",
         });
+        setValidationErrors({});
       } else {
         toast({
           title: "Save Failed",
@@ -185,73 +316,113 @@ const DashboardSettings = () => {
           className="mb-4"
         />
         
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">
-            Configure your business settings and preferences
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Settings</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              Configure your business settings and preferences
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowPreview(!showPreview)}
+              className="flex items-center gap-2"
+            >
+              {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPreview ? 'Hide Preview' : 'Show Preview'}
+            </Button>
+            <Button
+              onClick={handleSaveSettings}
+              disabled={saving || Object.keys(validationErrors).length > 0}
+              size="lg"
+              className="flex items-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Settings
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
-        {/* Setup Progress */}
-        <Card>
-          <CardHeader className="px-6 sm:px-8">
-            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-              <CheckCircle2 className="h-5 w-5" />
-              Setup Progress
-            </CardTitle>
-            <CardDescription className="text-sm">
-              Complete your business profile to start collecting reviews
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-6 sm:px-8">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Profile Completion</span>
-                <span className="text-sm text-muted-foreground">{completedSteps}/{totalSteps} steps</span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-2">
-                <div 
-                  className="bg-primary h-2 rounded-full transition-all duration-300" 
-                  style={{ width: `${setupPercentage}%` }}
-                />
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm">
-                  {setupProgress.businessName ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
-                  <span className={setupProgress.businessName ? "text-foreground" : "text-muted-foreground"}>Business Name</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {setupProgress.businessEmail ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
-                  <span className={setupProgress.businessEmail ? "text-foreground" : "text-muted-foreground"}>Business Email</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {setupProgress.businessPhone ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
-                  <span className={setupProgress.businessPhone ? "text-foreground" : "text-muted-foreground"}>Business Phone</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {setupProgress.businessAddress ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
-                  <span className={setupProgress.businessAddress ? "text-foreground" : "text-muted-foreground"}>Business Address</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  {setupProgress.googleBusinessUrl ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
-                  <span className={setupProgress.googleBusinessUrl ? "text-foreground" : "text-muted-foreground"}>Google Business Profile</span>
-                </div>
-              </div>
-              {setupPercentage === 100 && (
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-800">Setup Complete!</span>
-                  </div>
-                  <p className="text-xs text-green-700 mt-1">Your business profile is ready. You can now start sending review requests to customers.</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Main Content with Tabs */}
+        <Tabs defaultValue="business" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="business" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Business Info
+            </TabsTrigger>
+            <TabsTrigger value="review-form" className="flex items-center gap-2">
+              <FormInput className="h-4 w-4" />
+              Review Form
+            </TabsTrigger>
+            <TabsTrigger value="email" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Email Templates
+            </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center gap-2">
+              <Key className="h-4 w-4" />
+              Security
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Business Information */}
-        <Card>
+          {/* Setup Progress - Always visible */}
+          <Card>
+            <CardHeader className="px-6 sm:px-8">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <CheckCircle2 className="h-5 w-5" />
+                Setup Progress
+              </CardTitle>
+              <CardDescription className="text-sm">
+                Complete your business profile to start collecting reviews
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-6 sm:px-8">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Profile Completion</span>
+                  <span className="text-sm text-muted-foreground">{completedSteps}/{totalSteps} steps</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div 
+                    className="bg-primary h-2 rounded-full transition-all duration-300" 
+                    style={{ width: `${setupPercentage}%` }}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(setupProgress).map(([key, completed]) => (
+                    <div key={key} className="flex items-center gap-2 text-sm">
+                      {completed ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
+                      <span className={completed ? "text-foreground" : "text-muted-foreground"}>
+                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                {setupPercentage === 100 && (
+                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">Setup Complete!</span>
+                    </div>
+                    <p className="text-xs text-green-700 mt-1">Your business profile is ready. You can now start sending review requests to customers.</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Business Information Tab */}
+          <TabsContent value="business" className="space-y-6">
+            <Card>
           <CardHeader className="px-6 sm:px-8">
             <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <Settings className="h-5 w-5" />
@@ -270,8 +441,11 @@ const DashboardSettings = () => {
                   value={settings.business_name || ""}
                   onChange={(e) => setSettings(prev => ({ ...prev, business_name: e.target.value }))}
                   placeholder="Crux"
-                  className="text-sm sm:text-base"
+                  className={`text-sm sm:text-base ${validationErrors.business_name ? 'border-red-500' : ''}`}
                 />
+                {validationErrors.business_name && (
+                  <p className="text-sm text-red-500">{validationErrors.business_name}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="business-email" className="text-sm">Business Email</Label>
@@ -281,8 +455,11 @@ const DashboardSettings = () => {
                   value={settings.business_email || ""}
                   onChange={(e) => setSettings(prev => ({ ...prev, business_email: e.target.value }))}
                   placeholder="contact@alphabusiness.com"
-                  className="text-sm sm:text-base"
+                  className={`text-sm sm:text-base ${validationErrors.business_email ? 'border-red-500' : ''}`}
                 />
+                {validationErrors.business_email && (
+                  <p className="text-sm text-red-500">{validationErrors.business_email}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="business-phone" className="text-sm">Business Phone</Label>
@@ -366,10 +543,370 @@ const DashboardSettings = () => {
               </ol>
             </div>
           </CardContent>
-        </Card>
+            </Card>
+          </TabsContent>
 
-        {/* Account Security */}
-        <Card>
+          {/* Review Form Tab */}
+          <TabsContent value="review-form" className="space-y-6">
+            <Card>
+          <CardHeader className="px-6 sm:px-8">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Globe className="h-5 w-5" />
+              Review Form Customization
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Customize your review form appearance and behavior
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6 px-6 sm:px-8">
+            {/* Form Appearance */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm sm:text-base">Form Appearance</h4>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="primary-color" className="text-sm">Primary Color</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="primary-color"
+                      type="color"
+                      value={settings.form_customization?.primary_color || '#3b82f6'}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        form_customization: {
+                          ...prev.form_customization,
+                          primary_color: e.target.value
+                        }
+                      }))}
+                      className="w-16 h-10 p-1"
+                    />
+                    <Input
+                      type="text"
+                      value={settings.form_customization?.primary_color || '#3b82f6'}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        form_customization: {
+                          ...prev.form_customization,
+                          primary_color: e.target.value
+                        }
+                      }))}
+                      placeholder="#3b82f6"
+                      className={`flex-1 ${validationErrors.primary_color ? 'border-red-500' : ''}`}
+                    />
+                  </div>
+                  {validationErrors.primary_color && (
+                    <p className="text-sm text-red-500">{validationErrors.primary_color}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="secondary-color" className="text-sm">Secondary Color</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="secondary-color"
+                      type="color"
+                      value={settings.form_customization?.secondary_color || '#1e40af'}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        form_customization: {
+                          ...prev.form_customization,
+                          secondary_color: e.target.value
+                        }
+                      }))}
+                      className="w-16 h-10 p-1"
+                    />
+                    <Input
+                      type="text"
+                      value={settings.form_customization?.secondary_color || '#1e40af'}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        form_customization: {
+                          ...prev.form_customization,
+                          secondary_color: e.target.value
+                        }
+                      }))}
+                      placeholder="#1e40af"
+                      className={`flex-1 ${validationErrors.secondary_color ? 'border-red-500' : ''}`}
+                    />
+                  </div>
+                  {validationErrors.secondary_color && (
+                    <p className="text-sm text-red-500">{validationErrors.secondary_color}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="welcome-message" className="text-sm">Welcome Message</Label>
+                  <Input
+                    id="welcome-message"
+                    value={settings.form_customization?.welcome_message || ''}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      form_customization: {
+                        ...prev.form_customization,
+                        welcome_message: e.target.value
+                      }
+                    }))}
+                    placeholder="We'd love to hear about your experience with our services"
+                    className="text-sm sm:text-base"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Form Fields */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm sm:text-base">Form Fields</h4>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm">Required Fields</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {['customer_name', 'customer_email', 'customer_phone', 'rating', 'review_text'].map(field => (
+                      <label key={field} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={settings.form_customization?.required_fields?.includes(field) || false}
+                          onChange={(e) => {
+                            const currentFields = settings.form_customization?.required_fields || [];
+                            const newFields = e.target.checked
+                              ? [...currentFields, field]
+                              : currentFields.filter(f => f !== field);
+                            setSettings(prev => ({
+                              ...prev,
+                              form_customization: {
+                                ...prev.form_customization,
+                                required_fields: newFields
+                              }
+                            }));
+                          }}
+                          className="rounded"
+                        />
+                        <span className="capitalize">{field.replace('_', ' ')}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm">Optional Fields</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {['customer_email', 'customer_phone', 'review_text'].map(field => (
+                      <label key={field} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={settings.form_customization?.optional_fields?.includes(field) || false}
+                          onChange={(e) => {
+                            const currentFields = settings.form_customization?.optional_fields || [];
+                            const newFields = e.target.checked
+                              ? [...currentFields, field]
+                              : currentFields.filter(f => f !== field);
+                            setSettings(prev => ({
+                              ...prev,
+                              form_customization: {
+                                ...prev.form_customization,
+                                optional_fields: newFields
+                              }
+                            }));
+                          }}
+                          className="rounded"
+                        />
+                        <span className="capitalize">{field.replace('_', ' ')}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Email Template */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm sm:text-base">Email Template</h4>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="email-subject" className="text-sm">Email Subject</Label>
+                  <Input
+                    id="email-subject"
+                    value={settings.email_template?.subject || ''}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      email_template: {
+                        ...prev.email_template,
+                        subject: e.target.value
+                      }
+                    }))}
+                    placeholder="Share your experience with us"
+                    className="text-sm sm:text-base"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email-body" className="text-sm">Email Body</Label>
+                  <Textarea
+                    id="email-body"
+                    value={settings.email_template?.body || ''}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      email_template: {
+                        ...prev.email_template,
+                        body: e.target.value
+                      }
+                    }))}
+                    placeholder="Hi {{customer_name}}, ..."
+                    className="min-h-[120px] text-sm sm:text-base"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Available variables: {{customer_name}}, {{business_name}}, {{review_link}}, {{business_email}}, {{business_phone}}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Review Form URL */}
+            <div className="space-y-2">
+              <Label htmlFor="review-form-url" className="text-sm">Review Form URL</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="review-form-url"
+                  value={settings.review_form_url || ''}
+                  onChange={(e) => setSettings(prev => ({ ...prev, review_form_url: e.target.value }))}
+                  placeholder="https://yourdomain.com/review"
+                  className={`text-sm sm:text-base ${validationErrors.review_form_url ? 'border-red-500' : ''}`}
+                />
+                {settings.review_form_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(settings.review_form_url, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              {validationErrors.review_form_url && (
+                <p className="text-sm text-red-500">{validationErrors.review_form_url}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                This URL will be used in your email templates to direct customers to your review form.
+              </p>
+            </div>
+          </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Email Templates Tab */}
+          <TabsContent value="email" className="space-y-6">
+            <Card>
+              <CardHeader className="px-6 sm:px-8">
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Mail className="h-5 w-5" />
+                  Email Templates
+                </CardTitle>
+                <CardDescription className="text-sm">
+                  Customize your email templates for review requests
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 px-6 sm:px-8">
+                {/* Email Subject */}
+                <div className="space-y-2">
+                  <Label htmlFor="email-subject" className="text-sm font-medium">Email Subject</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="email-subject"
+                      value={settings.email_template?.subject || ''}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        email_template: {
+                          ...prev.email_template,
+                          subject: e.target.value
+                        }
+                      }))}
+                      placeholder="Share your experience with us"
+                      className="text-sm sm:text-base"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => copyToClipboard(settings.email_template?.subject || '', 'Subject')}
+                    >
+                      {copiedField === 'Subject' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  {validationErrors.email_subject && (
+                    <p className="text-sm text-red-500">{validationErrors.email_subject}</p>
+                  )}
+                </div>
+
+                {/* Email Body */}
+                <div className="space-y-2">
+                  <Label htmlFor="email-body" className="text-sm font-medium">Email Body</Label>
+                  <div className="space-y-2">
+                    <Textarea
+                      id="email-body"
+                      value={settings.email_template?.body || ''}
+                      onChange={(e) => setSettings(prev => ({
+                        ...prev,
+                        email_template: {
+                          ...prev.email_template,
+                          body: e.target.value
+                        }
+                      }))}
+                      placeholder="Hi {{customer_name}}, ..."
+                      className="min-h-[200px] text-sm sm:text-base font-mono"
+                    />
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        Available variables: <code className="bg-muted px-1 rounded">{"{{customer_name}}"}</code>, <code className="bg-muted px-1 rounded">{"{{business_name}}"}</code>, <code className="bg-muted px-1 rounded">{"{{review_link}}"}</code>, <code className="bg-muted px-1 rounded">{"{{business_email}}"}</code>, <code className="bg-muted px-1 rounded">{"{{business_phone}}"}</code>
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(settings.email_template?.body || '', 'Body')}
+                      >
+                        {copiedField === 'Body' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email Footer */}
+                <div className="space-y-2">
+                  <Label htmlFor="email-footer" className="text-sm font-medium">Email Footer (Optional)</Label>
+                  <Textarea
+                    id="email-footer"
+                    value={settings.email_template?.footer || ''}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      email_template: {
+                        ...prev.email_template,
+                        footer: e.target.value
+                      }
+                    }))}
+                    placeholder="This email was sent by {{business_name}}..."
+                    className="min-h-[100px] text-sm sm:text-base font-mono"
+                  />
+                </div>
+
+                {/* Email Preview */}
+                {showPreview && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Email Preview</Label>
+                    <div className="border rounded-lg p-4 bg-muted/50">
+                      <div className="space-y-3">
+                        <div>
+                          <span className="text-xs font-medium text-muted-foreground">Subject:</span>
+                          <p className="text-sm font-medium">{generateEmailPreview().subject}</p>
+                        </div>
+                        <div>
+                          <span className="text-xs font-medium text-muted-foreground">Body:</span>
+                          <div className="text-sm whitespace-pre-wrap font-mono bg-background p-3 rounded border">
+                            {generateEmailPreview().body}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Security Tab */}
+          <TabsContent value="security" className="space-y-6">
+            <Card>
           <CardHeader className="px-6 sm:px-8">
             <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
               <Key className="h-5 w-5" />
@@ -411,24 +948,9 @@ const DashboardSettings = () => {
               </div>
             </div>
           </CardContent>
-        </Card>
-
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <Button onClick={handleSaveSettings} disabled={saving} size="lg" className="w-full sm:w-auto text-sm sm:text-base">
-            {saving ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                Save Settings
-              </>
-            )}
-          </Button>
-        </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

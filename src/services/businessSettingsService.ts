@@ -11,6 +11,21 @@ export interface BusinessSettings {
   business_email?: string;
   business_phone?: string;
   business_address?: string;
+  review_form_url?: string;
+  email_template?: {
+    subject: string;
+    body: string;
+    footer?: string;
+  };
+  form_customization?: {
+    primary_color?: string;
+    secondary_color?: string;
+    logo_url?: string;
+    welcome_message?: string;
+    thank_you_message?: string;
+    required_fields?: string[];
+    optional_fields?: string[];
+  };
   created_at: string;
   updated_at: string;
 }
@@ -21,6 +36,21 @@ export interface BusinessSettingsFormData {
   business_email?: string;
   business_phone?: string;
   business_address?: string;
+  review_form_url?: string;
+  email_template?: {
+    subject: string;
+    body: string;
+    footer?: string;
+  };
+  form_customization?: {
+    primary_color?: string;
+    secondary_color?: string;
+    logo_url?: string;
+    welcome_message?: string;
+    thank_you_message?: string;
+    required_fields?: string[];
+    optional_fields?: string[];
+  };
 }
 
 export class BusinessSettingsService extends BaseService {
