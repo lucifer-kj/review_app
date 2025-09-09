@@ -42,6 +42,7 @@ const AuditLogs = lazy(() => import("./components/master-dashboard/audit/AuditLo
 
 // Authentication components - removed InvitationAcceptance (using magic links now)
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const TestCallback = lazy(() => import("./pages/TestCallback"));
 
 // Review flow pages
 const ReviewFormPage = lazy(() => import("./pages/ReviewFormPage"));
@@ -67,6 +68,9 @@ const RouterContent = () => {
           
           {/* Auth callback route for magic links */}
           <Route path="/auth/callback" element={<AuthCallback />} />
+          
+          {/* Test callback route for debugging */}
+          <Route path="/test-callback" element={<TestCallback />} />
           
           {/* Master Dashboard routes - super admin only */}
           <Route path="/master" element={

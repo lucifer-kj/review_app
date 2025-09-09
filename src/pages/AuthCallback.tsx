@@ -13,6 +13,29 @@ export default function AuthCallback() {
     const handleAuthCallback = async () => {
       try {
         console.log('Handling auth callback...');
+        console.log('URL params:', Object.fromEntries(searchParams.entries()));
+        
+        // Check for magic link parameters
+        const tokenHash = searchParams.get('token_hash');
+        const type = searchParams.get('type');
+        
+        if (tokenHash && type === 'email') {
+          console.log('Magic link detected, verifying OTP...');
+          
+          // Verify the magic link token
+          const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'email',
+          });
+
+          if (verifyError) {
+            console.error('Magic link verification error:', verifyError);
+            setError('Invalid or expired magic link');
+            return;
+          }
+
+          console.log('Magic link verified successfully');
+        }
         
         // Get the current session
         const { data, error } = await supabase.auth.getSession();
@@ -27,9 +50,9 @@ export default function AuthCallback() {
           console.log('Session found, user:', data.session.user.email);
           
           // Check if this is an invitation
-          const type = searchParams.get('type');
+          const inviteType = searchParams.get('type');
           
-          if (type === 'invite') {
+          if (inviteType === 'invite') {
             console.log('Invitation callback detected, redirecting to dashboard');
             // Redirect to dashboard for invited users
             navigate('/dashboard');
