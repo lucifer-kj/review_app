@@ -8,6 +8,8 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 3000,
+    historyApiFallback: true,
+    open: false,
   },
   plugins: [
     react(),
@@ -51,5 +53,10 @@ export default defineConfig(({ mode }) => ({
   },
   define: {
     global: 'globalThis',
+  },
+  preview: {
+    port: 3000,
+    host: true,
+    historyApiFallback: true,
   },
 }));

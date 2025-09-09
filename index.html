@@ -55,26 +55,74 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Fallback for hash fragment handling
-      if (window.location.hash) {
-        console.log('Hash fragment detected:', window.location.hash);
-        // Ensure React Router can handle the hash
-        window.history.replaceState(null, null, window.location.pathname + window.location.search + window.location.hash);
-      }
-      
-      // Service Worker registration
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js');
+      // Enhanced SPA routing support for magic links and client-side routing
+      (function() {
+        // Store the original URL before any processing
+        const originalUrl = window.location.href;
+        console.log('Original URL:', originalUrl);
+        
+        // Handle hash fragments for magic links (Supabase format)
+        if (window.location.hash) {
+          console.log('Hash fragment detected:', window.location.hash);
+          // Preserve the hash for React Router to handle
+          const hash = window.location.hash;
+          const pathname = window.location.pathname;
+          const search = window.location.search;
+          
+          // Ensure the URL is properly formatted for React Router
+          if (!pathname.endsWith('/') && !pathname.includes('.')) {
+            window.history.replaceState(null, null, pathname + search + hash);
+          }
+        }
+        
+        // Service Worker registration
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js')
+              .then(function(registration) {
+                console.log('SW registered: ', registration);
+              })
+              .catch(function(registrationError) {
+                console.log('SW registration failed: ', registrationError);
+              });
+          });
+        }
+        
+        // Enhanced SPA routing fallback
+        window.addEventListener('DOMContentLoaded', function() {
+          console.log('SPA fallback loaded, current path:', window.location.pathname);
+          
+          // Check if we're on a client route and the page might be blank
+          const isClientRoute = !window.location.pathname.includes('.') && 
+                               !window.location.pathname.startsWith('/api') &&
+                               window.location.pathname !== '/';
+          
+          if (isClientRoute) {
+            console.log('Client route detected, ensuring React Router handles it');
+            
+            // Small delay to ensure React has loaded
+            setTimeout(function() {
+              const root = document.getElementById('root');
+              if (root && root.innerHTML.trim() === '') {
+                console.log('Detected blank page on client route, reloading...');
+                window.location.reload();
+              }
+            }, 100);
+          }
         });
-      }
-      
-      // Fallback for SPA routing - ensure all routes are handled by React Router
-      window.addEventListener('DOMContentLoaded', function() {
-        // This ensures that even if the page is refreshed on a client route,
-        // the React app will load and handle the routing
-        console.log('SPA fallback loaded, current path:', window.location.pathname);
-      });
+        
+        // Handle browser back/forward navigation
+        window.addEventListener('popstate', function(event) {
+          console.log('Popstate event:', event.state);
+          // Let React Router handle this
+        });
+        
+        // Handle magic link redirects specifically
+        if (window.location.pathname === '/accept-invitation' || 
+            window.location.pathname === '/test-accept-invitation') {
+          console.log('Magic link route detected, ensuring proper handling');
+        }
+      })();
     </script>
   </body>
 </html>

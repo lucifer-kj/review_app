@@ -1,1 +1,9 @@
+# SPA fallback routing - all routes should serve index.html
 /*    /index.html   200
+
+# Specific routes for better handling
+/accept-invitation    /index.html   200
+/test-accept-invitation    /index.html   200
+/auth/callback    /index.html   200
+/dashboard    /index.html   200
+/master    /index.html   200
