@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, FileText, Mail, Plus, TrendingUp, Users } from "lucide-react";
+import { Star, FileText, Mail, Plus, TrendingUp, Users, Building2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MobileDashboard } from "@/components/MobileDashboard";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
@@ -16,6 +16,7 @@ import ReviewLimitBanner from "@/components/ReviewLimitBanner";
 import GoogleReviewLink from "@/components/GoogleReviewLink";
 import PlanUpgradePrompt from "@/components/PlanUpgradePrompt";
 import { useAuth } from "@/hooks/useAuth";
+import { BusinessSettingsService } from "@/services/businessSettingsService";
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -23,30 +24,48 @@ const Dashboard = () => {
     averageRating: 0,
     highRatingReviews: 0,
   });
+  const [businessSettings, setBusinessSettings] = useState({
+    business_name: '',
+    business_email: '',
+    business_phone: '',
+    business_address: '',
+  });
   const [loading, setLoading] = useState(true);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile, tenant, refreshUserData } = useAuth();
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
-        const response = await ReviewService.getReviewStats();
-        if (response.success && response.data) {
-          setStats(response.data);
+        setLoading(true);
+        
+        // Fetch review stats
+        const statsResponse = await ReviewService.getReviewStats();
+        if (statsResponse.success && statsResponse.data) {
+          setStats(statsResponse.data);
         } else {
-          toast({
-            title: "Error",
-            description: response.error || "Failed to load dashboard stats",
-            variant: "destructive",
-          });
+          console.error('Failed to load dashboard stats:', statsResponse.error);
+        }
+
+        // Fetch business settings if user has a tenant
+        if (profile?.tenant_id) {
+          const settingsResponse = await BusinessSettingsService.getBusinessSettings();
+          if (settingsResponse.success && settingsResponse.data) {
+            setBusinessSettings({
+              business_name: settingsResponse.data.business_name || '',
+              business_email: settingsResponse.data.business_email || '',
+              business_phone: settingsResponse.data.business_phone || '',
+              business_address: settingsResponse.data.business_address || '',
+            });
+          }
         }
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        console.error('Error fetching dashboard data:', error);
         toast({
           title: "Error",
-          description: "Failed to load dashboard stats",
+          description: "Failed to load dashboard data",
           variant: "destructive",
         });
       } finally {
@@ -54,8 +73,31 @@ const Dashboard = () => {
       }
     };
 
-    fetchStats();
-  }, [toast]);
+    fetchData();
+  }, [toast, profile?.tenant_id]);
+
+  // Refresh data when user profile changes (e.g., when moved to tenant)
+  useEffect(() => {
+    if (profile?.tenant_id) {
+      const fetchBusinessSettings = async () => {
+        try {
+          const settingsResponse = await BusinessSettingsService.getBusinessSettings();
+          if (settingsResponse.success && settingsResponse.data) {
+            setBusinessSettings({
+              business_name: settingsResponse.data.business_name || '',
+              business_email: settingsResponse.data.business_email || '',
+              business_phone: settingsResponse.data.business_phone || '',
+              business_address: settingsResponse.data.business_address || '',
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching business settings:', error);
+        }
+      };
+
+      fetchBusinessSettings();
+    }
+  }, [profile?.tenant_id]);
 
   const handleSendReview = () => {
     setShowReviewDialog(true);
@@ -96,9 +138,82 @@ const Dashboard = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            Welcome back! Here's your business overview.
+            Welcome back{profile?.full_name ? `, ${profile.full_name}` : ''}! Here's your business overview.
           </p>
         </div>
+
+        {/* Tenant Information Card */}
+        {tenant && (
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Building2 className="h-5 w-5" />
+                {tenant.name}
+                <Badge variant={tenant.status === 'active' ? 'default' : 'secondary'}>
+                  {tenant.status}
+                </Badge>
+              </CardTitle>
+              {tenant.settings?.description && (
+                <CardDescription>{tenant.settings.description}</CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <User className="h-4 w-4" />
+                    <span>Your Role</span>
+                  </div>
+                  <p className="font-medium capitalize">{profile?.role?.replace('_', ' ')}</p>
+                </div>
+                {tenant.domain && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Building2 className="h-4 w-4" />
+                      <span>Domain</span>
+                    </div>
+                    <p className="font-medium">{tenant.domain}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Business Information Card */}
+        {businessSettings.business_name && (
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Business Information</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Business Name</p>
+                  <p className="font-medium">{businessSettings.business_name}</p>
+                </div>
+                {businessSettings.business_email && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    <p className="font-medium">{businessSettings.business_email}</p>
+                  </div>
+                )}
+                {businessSettings.business_phone && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Phone</p>
+                    <p className="font-medium">{businessSettings.business_phone}</p>
+                  </div>
+                )}
+                {businessSettings.business_address && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Address</p>
+                    <p className="font-medium">{businessSettings.business_address}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Hero Metrics */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

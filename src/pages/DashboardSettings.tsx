@@ -12,12 +12,15 @@ import { useToast } from "@/hooks/use-toast";
 import { BusinessSettingsService } from "@/services/businessSettingsService";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { MobileSettings } from "@/components/MobileSettings";
+import { useAuth } from "@/hooks/useAuth";
 import { 
   Settings, 
   Link, 
   Save, 
   Globe, 
   CheckCircle, 
+  Building2,
+  User,
   AlertCircle,
   ExternalLink,
   CheckCircle2,
@@ -36,6 +39,7 @@ import ChangePasswordDialog from "@/components/ChangePasswordDialog";
 import type { BusinessSettings } from "@/types";
 
 const DashboardSettings = () => {
+  const { profile, tenant, refreshUserData } = useAuth();
   const [settings, setSettings] = useState<BusinessSettings>({
     id: '',
     user_id: '',
@@ -352,6 +356,79 @@ const DashboardSettings = () => {
             </Button>
           </div>
         </div>
+
+        {/* Tenant Information Card */}
+        {tenant && (
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Building2 className="h-5 w-5" />
+                {tenant.name}
+                <Badge variant={tenant.status === 'active' ? 'default' : 'secondary'}>
+                  {tenant.status}
+                </Badge>
+              </CardTitle>
+              {tenant.settings?.description && (
+                <CardDescription>{tenant.settings.description}</CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <User className="h-4 w-4" />
+                    <span>Your Role</span>
+                  </div>
+                  <p className="font-medium capitalize">{profile?.role?.replace('_', ' ')}</p>
+                </div>
+                {tenant.domain && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Building2 className="h-4 w-4" />
+                      <span>Domain</span>
+                    </div>
+                    <p className="font-medium">{tenant.domain}</p>
+                  </div>
+                )}
+                {tenant.settings?.features && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Settings className="h-4 w-4" />
+                      <span>Features</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {tenant.settings.features.analytics && (
+                        <Badge variant="outline" className="text-xs">Analytics</Badge>
+                      )}
+                      {tenant.settings.features.custom_domain && (
+                        <Badge variant="outline" className="text-xs">Custom Domain</Badge>
+                      )}
+                      {tenant.settings.features.api_access && (
+                        <Badge variant="outline" className="text-xs">API Access</Badge>
+                      )}
+                      {tenant.settings.features.priority_support && (
+                        <Badge variant="outline" className="text-xs">Priority Support</Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {tenant.settings?.limits && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Settings className="h-4 w-4" />
+                      <span>Limits</span>
+                    </div>
+                    <div className="text-sm">
+                      <p>Max Users: {tenant.settings.limits.max_users}</p>
+                      <p>Max Reviews: {tenant.settings.limits.max_reviews}</p>
+                      <p>Storage: {tenant.settings.limits.storage_limit} MB</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Main Content with Tabs */}
         <Tabs defaultValue="business" className="space-y-6">

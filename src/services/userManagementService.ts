@@ -351,6 +351,14 @@ export class UserManagementService extends BaseService {
         email_confirmed_at: authUser?.user?.email_confirmed_at || null,
       };
 
+      // Trigger a refresh of the user's session to update their context
+      // This will cause the useAuth hook to refetch profile and tenant data
+      try {
+        await supabase.auth.refreshSession();
+      } catch (refreshError) {
+        console.warn('Failed to refresh session after tenant update:', refreshError);
+      }
+
       return {
         data: userProfile,
         error: null,

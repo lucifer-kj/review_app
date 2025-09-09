@@ -174,11 +174,18 @@ export default function UserManagement() {
       return result.data;
     },
     onSuccess: (_, variables) => {
+      // Invalidate all relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['platform-users'] });
+      queryClient.invalidateQueries({ queryKey: ['tenant-details'] });
+      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['business-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['reviews'] });
+      queryClient.invalidateQueries({ queryKey: ['review-stats'] });
+      
       toast({
         title: "User Moved",
         description: variables.tenantId 
-          ? `User has been moved to tenant successfully.`
+          ? `User has been moved to tenant successfully. The user's dashboard will refresh automatically.`
           : `User has been removed from tenant successfully.`,
       });
     },
