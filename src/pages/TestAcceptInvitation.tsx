@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import MagicLinkDebugger from '../components/MagicLinkDebugger';
 
 export default function TestAcceptInvitation() {
   const [urlInfo, setUrlInfo] = useState({
@@ -67,6 +68,9 @@ export default function TestAcceptInvitation() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Magic Link Debugger - only show in development */}
+      {process.env.NODE_ENV === 'development' && <MagicLinkDebugger />}
     </div>
   );
 }

@@ -61,19 +61,74 @@
         const originalUrl = window.location.href;
         console.log('Original URL:', originalUrl);
         
-        // Handle hash fragments for magic links (Supabase format)
-        if (window.location.hash) {
-          console.log('Hash fragment detected:', window.location.hash);
-          // Preserve the hash for React Router to handle
-          const hash = window.location.hash;
-          const pathname = window.location.pathname;
-          const search = window.location.search;
+        // Enhanced magic link detection and handling
+        function handleMagicLink() {
+          const url = new URL(window.location.href);
+          const hash = url.hash;
+          const pathname = url.pathname;
           
-          // Ensure the URL is properly formatted for React Router
-          if (!pathname.endsWith('/') && !pathname.includes('.')) {
-            window.history.replaceState(null, null, pathname + search + hash);
+          // Check for Supabase magic link patterns
+          const isSupabaseMagicLink = hash && (
+            hash.includes('access_token=') || 
+            hash.includes('refresh_token=') ||
+            hash.includes('type=recovery') ||
+            hash.includes('type=invite') ||
+            hash.includes('type=signup')
+          );
+          
+          // Check for magic link routes
+          const isMagicLinkRoute = [
+            '/accept-invitation',
+            '/test-accept-invitation',
+            '/auth/callback',
+            '/reset-password',
+            '/verify-email'
+          ].some(route => pathname.startsWith(route));
+          
+          if (isSupabaseMagicLink || isMagicLinkRoute) {
+            console.log('Magic link detected:', { pathname, hash: hash.substring(0, 50) + '...' });
+            
+            // Store magic link data for React app to process
+            sessionStorage.setItem('magic_link_data', JSON.stringify({
+              pathname,
+              hash,
+              timestamp: Date.now(),
+              processed: false
+            }));
+            
+            // For hash-based auth, convert to query params for better React Router handling
+            if (isSupabaseMagicLink && hash) {
+              try {
+                const hashParams = new URLSearchParams(hash.substring(1));
+                const newUrl = new URL(window.location.href);
+                
+                // Move critical auth params to search params
+                const authParams = ['access_token', 'refresh_token', 'expires_in', 'token_type', 'type'];
+                authParams.forEach(param => {
+                  if (hashParams.has(param)) {
+                    newUrl.searchParams.set(param, hashParams.get(param));
+                  }
+                });
+                
+                // Clear the hash to avoid conflicts
+                newUrl.hash = '';
+                
+                // Update URL without reload
+                window.history.replaceState(null, null, newUrl.toString());
+                console.log('Converted hash params to search params for magic link');
+              } catch (error) {
+                console.warn('Error processing magic link hash:', error);
+              }
+            }
+            
+            return true;
           }
+          
+          return false;
         }
+        
+        // Handle hash fragments for magic links
+        const isMagicLink = handleMagicLink();
         
         // Service Worker registration
         if ('serviceWorker' in navigator) {
@@ -88,7 +143,7 @@
           });
         }
         
-        // Enhanced SPA routing fallback
+        // Enhanced SPA routing fallback with magic link protection
         window.addEventListener('DOMContentLoaded', function() {
           console.log('SPA fallback loaded, current path:', window.location.pathname);
           
@@ -97,31 +152,99 @@
                                !window.location.pathname.startsWith('/api') &&
                                window.location.pathname !== '/';
           
-          if (isClientRoute) {
+          if (isClientRoute && !isMagicLink) {
             console.log('Client route detected, ensuring React Router handles it');
             
-            // Small delay to ensure React has loaded
-            setTimeout(function() {
+            // Use longer delay for slower connections, but check multiple times
+            let checkCount = 0;
+            const maxChecks = 10;
+            
+            const checkInterval = setInterval(function() {
+              checkCount++;
               const root = document.getElementById('root');
-              if (root && root.innerHTML.trim() === '') {
-                console.log('Detected blank page on client route, reloading...');
-                window.location.reload();
+              
+              if (root && root.innerHTML.trim() !== '') {
+                // React has loaded successfully
+                clearInterval(checkInterval);
+                console.log('React app loaded successfully');
+                return;
               }
-            }, 100);
+              
+              if (checkCount >= maxChecks) {
+                clearInterval(checkInterval);
+                console.log('Max checks reached, reloading page');
+                
+                // Only reload if it's not a magic link to avoid losing auth state
+                const magicLinkData = sessionStorage.getItem('magic_link_data');
+                if (!magicLinkData) {
+                  window.location.reload();
+                } else {
+                  console.warn('Avoiding reload due to magic link presence');
+                }
+              }
+            }, 200);
           }
         });
         
         // Handle browser back/forward navigation
         window.addEventListener('popstate', function(event) {
           console.log('Popstate event:', event.state);
-          // Let React Router handle this
+          
+          // Re-check for magic links on navigation
+          handleMagicLink();
         });
         
-        // Handle magic link redirects specifically
-        if (window.location.pathname === '/accept-invitation' || 
-            window.location.pathname === '/test-accept-invitation') {
-          console.log('Magic link route detected, ensuring proper handling');
-        }
+        // Provide utility function for React app to access magic link data
+        window.getMagicLinkData = function() {
+          const data = sessionStorage.getItem('magic_link_data');
+          if (data) {
+            try {
+              return JSON.parse(data);
+            } catch (error) {
+              console.error('Error parsing magic link data:', error);
+              sessionStorage.removeItem('magic_link_data');
+              return null;
+            }
+          }
+          return null;
+        };
+        
+        // Allow React app to mark magic link as processed
+        window.markMagicLinkProcessed = function() {
+          const data = sessionStorage.getItem('magic_link_data');
+          if (data) {
+            try {
+              const parsed = JSON.parse(data);
+              parsed.processed = true;
+              sessionStorage.setItem('magic_link_data', JSON.stringify(parsed));
+              console.log('Magic link marked as processed');
+            } catch (error) {
+              console.error('Error updating magic link data:', error);
+            }
+          }
+        };
+        
+        // Clean up old magic link data (older than 10 minutes)
+        const cleanupOldMagicLinkData = function() {
+          const data = sessionStorage.getItem('magic_link_data');
+          if (data) {
+            try {
+              const parsed = JSON.parse(data);
+              const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+              
+              if (parsed.timestamp < tenMinutesAgo) {
+                sessionStorage.removeItem('magic_link_data');
+                console.log('Cleaned up old magic link data');
+              }
+            } catch (error) {
+              console.error('Error cleaning up magic link data:', error);
+              sessionStorage.removeItem('magic_link_data');
+            }
+          }
+        };
+        
+        // Run cleanup on load
+        cleanupOldMagicLinkData();
       })();
     </script>
   </body>

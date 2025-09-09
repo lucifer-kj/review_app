@@ -28,6 +28,15 @@ export default function AcceptInvitation() {
         console.log('URL params:', Object.fromEntries(searchParams.entries()));
         console.log('Hash:', window.location.hash);
         
+        // Check for magic link data from sessionStorage (enhanced handling)
+        const magicLinkData = (window as any).getMagicLinkData?.();
+        if (magicLinkData && !magicLinkData.processed) {
+          console.log('Processing stored magic link data:', magicLinkData);
+          
+          // Mark as processed to prevent duplicate processing
+          (window as any).markMagicLinkProcessed?.();
+        }
+        
         // Check for magic link hash fragment (Supabase format)
         const hash = window.location.hash;
         const urlParams = new URLSearchParams(hash.substring(1)); // Remove # and parse
@@ -35,18 +44,28 @@ export default function AcceptInvitation() {
         const refreshToken = urlParams.get('refresh_token');
         const type = urlParams.get('type');
         
-        // Also check URL parameters for compatibility
+        // Also check URL parameters for compatibility (now includes converted hash params)
         const tokenHash = searchParams.get('token_hash');
         const typeParam = searchParams.get('type');
         const emailParam = searchParams.get('email');
         
-        if (accessToken && refreshToken) {
-          console.log('Magic link hash detected, setting session...');
+        // Check for converted hash parameters
+        const convertedAccessToken = searchParams.get('access_token');
+        const convertedRefreshToken = searchParams.get('refresh_token');
+        const convertedType = searchParams.get('type');
+        
+        // Use converted parameters if available, otherwise fall back to hash
+        const finalAccessToken = convertedAccessToken || accessToken;
+        const finalRefreshToken = convertedRefreshToken || refreshToken;
+        const finalType = convertedType || type;
+        
+        if (finalAccessToken && finalRefreshToken) {
+          console.log('Magic link detected, setting session...');
           
-          // Set the session using the tokens from hash
+          // Set the session using the tokens
           const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
+            access_token: finalAccessToken,
+            refresh_token: finalRefreshToken,
           });
 
           if (sessionError) {
@@ -62,7 +81,7 @@ export default function AcceptInvitation() {
             setEmail(sessionData.user.email || '');
             setFullName(sessionData.user.user_metadata?.full_name || '');
           }
-        } else if (tokenHash && typeParam === 'email') {
+        } else if (tokenHash && (typeParam === 'email' || finalType === 'email')) {
           console.log('Magic link parameters detected, verifying OTP...');
           
           // Verify the magic link token
