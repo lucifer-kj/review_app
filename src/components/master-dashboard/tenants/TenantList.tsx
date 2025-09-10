@@ -14,6 +14,7 @@ import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useRealtimeUpdates } from "@/hooks/useRealtimeUpdates";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +33,8 @@ export default function TenantList() {
     queryKey: ['tenants'],
     queryFn: () => TenantService.getAllTenants(),
     refetchInterval: 30000,
-  })
+  });
+
   // Enable real-time updates for tenant user counts
   useRealtimeUpdates({
     tables: [
@@ -47,7 +49,6 @@ export default function TenantList() {
       console.error('Real-time tenant updates error:', error);
     }
   });
-;
 
   // Filter tenants based on search term
   const filteredTenants = useMemo(() => {
@@ -161,7 +162,19 @@ export default function TenantList() {
           </Card>
 
           {/* Tenants Grid Skeleton */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className={cn(
+        "grid gap-4",
+        // Mobile: 1 column
+        "grid-cols-1",
+        // Small mobile: 1 column  
+        "sm:grid-cols-1",
+        // Tablet: 2 columns
+        "md:grid-cols-2",
+        // Large tablet: 3 columns
+        "lg:grid-cols-3",
+        // Desktop: 3 columns
+        "xl:grid-cols-3"
+      )}>
             {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i}>
                 <CardHeader>
@@ -269,7 +282,19 @@ export default function TenantList() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className={cn(
+        "grid gap-4",
+        // Mobile: 1 column
+        "grid-cols-1",
+        // Small mobile: 1 column  
+        "sm:grid-cols-1",
+        // Tablet: 2 columns
+        "md:grid-cols-2",
+        // Large tablet: 3 columns
+        "lg:grid-cols-3",
+        // Desktop: 3 columns
+        "xl:grid-cols-3"
+      )}>
           {paginatedTenants.map((tenant) => (
             <Card key={tenant.id} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">

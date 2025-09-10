@@ -86,7 +86,15 @@ export default function PlatformOverview() {
   if (isLoading) {
     return (
       <AppErrorBoundary componentName="PlatformOverview">
-      <div className="space-y-6">
+      <div className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Platform Overview</h2>
           <p className="text-muted-foreground">
@@ -159,7 +167,15 @@ export default function PlatformOverview() {
 
   if (error) {
     return (
-      <div className="space-y-6">
+      <div className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Platform Overview</h2>
           <p className="text-muted-foreground">
@@ -201,7 +217,15 @@ export default function PlatformOverview() {
 
   return (
     <AppErrorBoundary componentName="PlatformOverview">
-    <div className="space-y-6">
+    <div className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Platform Overview</h2>

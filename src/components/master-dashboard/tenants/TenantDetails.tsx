@@ -122,7 +122,15 @@ export default function TenantDetails() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="sm" asChild>
             <Link to="/master/tenants">
@@ -144,7 +152,15 @@ export default function TenantDetails() {
 
   if (error || !tenant) {
     return (
-      <div className="space-y-6">
+      <div className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="sm" asChild>
             <Link to="/master/tenants">
@@ -175,7 +191,15 @@ export default function TenantDetails() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
       <div className="flex items-center justify-between">
       <div className="flex items-center space-x-4">
         <Button variant="ghost" size="sm" asChild>
@@ -221,7 +245,15 @@ export default function TenantDetails() {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
@@ -229,7 +261,15 @@ export default function TenantDetails() {
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="overview" className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
           {/* Status and Basic Info */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
@@ -321,7 +361,15 @@ export default function TenantDetails() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="users" className="space-y-6">
+        <TabsContent value="users" className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -373,7 +421,15 @@ export default function TenantDetails() {
         </Card>
         </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-6">
+        <TabsContent value="analytics" className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -409,7 +465,15 @@ export default function TenantDetails() {
         </Card>
         </TabsContent>
 
-        <TabsContent value="settings" className="space-y-6">
+        <TabsContent value="settings" className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
       <Card>
         <CardHeader>
               <CardTitle className="flex items-center space-x-2">

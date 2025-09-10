@@ -539,7 +539,15 @@ export default function UserManagement() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">User Management</h2>
@@ -557,7 +565,15 @@ export default function UserManagement() {
 
   if (error) {
     return (
-      <div className="space-y-6">
+      <div className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-bold tracking-tight">User Management</h2>
@@ -593,7 +609,15 @@ export default function UserManagement() {
   const pendingInvitations = invitations ?? [];
 
   return (
-    <div className="space-y-6">
+    <div className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">User Management</h2>

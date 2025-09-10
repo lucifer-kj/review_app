@@ -155,7 +155,15 @@ export default function SystemAdministration() {
   if (statusLoading || settingsLoading) {
     return (
       <AppErrorBoundary componentName="SystemAdministration">
-        <div className="space-y-6">
+        <div className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-3xl font-bold tracking-tight">System Administration</h2>
@@ -213,7 +221,15 @@ export default function SystemAdministration() {
 
   return (
     <AppErrorBoundary componentName="SystemAdministration">
-      <div className="space-y-6">
+      <div className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">System Administration</h2>
@@ -305,7 +321,15 @@ export default function SystemAdministration() {
             Configure platform-wide settings and features
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className={cn(
+            "space-y-4 sm:space-y-6",
+            // Mobile: smaller spacing
+            "space-y-4",
+            // Tablet: medium spacing
+            "sm:space-y-5",
+            // Desktop: full spacing
+            "lg:space-y-6"
+          )}>
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="maintenance-mode">Maintenance Mode</Label>

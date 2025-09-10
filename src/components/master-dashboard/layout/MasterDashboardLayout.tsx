@@ -8,7 +8,8 @@ import { useBreakpoint } from "@/hooks/use-mobile";
 
 export default function MasterDashboardLayout() {
   const [collapsed, setCollapsed] = useState(false);
-  const { isMobile, isTablet } = useBreakpoint();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isMobile, isTablet, isDesktop } = useBreakpoint();
 
   useEffect(() => {
     const stored = localStorage.getItem('crux_master_sidebar');
@@ -19,32 +20,60 @@ export default function MasterDashboardLayout() {
     localStorage.setItem('crux_master_sidebar', collapsed ? '1' : '0');
   }, [collapsed]);
 
+  // Close mobile menu when screen size changes
+  useEffect(() => {
+    if (!isMobile && mobileMenuOpen) {
+      setMobileMenuOpen(false);
+    }
+  }, [isMobile, mobileMenuOpen]);
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Fixed Sidebar */}
-      <MasterSidebar collapsed={collapsed} onToggle={() => setCollapsed(v => !v)} />
+      {/* Mobile Overlay */}
+      {isMobile && mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
 
-      {/* Main Content with responsive padding */}
+      {/* Fixed Sidebar */}
+      <MasterSidebar 
+        collapsed={collapsed} 
+        onToggle={() => setCollapsed(v => !v)}
+        mobileMenuOpen={mobileMenuOpen}
+        onMobileMenuToggle={() => setMobileMenuOpen(v => !v)}
+      />
+
+      {/* Main Content with enhanced responsive design */}
       <div className={cn(
-        "flex flex-col min-h-screen transition-[margin-left] duration-200",
-        // Mobile: no margin, full width
+        "flex flex-col min-h-screen transition-all duration-300 ease-in-out",
+        // Mobile: no margin, full width with mobile menu support
         isMobile ? "ml-0" : 
-        // Tablet: collapsed sidebar margin
+        // Tablet: responsive margin based on collapsed state
         isTablet ? (collapsed ? "ml-16" : "ml-64") :
-        // Desktop: collapsed sidebar margin
+        // Desktop: responsive margin based on collapsed state
         collapsed ? "ml-16" : "ml-64"
       )}>
-        <MasterHeader />
+        <MasterHeader 
+          onMobileMenuToggle={() => setMobileMenuOpen(v => !v)}
+          mobileMenuOpen={mobileMenuOpen}
+        />
+        
         <main className={cn(
-          "flex-1 transition-all duration-200",
-          // Mobile: minimal padding
-          isMobile ? "p-3 sm:p-4" :
+          "flex-1 transition-all duration-300 ease-in-out",
+          // Mobile: minimal padding with safe areas
+          isMobile ? "p-3 sm:p-4 pb-safe" :
           // Tablet: medium padding
           isTablet ? "p-4 lg:p-6" :
           // Desktop: full padding
           "p-6"
         )}>
-          <Suspense fallback={<LoadingSpinner size="md" />}>
+          <Suspense fallback={
+            <div className="flex items-center justify-center min-h-[400px]">
+              <LoadingSpinner size="md" />
+            </div>
+          }>
             <Outlet />
           </Suspense>
         </main>
