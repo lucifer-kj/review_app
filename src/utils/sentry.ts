@@ -9,7 +9,8 @@ import * as Sentry from '@sentry/react';
 export const initSentry = () => {
   const dsn = import.meta.env.VITE_SENTRY_DSN;
   
-  if (!dsn) {
+  // Check if DSN is valid (not placeholder)
+  if (!dsn || dsn === 'your_sentry_dsn' || dsn.includes('placeholder')) {
     // Silent return - no warning in production
     if (import.meta.env.NODE_ENV === 'development') {
       console.info('Sentry DSN not configured. Error tracking disabled.');
