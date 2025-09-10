@@ -13,7 +13,8 @@ import {
   ArrowLeft,
   Activity,
   Database,
-  Settings
+  Settings,
+  Copy
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -343,6 +344,25 @@ export default function TenantDetails() {
                     </p>
                 </div>
                 )}
+              <div>
+                  <label className="text-sm font-medium text-muted-foreground">Review Form URL</label>
+                  <div className="flex items-center space-x-2">
+                    <p className="text-sm font-mono bg-muted px-2 py-1 rounded text-xs flex-1 truncate">
+                      {tenant.settings?.review_form_url || `${window.location.origin}/review/${tenantId}`}
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        const url = tenant.settings?.review_form_url || `${window.location.origin}/review/${tenantId}`;
+                        navigator.clipboard.writeText(url);
+                        toast.success('Review form URL copied to clipboard!');
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                    </Button>
+                  </div>
+              </div>
               <div>
                   <label className="text-sm font-medium text-muted-foreground">Created</label>
                   <p className="text-sm flex items-center space-x-1">

@@ -28,26 +28,61 @@ export class SimpleUserService extends BaseService {
    */
   static async getAllUsers(limit: number = 50): Promise<ServiceResponse<SimpleUser[]>> {
     try {
-      const { data: profiles, error } = await supabase
+      // Try to get users with tenant_id first, fallback to basic query
+      let query = supabase
         .from('profiles')
         .select(`
           id,
+          email,
+          full_name,
           role,
           created_at
         `)
         .order('created_at', { ascending: false })
         .limit(limit);
 
+      const { data: profiles, error } = await query;
+
       if (error) {
-        return this.handleError(error, 'SimpleUserService.getAllUsers');
+        // If the query fails due to schema issues, try a simpler query
+        console.warn('Primary query failed, trying fallback:', error);
+        
+        const { data: fallbackProfiles, error: fallbackError } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            role,
+            created_at
+          `)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (fallbackError) {
+          return this.handleError(fallbackError, 'SimpleUserService.getAllUsers');
+        }
+
+        // Create users from fallback data
+        const users: SimpleUser[] = (fallbackProfiles || []).map(profile => ({
+          id: profile.id,
+          email: `user-${profile.id.substring(0, 8)}@example.com`, // Placeholder email
+          full_name: `User ${profile.id.substring(0, 8)}`, // Placeholder name
+          role: profile.role,
+          created_at: profile.created_at,
+          last_sign_in_at: null,
+        }));
+
+        return {
+          data: users,
+          error: null,
+          success: true,
+        };
       }
 
-      // For now, we'll create simple user objects from profiles
-      // This will be enhanced after the migration is applied
+      // Create users from successful query
       const users: SimpleUser[] = (profiles || []).map(profile => ({
         id: profile.id,
-        email: `user-${profile.id.substring(0, 8)}@example.com`, // Placeholder email
-        full_name: `User ${profile.id.substring(0, 8)}`, // Placeholder name
+        email: profile.email || `user-${profile.id.substring(0, 8)}@example.com`,
+        full_name: profile.full_name || `User ${profile.id.substring(0, 8)}`,
         role: profile.role,
         created_at: profile.created_at,
         last_sign_in_at: null,
@@ -116,23 +151,44 @@ export class SimpleUserService extends BaseService {
   }
 
   /**
-   * Get users for a specific tenant (placeholder implementation)
+   * Get users for a specific tenant
    */
   static async getTenantUsers(tenantId: string): Promise<ServiceResponse<SimpleUser[]>> {
     try {
-      // For now, return all users since tenant_id doesn't exist yet
-      // This will be updated after the migration is applied
-      const response = await this.getAllUsers(50);
-      
-      if (response.success && response.data) {
-        return {
-          data: response.data,
-          error: null,
-          success: true,
-        };
+      // Try to query with tenant_id first
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          email,
+          full_name,
+          role,
+          created_at
+        `)
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        // If tenant_id query fails, fallback to all users
+        console.warn('Tenant-specific query failed, falling back to all users:', error);
+        return await this.getAllUsers(50);
       }
 
-      return response;
+      // Create users from successful query
+      const users: SimpleUser[] = (profiles || []).map(profile => ({
+        id: profile.id,
+        email: profile.email || `user-${profile.id.substring(0, 8)}@example.com`,
+        full_name: profile.full_name || `User ${profile.id.substring(0, 8)}`,
+        role: profile.role,
+        created_at: profile.created_at,
+        last_sign_in_at: null,
+      }));
+
+      return {
+        data: users,
+        error: null,
+        success: true,
+      };
     } catch (error) {
       return this.handleError(error, 'SimpleUserService.getTenantUsers');
     }

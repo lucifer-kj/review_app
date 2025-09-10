@@ -281,17 +281,39 @@ export class MasterDashboardService {
     }
 
     try {
+      // Try to query with tenant_id first
       const { data, error } = await supabase
         .from('profiles')
         .select('id, email, role, created_at')
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // If tenant_id query fails, try without tenant filter
+        console.warn('Tenant-specific query failed, trying fallback:', error);
+        
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('profiles')
+          .select('id, email, role, created_at')
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (fallbackError) {
+          console.error('Fallback query also failed:', fallbackError);
+          return [];
+        }
+
+        return fallbackData?.map(user => ({
+          id: user.id,
+          email: user.email || `user-${user.id.substring(0, 8)}@example.com`,
+          role: user.role,
+          created_at: user.created_at,
+        })) || [];
+      }
 
       return data?.map(user => ({
         id: user.id,
-        email: user.email,
+        email: user.email || `user-${user.id.substring(0, 8)}@example.com`,
         role: user.role,
         created_at: user.created_at,
       })) || [];

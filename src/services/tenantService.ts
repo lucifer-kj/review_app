@@ -242,6 +242,64 @@ export class TenantService extends BaseService {
   }
 
   /**
+   * Get review form URL for a tenant
+   */
+  static async getReviewFormUrl(tenantId: string): Promise<ServiceResponse<string>> {
+    try {
+      if (!isAdminClientConfigured()) {
+        return {
+          data: null,
+          error: 'Admin client not configured',
+          success: false,
+        };
+      }
+
+      const { data: tenant, error } = await supabaseAdmin
+        .from('tenants')
+        .select('id, settings')
+        .eq('id', tenantId)
+        .single();
+
+      if (error) {
+        return this.handleError(error, 'TenantService.getReviewFormUrl');
+      }
+
+      if (!tenant) {
+        return {
+          data: null,
+          error: 'Tenant not found',
+          success: false,
+        };
+      }
+
+      // Generate review form URL if not exists
+      const reviewFormUrl = tenant.settings?.review_form_url || `${env.frontend.url}/review/${tenantId}`;
+      
+      // Update the tenant with the review form URL if it doesn't exist
+      if (!tenant.settings?.review_form_url) {
+        await supabaseAdmin
+          .from('tenants')
+          .update({
+            settings: {
+              ...tenant.settings,
+              review_form_url: reviewFormUrl,
+            }
+          })
+          .eq('id', tenantId);
+      }
+
+      return {
+        data: reviewFormUrl,
+        error: null,
+        success: true,
+      };
+
+    } catch (error) {
+      return this.handleError(error, 'TenantService.getReviewFormUrl');
+    }
+  }
+
+  /**
    * Delete a tenant (super admin only)
    */
   static async deleteTenant(tenantId: string): Promise<ServiceResponse<boolean>> {
@@ -255,7 +313,7 @@ export class TenantService extends BaseService {
 
     try {
       // Use admin client to bypass RLS policies for super admin operations
-      const { error } = await withAdminAuth(async () => {
+      await withAdminAuth(async () => {
         // First, delete all related data
         // Delete reviews
         await supabaseAdmin
@@ -299,12 +357,10 @@ export class TenantService extends BaseService {
           .delete()
           .eq('id', tenantId);
 
-        return deleteError;
+        if (deleteError) {
+          throw deleteError;
+        }
       });
-
-      if (error) {
-        return this.handleError(error, 'TenantService.deleteTenant');
-      }
 
       // Log the deletion
       await AuditLogService.logEvent(
@@ -333,8 +389,8 @@ export class TenantService extends BaseService {
    */
   static async createTenant(tenantData: CreateTenantData): Promise<ServiceResponse<Tenant>> {
     try {
-      // Generate unique review form URL for the tenant
-      const reviewFormUrl = `${env.frontend.url}/review/${crypto.randomUUID()}`;
+      // Generate review form URL for the tenant (will be updated after tenant creation)
+      const reviewFormUrl = `${env.frontend.url}/review/`;
 
       // Use admin client to bypass RLS policies
       const { data, error } = await withAdminAuth(async () => {
@@ -359,8 +415,22 @@ export class TenantService extends BaseService {
         return this.handleError(error, 'TenantService.createTenant');
       }
 
+      // Update the review form URL with the actual tenant ID
+      const finalReviewFormUrl = `${env.frontend.url}/review/${data.id}`;
+      
+      // Update the tenant with the correct review form URL
+      await supabaseAdmin
+        .from('tenants')
+        .update({
+          settings: {
+            ...data.settings,
+            review_form_url: finalReviewFormUrl,
+          }
+        })
+        .eq('id', data.id);
+
       return {
-        data: { ...data, review_form_url: reviewFormUrl },
+        data: { ...data, review_form_url: finalReviewFormUrl },
         error: null,
         success: true,
       };

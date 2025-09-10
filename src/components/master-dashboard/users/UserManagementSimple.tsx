@@ -39,6 +39,7 @@ import {
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { UserService } from "@/services/userService";
 import { MagicLinkService } from "@/services/magicLinkService";
+import CreateUserForm from "./CreateUserForm";
 
 interface User {
   id: string;
@@ -54,6 +55,7 @@ export default function UserManagementSimple() {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [page, setPage] = useState(1);
+  const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const pageSize = 20;
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -292,7 +294,11 @@ export default function UserManagementSimple() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button asChild>
+          <Button onClick={() => setShowCreateUserDialog(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Create User
+          </Button>
+          <Button asChild variant="outline">
             <Link to="/master/users/invite">
               <Plus className="h-4 w-4 mr-2" />
               Invite User
@@ -472,6 +478,21 @@ export default function UserManagementSimple() {
             >
               Next
             </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Create User Dialog */}
+      {showCreateUserDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <CreateUserForm
+              onSuccess={() => {
+                setShowCreateUserDialog(false);
+                setPage(1); // Reset to first page
+              }}
+              onCancel={() => setShowCreateUserDialog(false)}
+            />
           </div>
         </div>
       )}
