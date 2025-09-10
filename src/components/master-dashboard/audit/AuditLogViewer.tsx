@@ -160,14 +160,14 @@ export default function AuditLogViewer() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Action</label>
               <Select
-                value={filters.action || ""}
-                onValueChange={(value) => setFilters({ ...filters, action: value || undefined })}
+                value={filters.action || "all"}
+                onValueChange={(value) => setFilters({ ...filters, action: value === "all" ? undefined : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All actions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All actions</SelectItem>
+                  <SelectItem value="all">All actions</SelectItem>
                   <SelectItem value="user_login">User Login</SelectItem>
                   <SelectItem value="user_logout">User Logout</SelectItem>
                   <SelectItem value="tenant_created">Tenant Created</SelectItem>
@@ -181,14 +181,14 @@ export default function AuditLogViewer() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Resource Type</label>
               <Select
-                value={filters.resource_type || ""}
-                onValueChange={(value) => setFilters({ ...filters, resource_type: value || undefined })}
+                value={filters.resource_type || "all"}
+                onValueChange={(value) => setFilters({ ...filters, resource_type: value === "all" ? undefined : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All resources" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All resources</SelectItem>
+                  <SelectItem value="all">All resources</SelectItem>
                   <SelectItem value="tenant">Tenant</SelectItem>
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="review">Review</SelectItem>

@@ -88,7 +88,13 @@ export default function CreateUserForm({ onSuccess, onCancel, defaultTenantId }:
       return;
     }
 
-    createUserMutation.mutate(formData);
+    // Convert "none" tenantId to null for the service
+    const submitData = {
+      ...formData,
+      tenantId: formData.tenantId === "none" ? null : formData.tenantId
+    };
+
+    createUserMutation.mutate(submitData);
   };
 
   const handleInputChange = (field: keyof CreateUserData, value: string) => {
@@ -212,7 +218,7 @@ export default function CreateUserForm({ onSuccess, onCancel, defaultTenantId }:
                   <SelectValue placeholder="Select tenant" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No tenant assigned</SelectItem>
+                  <SelectItem value="none">No tenant assigned</SelectItem>
                   {tenants.map((tenant) => (
                     <SelectItem key={tenant.id} value={tenant.id}>
                       {tenant.name}
