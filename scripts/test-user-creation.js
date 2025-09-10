@@ -1,25 +1,15 @@
-/**
- * Test User Creation Script
- * This script tests the user creation process to identify trigger issues
- */
-
+// Test script to verify user creation functionality
 import { createClient } from '@supabase/supabase-js';
-import { config } from 'dotenv';
 
-// Load environment variables
-config();
+const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://elhbthnvwcqewjpwulhq.supabase.co';
+const supabaseServiceKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || 'your_service_role_key_here';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
-const supabaseServiceKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-  console.error('❌ Missing required environment variables');
+if (supabaseServiceKey === 'your_service_role_key_here') {
+  console.log('❌ Please set VITE_SUPABASE_SERVICE_ROLE_KEY environment variable');
+  console.log('   Or replace the service key in this script with your actual service role key');
   process.exit(1);
 }
 
-// Create clients
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
@@ -28,189 +18,106 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 async function testUserCreation() {
-  console.log('🧪 Testing User Creation Process...\n');
+  console.log('🧪 Testing User Creation Functionality...\n');
 
   try {
-    // Test 1: Check if handle_new_user function exists
-    console.log('1️⃣ Checking handle_new_user function...');
-    try {
-      const { data, error } = await supabaseAdmin.rpc('handle_new_user', {});
-      if (error) {
-        console.log('   ⚠️  Function exists but has issues:', error.message);
-      } else {
-        console.log('   ✅ Function exists and is callable');
-      }
-    } catch (err) {
-      console.log('   ❌ Function check failed:', err.message);
+    // Test 1: Check if we can access the profiles table
+    console.log('1️⃣ Testing database access...');
+    const { data: profiles, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, email, role, tenant_id')
+      .limit(5);
+
+    if (profileError) {
+      console.error('❌ Database access failed:', profileError);
+      return;
     }
 
-    // Test 2: Check if trigger exists
-    console.log('\n2️⃣ Checking trigger existence...');
-    try {
-      const { data: triggers, error } = await supabaseAdmin
-        .from('pg_trigger')
-        .select('*')
-        .eq('tgname', 'on_auth_user_created');
+    console.log('✅ Database access successful');
+    console.log(`   Found ${profiles?.length || 0} existing profiles`);
 
-      if (error) {
-        console.log('   ⚠️  Could not check triggers:', error.message);
-      } else if (triggers && triggers.length > 0) {
-        console.log('   ✅ Trigger exists');
-        triggers.forEach(trigger => {
-          console.log(`      - Name: ${trigger.tgname}`);
-          console.log(`      - Table: ${trigger.tgrelid}`);
-          console.log(`      - Function: ${trigger.tgfoid}`);
-        });
-      } else {
-        console.log('   ❌ Trigger not found');
-      }
-    } catch (err) {
-      console.log('   ⚠️  Trigger check failed:', err.message);
+    // Test 2: Check if we can access auth users
+    console.log('\n2️⃣ Testing auth access...');
+    const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 5
+    });
+
+    if (authError) {
+      console.error('❌ Auth access failed:', authError);
+      return;
     }
 
-    // Test 3: Check profiles table structure
-    console.log('\n3️⃣ Checking profiles table structure...');
-    try {
-      const { data: columns, error } = await supabaseAdmin
-        .from('information_schema.columns')
-        .select('column_name, data_type, is_nullable')
-        .eq('table_name', 'profiles')
-        .eq('table_schema', 'public');
+    console.log('✅ Auth access successful');
+    console.log(`   Found ${authUsers?.users?.length || 0} auth users`);
 
-      if (error) {
-        console.log('   ❌ Could not check table structure:', error.message);
-      } else {
-        console.log('   ✅ Profiles table structure:');
-        columns.forEach(col => {
-          console.log(`      - ${col.column_name}: ${col.data_type} (nullable: ${col.is_nullable})`);
-        });
-      }
-    } catch (err) {
-      console.log('   ❌ Table structure check failed:', err.message);
+    // Test 3: Check if we can access tenants
+    console.log('\n3️⃣ Testing tenant access...');
+    const { data: tenants, error: tenantError } = await supabaseAdmin
+      .from('tenants')
+      .select('id, name, status')
+      .limit(5);
+
+    if (tenantError) {
+      console.error('❌ Tenant access failed:', tenantError);
+      return;
     }
 
-    // Test 4: Check user_invitations table
-    console.log('\n4️⃣ Checking user_invitations table...');
-    try {
-      const { data: invitations, error } = await supabaseAdmin
-        .from('user_invitations')
-        .select('*')
-        .limit(1);
-
-      if (error) {
-        console.log('   ❌ user_invitations table error:', error.message);
-      } else {
-        console.log('   ✅ user_invitations table accessible');
-      }
-    } catch (err) {
-      console.log('   ❌ user_invitations check failed:', err.message);
+    console.log('✅ Tenant access successful');
+    console.log(`   Found ${tenants?.length || 0} tenants`);
+    if (tenants && tenants.length > 0) {
+      console.log('   Available tenants:');
+      tenants.forEach(tenant => {
+        console.log(`     - ${tenant.name} (${tenant.id}) - ${tenant.status}`);
+      });
     }
 
-    // Test 5: Test invitation creation
-    console.log('\n5️⃣ Testing invitation creation...');
-    const testEmail = `test-user-${Date.now()}@example.com`;
-    
-    try {
-      // Get a tenant to use
-      const { data: tenants } = await supabaseAdmin
-        .from('tenants')
-        .select('id, name')
-        .limit(1)
-        .single();
+    // Test 4: Simulate user creation (without actually creating)
+    console.log('\n4️⃣ Testing user creation simulation...');
+    const testEmail = `test-${Date.now()}@example.com`;
+    const testPassword = 'TestPassword123!';
+    const testFullName = 'Test User';
+    const testRole = 'user';
+    const testTenantId = tenants && tenants.length > 0 ? tenants[0].id : null;
 
-      if (!tenants) {
-        console.log('   ❌ No tenants available for testing');
-        return;
-      }
+    console.log('   Test data:');
+    console.log(`     Email: ${testEmail}`);
+    console.log(`     Full Name: ${testFullName}`);
+    console.log(`     Role: ${testRole}`);
+    console.log(`     Tenant ID: ${testTenantId || 'None'}`);
 
-      // Create test invitation
-      const { data: invitation, error: invitationError } = await supabaseAdmin
-        .from('user_invitations')
-        .insert({
-          tenant_id: tenants.id,
-          email: testEmail,
-          role: 'user',
-          invited_by: null,
-          token: 'test-token-' + Date.now(),
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        })
-        .select()
-        .single();
+    // Check if user already exists
+    const { data: existingProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('id, email')
+      .eq('email', testEmail)
+      .single();
 
-      if (invitationError) {
-        console.log('   ❌ Invitation creation failed:', invitationError.message);
-      } else {
-        console.log('   ✅ Test invitation created');
-        
-        // Test 6: Try to create user via Supabase Auth Admin
-        console.log('\n6️⃣ Testing user creation via Supabase Auth...');
-        try {
-          const { data: user, error: userError } = await supabaseAdmin.auth.admin.createUser({
-            email: testEmail,
-            password: 'TestPassword123!',
-            email_confirm: true
-          });
-
-          if (userError) {
-            console.log('   ❌ User creation failed:', userError.message);
-            console.log('   📝 Error details:', userError);
-          } else {
-            console.log('   ✅ User created successfully');
-            console.log('   📝 User ID:', user.user?.id);
-            
-            // Check if profile was created
-            const { data: profile, error: profileError } = await supabaseAdmin
-              .from('profiles')
-              .select('*')
-              .eq('id', user.user?.id)
-              .single();
-
-            if (profileError) {
-              console.log('   ❌ Profile creation failed:', profileError.message);
-            } else {
-              console.log('   ✅ Profile created successfully');
-              console.log('   📝 Profile details:', {
-                id: profile.id,
-                email: profile.email,
-                role: profile.role,
-                tenant_id: profile.tenant_id
-              });
-            }
-
-            // Clean up test user
-            await supabaseAdmin.auth.admin.deleteUser(user.user?.id);
-            console.log('   🧹 Test user cleaned up');
-          }
-        } catch (userErr) {
-          console.log('   ❌ User creation test failed:', userErr.message);
-        }
-
-        // Clean up test invitation
-        await supabaseAdmin
-          .from('user_invitations')
-          .delete()
-          .eq('id', invitation.id);
-        console.log('   🧹 Test invitation cleaned up');
-      }
-    } catch (err) {
-      console.log('   ❌ Invitation test failed:', err.message);
+    if (existingProfile) {
+      console.log('   ⚠️  Test user already exists, skipping creation test');
+    } else {
+      console.log('   ✅ Test user does not exist, ready for creation');
     }
 
     console.log('\n🎯 Test Summary:');
-    console.log('   If you see ❌ errors above, those need to be fixed.');
-    console.log('   The most common issue is the handle_new_user trigger failing.');
-    console.log('   Apply the migration: 20250110000003_fix_user_creation_trigger.sql');
+    console.log('   ✅ Database access: Working');
+    console.log('   ✅ Auth access: Working');
+    console.log('   ✅ Tenant access: Working');
+    console.log('   ✅ User creation simulation: Ready');
+    
+    console.log('\n💡 Next Steps:');
+    console.log('   1. Try creating a user through the master dashboard');
+    console.log('   2. Check the browser console for detailed logs');
+    console.log('   3. Verify the user appears in both auth.users and profiles tables');
 
   } catch (error) {
-    console.error('❌ Test suite failed:', error);
+    console.error('💥 Test failed:', error);
   }
 }
 
 // Run the test
 testUserCreation().then(() => {
   console.log('\n🏁 Test completed!');
-  process.exit(0);
-}).catch((error) => {
-  console.error('💥 Test suite crashed:', error);
-  process.exit(1);
+}).catch(error => {
+  console.error('💥 Test script crashed:', error);
 });

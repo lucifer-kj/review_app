@@ -302,7 +302,10 @@ export default function UserManagementSimple() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button onClick={() => setShowCreateUserDialog(true)}>
+          <Button onClick={() => {
+            console.log('🖱️ Create User button clicked');
+            setShowCreateUserDialog(true);
+          }}>
             <UserPlus className="h-4 w-4 mr-2" />
             Create User
           </Button>
@@ -499,12 +502,17 @@ export default function UserManagementSimple() {
       {showCreateUserDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+            {console.log('🎭 Create User dialog is rendering')}
             <CreateUserForm
               onSuccess={() => {
+                console.log('✅ Create User form success callback');
                 setShowCreateUserDialog(false);
                 setPage(1); // Reset to first page
               }}
-              onCancel={() => setShowCreateUserDialog(false)}
+              onCancel={() => {
+                console.log('❌ Create User form cancel callback');
+                setShowCreateUserDialog(false);
+              }}
             />
           </div>
         </div>

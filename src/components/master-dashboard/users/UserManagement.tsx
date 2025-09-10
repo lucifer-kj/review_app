@@ -101,7 +101,7 @@ export default function UserManagement() {
 
         if (!authUsers?.users || authUsers.users.length === 0) {
           console.log('No auth users found, returning empty result');
-          return {
+          return {         
             users: [],
             total: 0,
             page: page,
@@ -254,13 +254,33 @@ export default function UserManagement() {
   // Demote user from super admin mutation
   const demoteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
+      // Fetch the user's current profile to get required fields (email is required for upsert)
+      const { data: profile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, tenant_id, avatar_url, preferences, created_at')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError || !profile) {
+        throw fetchError || new Error('User profile not found');
+      }
+
+      const { id, email, full_name, tenant_id, avatar_url, preferences, created_at } = profile;
+
       const { error } = await supabase
         .from('profiles')
         .upsert({
-          id: userId,
+          id,
+          email,
+          full_name,
+          tenant_id,
+          avatar_url,
+          preferences,
+          created_at,
           role: 'tenant_admin',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         });
+
 
       if (error) throw error;
     },

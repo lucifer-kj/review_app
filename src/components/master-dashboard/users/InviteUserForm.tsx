@@ -36,8 +36,11 @@ export default function InviteUserForm() {
   // Send magic link mutation
   const sendMagicLinkMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      console.log('🚀 Creating user with data:', data);
+      
       // Get tenant name for metadata
       const tenant = tenants?.data?.find(t => t.id === data.tenantId);
+      console.log('🏢 Selected tenant:', tenant);
       
       // Use MagicLinkService to create user and send magic link
       const result = await MagicLinkService.createUserWithMagicLink({
@@ -47,16 +50,31 @@ export default function InviteUserForm() {
         tenantId: data.tenantId,
       });
 
+      console.log('📧 MagicLinkService result:', result);
+
       if (!result.success) {
-        throw new Error(result.error || 'Failed to send magic link');
+        console.error('❌ MagicLinkService failed:', result.error);
+        throw new Error(result.error || 'Failed to create user');
       }
 
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log('✅ User creation successful:', result);
       queryClient.invalidateQueries({ queryKey: ['pending-invitations'] });
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
-      toast.success("User created and magic link sent successfully!");
+      queryClient.invalidateQueries({ queryKey: ['platform-users'] });
+      
+      if (result.data?.magicLinkSent) {
+        toast.success("User created and magic link sent successfully!", {
+          description: "The user will receive an email with login instructions."
+        });
+      } else {
+        toast.success("User created successfully!", {
+          description: "Magic link could not be sent, but the user account is ready."
+        });
+      }
+      
       navigate("/master/users");
     },
     onError: (error: any) => {

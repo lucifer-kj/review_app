@@ -38,18 +38,25 @@ export default function CreateUserForm({ onSuccess, onCancel, defaultTenantId }:
 
   // Create user mutation
   const createUserMutation = useMutation({
-    mutationFn: (data: CreateUserData) => UserCreationService.createUserWithPassword(data),
+    mutationFn: (data: CreateUserData) => {
+      console.log('🚀 CreateUserForm: Starting user creation with data:', data);
+      return UserCreationService.createUserWithPassword(data);
+    },
     onSuccess: (response) => {
+      console.log('✅ CreateUserForm: User creation response:', response);
       if (response.success) {
         toast.success('User created successfully!');
         queryClient.invalidateQueries({ queryKey: ['users'] });
         queryClient.invalidateQueries({ queryKey: ['tenant-users'] });
+        queryClient.invalidateQueries({ queryKey: ['platform-users'] });
         onSuccess?.();
       } else {
+        console.error('❌ CreateUserForm: User creation failed:', response.error);
         toast.error(response.error || 'Failed to create user');
       }
     },
     onError: (error: any) => {
+      console.error('💥 CreateUserForm: User creation error:', error);
       toast.error(error.message || 'Failed to create user');
     },
   });
@@ -84,7 +91,10 @@ export default function CreateUserForm({ onSuccess, onCancel, defaultTenantId }:
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('📝 CreateUserForm: Form submitted with data:', formData);
+    
     if (!validateForm()) {
+      console.log('❌ CreateUserForm: Form validation failed');
       return;
     }
 
@@ -94,6 +104,7 @@ export default function CreateUserForm({ onSuccess, onCancel, defaultTenantId }:
       tenantId: formData.tenantId === "none" ? null : formData.tenantId
     };
 
+    console.log('📤 CreateUserForm: Submitting data:', submitData);
     createUserMutation.mutate(submitData);
   };
 

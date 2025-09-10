@@ -31,13 +31,18 @@ export class UserCreationService extends BaseService {
    */
   static async createUserWithPassword(data: CreateUserData): Promise<ServiceResponse<CreateUserResponse>> {
     try {
+      console.log('🔧 UserCreationService: Starting user creation with data:', data);
+      
       if (!isAdminClientConfigured()) {
+        console.error('❌ UserCreationService: Admin client not configured');
         return {
           data: null,
           error: 'Admin client not configured. Please check your service role key.',
           success: false,
         };
       }
+
+      console.log('✅ UserCreationService: Admin client configured');
 
       // Validate input
       if (!data.email || !data.password || !data.fullName) {
@@ -56,7 +61,49 @@ export class UserCreationService extends BaseService {
         };
       }
 
+      // Check if user already exists
+      console.log(`🔍 Checking if user ${data.email} already exists...`);
+      const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
+        .from('profiles')
+        .select('id, email')
+        .eq('email', data.email)
+        .maybeSingle();
+
+      if (profileCheckError) {
+        console.warn('Could not check existing profiles:', profileCheckError);
+      } else if (existingProfile) {
+        console.log(`❌ User ${data.email} already exists in profiles table`);
+        return {
+          data: null,
+          error: 'User with this email already exists',
+          success: false,
+        };
+      } else {
+        console.log(`✅ User ${data.email} not found in profiles table`);
+      }
+
+      // Check if there's an existing auth user with this email
+      console.log(`🔍 Checking if user ${data.email} exists in auth system...`);
+      const { data: existingAuthUser, error: authCheckError } = await supabaseAdmin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000
+      });
+
+      if (authCheckError) {
+        console.warn('Could not check existing auth users:', authCheckError);
+      } else if (existingAuthUser?.users?.some(user => user.email === data.email)) {
+        console.log(`❌ User ${data.email} already exists in auth system`);
+        return {
+          data: null,
+          error: 'User with this email already exists in authentication system',
+          success: false,
+        };
+      } else {
+        console.log(`✅ User ${data.email} not found in auth system`);
+      }
+
       // Create user in Supabase Auth
+      console.log(`🔨 Creating auth user for ${data.email}...`);
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: data.email,
         password: data.password,
@@ -69,10 +116,12 @@ export class UserCreationService extends BaseService {
       });
 
       if (authError) {
+        console.error(`❌ Auth user creation failed for ${data.email}:`, authError);
         return this.handleError(authError, 'UserCreationService.createUserWithPassword');
       }
 
       if (!authData.user) {
+        console.error(`❌ Auth user creation returned no user for ${data.email}`);
         return {
           data: null,
           error: 'Failed to create user in authentication system',
@@ -80,15 +129,21 @@ export class UserCreationService extends BaseService {
         };
       }
 
-      // Create profile in database
+      console.log(`✅ Auth user created successfully: ${authData.user.id}`);
+
+      // Create profile in database (use upsert to handle potential race conditions)
       const { data: profileData, error: profileError } = await supabaseAdmin
         .from('profiles')
-        .insert({
+        .upsert({
           id: authData.user.id,
           email: data.email,
           full_name: data.fullName,
           role: data.role,
           tenant_id: data.tenantId || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'id'
         })
         .select()
         .single();
@@ -96,7 +151,11 @@ export class UserCreationService extends BaseService {
       if (profileError) {
         // If profile creation fails, clean up the auth user
         console.error('Profile creation failed, cleaning up auth user:', profileError);
-        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        try {
+          await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        } catch (cleanupError) {
+          console.error('Failed to clean up auth user:', cleanupError);
+        }
         
         return this.handleError(profileError, 'UserCreationService.createUserWithPassword');
       }
@@ -299,6 +358,72 @@ export class UserCreationService extends BaseService {
 
     } catch (error) {
       return this.handleError(error, 'UserCreationService.getAvailableTenants');
+    }
+  }
+
+  /**
+   * Clean up orphaned auth users (users that exist in auth but not in profiles)
+   */
+  static async cleanupOrphanedUsers(): Promise<ServiceResponse<{ cleaned: number }>> {
+    try {
+      if (!isAdminClientConfigured()) {
+        return {
+          data: null,
+          error: 'Admin client not configured',
+          success: false,
+        };
+      }
+
+      // Get all auth users
+      const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000
+      });
+
+      if (authError) {
+        return this.handleError(authError, 'UserCreationService.cleanupOrphanedUsers');
+      }
+
+      if (!authUsers?.users) {
+        return {
+          data: { cleaned: 0 },
+          error: null,
+          success: true,
+        };
+      }
+
+      // Get all profile IDs
+      const { data: profiles, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('id');
+
+      if (profileError) {
+        return this.handleError(profileError, 'UserCreationService.cleanupOrphanedUsers');
+      }
+
+      const profileIds = new Set(profiles?.map(p => p.id) || []);
+      let cleaned = 0;
+
+      // Find orphaned users and clean them up
+      for (const user of authUsers.users) {
+        if (!profileIds.has(user.id)) {
+          try {
+            await supabaseAdmin.auth.admin.deleteUser(user.id);
+            cleaned++;
+            console.log(`Cleaned up orphaned user: ${user.email}`);
+          } catch (deleteError) {
+            console.error(`Failed to delete orphaned user ${user.email}:`, deleteError);
+          }
+        }
+      }
+
+      return {
+        data: { cleaned },
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'UserCreationService.cleanupOrphanedUsers');
     }
   }
 }
