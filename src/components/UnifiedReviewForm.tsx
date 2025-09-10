@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useParams } from "react-router-dom";
+import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { StarRating } from "./StarRating";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, User, Phone, Star, Send, AlertTriangle, Mail, MapPin, Globe } from "lucide-react";
@@ -21,6 +21,7 @@ interface UnifiedReviewFormProps {
 }
 
 export const UnifiedReviewForm = ({ onSubmit, tenantId, className = "" }: UnifiedReviewFormProps) => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { tenantId: paramTenantId } = useParams();
   const actualTenantId = tenantId || paramTenantId;
@@ -39,6 +40,19 @@ export const UnifiedReviewForm = ({ onSubmit, tenantId, className = "" }: Unifie
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [canCollect, setCanCollect] = useState(true);
   const { toast } = useToast();
+
+  const resetForm = () => {
+    setFormData({
+      customer_name: "",
+      customer_email: "",
+      customer_phone: "",
+      rating: 0,
+      review_text: "",
+      utm_source: "",
+      utm_campaign: "",
+      utm_medium: "",
+    });
+  };
 
   // Extract and sanitize URL parameters
   const sanitizeInput = (input: string | null): string => {
@@ -69,21 +83,24 @@ export const UnifiedReviewForm = ({ onSubmit, tenantId, className = "" }: Unifie
       TenantReviewFormService.submitTenantReview(actualTenantId!, data),
     onSuccess: (result) => {
       if (result.success) {
-        toast({
-          title: "Review Submitted!",
-          description: formSettings?.data?.form_customization?.thank_you_message || "Thank you for your feedback!",
-        });
-        // Reset form
-        setFormData({
-          customer_name: "",
-          customer_email: "",
-          customer_phone: "",
-          rating: 0,
-          review_text: "",
-          utm_source: "",
-          utm_campaign: "",
-          utm_medium: "",
-        });
+        const { google_business_url } = result.data;
+        resetForm(); // Reset form for all successful submissions
+
+        if (formData.rating >= 4 && google_business_url) {
+          toast({
+            title: "Thank You!",
+            description: "We're redirecting you to leave a review on Google.",
+          });
+          setTimeout(() => {
+            window.location.href = google_business_url;
+          }, 2000);
+        } else {
+          toast({
+            title: "Thank you for your feedback!",
+            description: "We appreciate you taking the time to share your thoughts.",
+          });
+          navigate('/feedback');
+        }
       } else {
         toast({
           title: "Submission Failed",

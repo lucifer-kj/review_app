@@ -160,7 +160,7 @@ export class TenantReviewFormService extends BaseService {
       }
 
       // Submit review to database
-      const { data, error } = await supabase
+      const { data: review, error } = await supabase
         .from('reviews')
         .insert({
           tenant_id: tenantId,
@@ -180,8 +180,18 @@ export class TenantReviewFormService extends BaseService {
         return this.handleError(error, 'TenantReviewFormService.submitTenantReview');
       }
 
+      // Fetch business settings to get Google Business URL
+      const { data: businessSettings } = await supabase
+        .from('business_settings')
+        .select('google_business_url')
+        .eq('tenant_id', tenantId)
+        .single();
+
       return {
-        data: data,
+        data: {
+          ...review,
+          google_business_url: businessSettings?.google_business_url,
+        },
         error: null,
         success: true,
       };
