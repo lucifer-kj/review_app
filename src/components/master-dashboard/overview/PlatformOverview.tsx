@@ -86,13 +86,13 @@ export default function PlatformOverview() {
   if (isLoading) {
     return (
       <AppErrorBoundary componentName="PlatformOverview">
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Platform Overview</h2>
-            <p className="text-muted-foreground">
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Platform Overview</h2>
+          <p className="text-muted-foreground">
               Real-time platform analytics and performance metrics
-            </p>
-          </div>
+          </p>
+        </div>
           
           {/* Metrics Cards Skeleton */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -149,10 +149,10 @@ export default function PlatformOverview() {
                     <Skeleton className="h-6 w-16" />
                   </div>
                 ))}
-              </div>
+        </div>
             </CardContent>
           </Card>
-        </div>
+      </div>
       </AppErrorBoundary>
     );
   }
@@ -201,7 +201,7 @@ export default function PlatformOverview() {
 
   return (
     <AppErrorBoundary componentName="PlatformOverview">
-      <div className="space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Platform Overview</h2>
@@ -489,7 +489,7 @@ export default function PlatformOverview() {
           </CardContent>
         </Card>
       </div>
-      </div>
+    </div>
     </AppErrorBoundary>
   );
 }

@@ -3,6 +3,8 @@
  * Centralized environment variable management with validation
  */
 
+import { validateEnvironment as validateEnvVars, getEnvironmentError } from './envValidation';
+
 interface EnvironmentConfig {
   // Supabase Configuration
   supabase: {
@@ -27,24 +29,20 @@ interface EnvironmentConfig {
  * Validate required environment variables
  */
 const validateEnvironment = (): EnvironmentConfig => {
+  // Validate environment variables
+  const envError = getEnvironmentError();
+  if (envError) {
+    console.error('Environment validation failed:', envError);
+    throw new Error(envError);
+  }
+
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
   const supabaseServiceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
-  // Check if Supabase variables are missing
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn(
-      'Missing Supabase environment variables. Please create a .env file with:\n' +
-      'VITE_SUPABASE_URL=https://your-project.supabase.co\n' +
-      'VITE_SUPABASE_ANON_KEY=your_supabase_anon_key\n' +
-      'VITE_SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key\n\n' +
-      'For now, using placeholder values. Review form submissions will not work.'
-    );
-  }
-
   // Get frontend URL with fallback
   const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 
-    (typeof window !== 'undefined' ? window.location.origin : 'https://demo.alphabusinessdesigns.co.in');
+    (typeof window !== 'undefined' ? window.location.origin : 'https://crux.alphabusinessdigital.com');
 
   return {
     supabase: {
@@ -87,7 +85,7 @@ export const getEnvironmentConfig = () => {
       // Development-specific overrides
       frontend: {
         ...env.frontend,
-        url: 'http://localhost:5173',
+        url: import.meta.env.VITE_DEV_URL || 'http://localhost:5173',
       },
     };
   }

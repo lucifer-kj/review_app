@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useOptimizedCallback } from "@/hooks/useOptimizedCallback";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import ReviewLimitBanner from "@/components/ReviewLimitBanner";
 import GoogleReviewLink from "@/components/GoogleReviewLink";
 import PlanUpgradePrompt from "@/components/PlanUpgradePrompt";
 import { useAuth } from "@/hooks/useAuth";
+import { useRealtimeUpdates } from "@/hooks/useRealtimeUpdates";
 import { BusinessSettingsService } from "@/services/businessSettingsService";
 
 const Dashboard = () => {
@@ -36,6 +38,28 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, profile, tenant, refreshUserData } = useAuth();
+
+  // Enable real-time updates for dashboard data
+  useRealtimeUpdates({
+    tables: [
+      {
+        table: 'reviews',
+        queryKey: ['dashboard-stats', tenant?.id],
+        tenantId: tenant?.id,
+        events: ['INSERT', 'UPDATE', 'DELETE']
+      },
+      {
+        table: 'business_settings',
+        queryKey: ['business-settings', tenant?.id],
+        tenantId: tenant?.id,
+        events: ['INSERT', 'UPDATE']
+      }
+    ],
+    enabled: !!tenant?.id,
+    onError: (error) => {
+      console.error('Real-time update error:', error);
+    }
+  });
 
   useEffect(() => {
     const fetchData = async () => {

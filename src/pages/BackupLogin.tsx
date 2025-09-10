@@ -108,7 +108,7 @@ export default function BackupLogin() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Backup Login</CardTitle>
+            <CardTitle>Tenant Login</CardTitle>
             <CardDescription>
               Sign in with your email and password. This is an alternative to magic link authentication.
             </CardDescription>

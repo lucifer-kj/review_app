@@ -63,13 +63,23 @@ export default function TenantSettings() {
       setFormData({
         name: tenant.name || "",
         domain: tenant.domain || "",
-        plan_type: tenant.plan_type || "basic",
+        plan_type: ["basic", "pro", "enterprise"].includes(tenant.plan_type)
+          ? tenant.plan_type
+          : "basic",
         billing_email: tenant.billing_email || "",
-        status: tenant.status || "active",
+        status:
+          tenant.status === "active" ||
+          tenant.status === "suspended" ||
+          tenant.status === "pending"
+            ? tenant.status
+            : "active",
         settings: {
           description: tenant.settings?.description || "",
           features: {
-            analytics: tenant.settings?.features?.analytics ?? true,
+            analytics:
+              typeof tenant.settings?.features?.analytics === "boolean"
+                ? tenant.settings.features.analytics
+                : true,
             custom_domain: tenant.settings?.features?.custom_domain ?? false,
             api_access: tenant.settings?.features?.api_access ?? false,
             priority_support: tenant.settings?.features?.priority_support ?? false,

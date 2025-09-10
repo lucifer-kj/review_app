@@ -599,7 +599,7 @@ const DashboardSettings = () => {
                   </Button>
                 )}
               </div>
-              {!validateGoogleBusinessUrl(settings.google_business_url || "") && settings.google_business_url && (
+              {settings.google_business_url && !validateGoogleBusinessUrl(settings.google_business_url) && (
                 <div className="flex items-center gap-2 text-sm text-destructive">
                   <AlertCircle className="h-4 w-4" />
                   Please enter a valid Google Business Profile URL
@@ -1011,18 +1011,18 @@ const DashboardSettings = () => {
               </div>
               
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="font-medium mb-2 text-sm sm:text-base text-blue-800">Backup Login</h4>
+                <h4 className="font-medium mb-2 text-sm sm:text-base text-blue-800">Tenant Login</h4>
                 <p className="text-xs sm:text-sm text-blue-700 mb-2">
                   You can also sign in using your email and password instead of magic links.
                 </p>
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => window.open('/backup-login', '_blank')}
+                  onClick={() => window.open('/tenant-login', '_blank')}
                   className="text-blue-600 border-blue-300 hover:bg-blue-100"
                 >
                   <Key className="h-4 w-4 mr-2" />
-                  Use Backup Login
+                  Use Tenant Login
                 </Button>
               </div>
             </div>

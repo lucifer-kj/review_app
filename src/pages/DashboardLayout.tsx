@@ -23,20 +23,21 @@ const CopyLinkButton = lazy(() => import("@/components/CopyLinkButton").then(mod
 const DashboardLayout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      await signOut();
       navigate("/");
       toast({
         title: "Signed Out",
         description: "You have been successfully signed out.",
       });
-    } catch {
+    } catch (error) {
+      console.error('Logout error:', error);
       toast({
         title: "Error",
+        description: "Failed to sign out. Please try again.",
         variant: "destructive",
       });
     }
@@ -58,8 +59,12 @@ const DashboardLayout = () => {
             onClick={() => navigate("/dashboard")}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity duration-200 cursor-pointer"
           >
-            <Building2 className="h-6 w-6 text-primary" />
-            <span className="font-semibold text-base">Crux</span>
+            <img 
+              src="/web/icons8-logo-ios-17-outlined-32.png" 
+              alt="Crux Logo" 
+              className="h-8 w-8"
+            />
+            <span className="font-bold text-xl">Crux</span>
           </button>
         </div>
         <div className="flex items-center gap-3">

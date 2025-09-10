@@ -161,15 +161,15 @@ export default function AuditLogs() {
   if (isLoading) {
     return (
       <AppErrorBoundary componentName="AuditLogs">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight">Audit Logs</h2>
-              <p className="text-muted-foreground">
-                Monitor platform activity and security events
-              </p>
-            </div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Audit Logs</h2>
+            <p className="text-muted-foreground">
+              Monitor platform activity and security events
+            </p>
           </div>
+        </div>
           
           {/* Filters Skeleton */}
           <Card>
@@ -203,8 +203,8 @@ export default function AuditLogs() {
                         <Skeleton className="h-6 w-16" />
                         <Skeleton className="h-8 w-8" />
                       </div>
-                    </div>
-                  </div>
+        </div>
+      </div>
                 ))}
               </div>
             </CardContent>
@@ -238,7 +238,7 @@ export default function AuditLogs() {
 
   return (
     <AppErrorBoundary componentName="AuditLogs">
-      <div className="space-y-6">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Audit Logs</h2>
@@ -408,7 +408,7 @@ export default function AuditLogs() {
           </Button>
         </div>
       </div>
-      </div>
+    </div>
     </AppErrorBoundary>
   );
 }

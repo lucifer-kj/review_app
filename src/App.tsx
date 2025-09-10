@@ -45,7 +45,7 @@ const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const AcceptInvitation = lazy(() => import("./pages/AcceptInvitation"));
 const TestAcceptInvitation = lazy(() => import("./pages/TestAcceptInvitation"));
 const TestCallback = lazy(() => import("./pages/TestCallback"));
-const BackupLogin = lazy(() => import("./pages/BackupLogin"));
+const TenantLogin = lazy(() => import("./pages/BackupLogin"));
 
 // Review flow pages
 const ReviewFormPage = lazy(() => import("./pages/ReviewFormPage"));
@@ -109,7 +109,7 @@ const RouterContent = () => {
           
           {/* Authentication routes */}
           <Route path="/login" element={<Login />} />
-          <Route path="/backup-login" element={<BackupLogin />} />
+          <Route path="/backup-login" element={<TenantLogin />} />
           <Route path="/tenant-login" element={<TenantLogin />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           

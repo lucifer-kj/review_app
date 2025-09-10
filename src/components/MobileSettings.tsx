@@ -214,7 +214,7 @@ export const MobileSettings = ({
                 </Button>
               )}
             </div>
-            {!validateGoogleBusinessUrl(settings.google_business_url || "") && settings.google_business_url && (
+            {settings.google_business_url && !validateGoogleBusinessUrl(settings.google_business_url) && (
               <div className="flex items-center gap-2 text-sm text-destructive">
                 <AlertCircle className="h-4 w-4" />
                 Please enter a valid Google Business Profile URL

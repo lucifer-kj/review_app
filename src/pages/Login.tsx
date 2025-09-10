@@ -237,11 +237,11 @@ const Login = () => {
                   <Button
                     variant="outline"
                     className="w-full"
-                    onClick={() => navigate('/backup-login')}
+                    onClick={() => navigate('/tenant-login')}
                     disabled={loading}
                   >
                     <Key className="w-4 h-4 mr-2" />
-                    Use Backup Login
+                    Use Tenant Login
                   </Button>
                   <p className="text-xs text-gray-500 text-center">
                     Alternative login method with email and password

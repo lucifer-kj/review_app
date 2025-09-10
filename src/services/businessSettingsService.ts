@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { BaseService, type ServiceResponse } from "./baseService";
 import { logger } from "@/utils/logger";
+import { handleServiceError, AppError } from "@/utils/errorHandler";
 
 export interface BusinessSettings {
   id: string;
@@ -94,13 +95,18 @@ export class BusinessSettingsService extends BaseService {
   static async getBusinessSettings(): Promise<ServiceResponse<BusinessSettings>> {
     try {
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        throw handleServiceError(authError, 'BusinessSettingsService', 'getBusinessSettings');
+      }
+      
       if (!user) {
-        return {
-          data: null,
-          error: 'User not authenticated',
-          success: false,
-        };
+        throw new AppError(
+          'User not authenticated',
+          'USER_NOT_AUTHENTICATED',
+          {},
+          true
+        );
       }
 
       // Get tenant context

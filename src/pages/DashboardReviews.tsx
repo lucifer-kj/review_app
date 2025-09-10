@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { useOptimizedCallback, useDebouncedCallback } from "@/hooks/useOptimizedCallback";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,17 +14,20 @@ import { LoadingWrapper } from "@/components/LoadingWrapper";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { Pagination } from "@/components/Pagination";
 import { useReviewsQuery } from "@/hooks/useReviewsQuery";
+import { useRealtimeUpdates } from "@/hooks/useRealtimeUpdates";
 import { MobileSearchFilters } from "@/components/MobileSearchFilters";
 import { MobileReviewCard } from "@/components/MobileReviewCard";
 import { useQueryParams } from "@/hooks/useQueryParams";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useSessionStorage } from "@/hooks/useSessionStorage";
+import { useAuth } from "@/hooks/useAuth";
 import { Star, Search, Download, Filter, Eye, MessageSquare, ExternalLink, Mail, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import type { Review, RatingFilter } from "@/types";
 
 const DashboardReviews = () => {
+  const { tenant } = useAuth();
   const [params, setParams] = useQueryParams<{ search?: string; rating?: RatingFilter; page?: string }>();
   const [persistedFilters, setPersistedFilters] = useSessionStorage<{ search?: string; rating?: RatingFilter }>("reviews.filters", { search: params.search || "", rating: (params.rating as RatingFilter) || "all" });
   const [searchTerm, setSearchTerm] = useState(persistedFilters.search || "");
@@ -36,11 +40,27 @@ const DashboardReviews = () => {
   const [showSendEmailDialog, setShowSendEmailDialog] = useState(false);
   const { toast } = useToast();
 
+  // Enable real-time updates for reviews
+  useRealtimeUpdates({
+    tables: [
+      {
+        table: 'reviews',
+        queryKey: ['reviews', { search: debouncedSearch, rating: ratingFilter, page, tenantId: tenant?.id }],
+        tenantId: tenant?.id,
+        events: ['INSERT', 'UPDATE', 'DELETE']
+      }
+    ],
+    enabled: !!tenant?.id,
+    onError: (error) => {
+      console.error('Real-time reviews update error:', error);
+    }
+  });
+
   const filteredReviews = data?.rows || [];
   const total = data?.total || 0;
   const totalPages = Math.max(1, Math.ceil(total / 20));
 
-  const exportToCSV = useCallback(() => {
+  const exportToCSV = useOptimizedCallback(() => {
     try {
       const csvContent = [
         ['Name', 'Phone', 'Rating', 'Google Review', 'Redirect Opened', 'Feedback', 'Date'],
@@ -78,16 +98,16 @@ const DashboardReviews = () => {
     }
   }, [filteredReviews, toast]);
 
-  const handleViewFeedback = (review: Review) => {
+  const handleViewFeedback = useOptimizedCallback((review: Review) => {
     setSelectedReview(review);
     setShowFeedbackDialog(true);
-  };
+  }, []);
 
-  const handleGoogleReviewClick = (review: Review) => {
+  const handleGoogleReviewClick = useOptimizedCallback((review: Review) => {
     if (review.google_review) {
       window.open('https://g.page/r/CZEmfT3kD-k-EBM/review', '_blank');
     }
-  };
+  }, []);
 
   const handleRefetch = useCallback(() => {
     refetch();

@@ -42,9 +42,13 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
             <div className="flex flex-col h-full">
               <div className="p-6 border-b bg-muted/30">
                 <div className="flex items-center gap-3 mb-4">
-                  <Building2 className="h-8 w-8 text-primary" />
+                  <img 
+                    src="/web/icons8-logo-ios-17-outlined-32.png" 
+                    alt="Crux Logo" 
+                    className="h-8 w-8"
+                  />
                   <div>
-                    <span className="font-bold text-lg">Crux</span>
+                    <span className="font-bold text-xl">Crux</span>
                     <p className="text-xs text-muted-foreground">Powered by Alpha Business Digital</p>
                   </div>
                 </div>
@@ -118,8 +122,12 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
           onClick={() => navigate("/dashboard")}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          <Building2 className="h-5 w-5 text-primary" />
-          <span className="font-semibold text-sm">Crux</span>
+          <img 
+            src="/web/icons8-logo-ios-17-outlined-32.png" 
+            alt="Crux Logo" 
+            className="h-6 w-6"
+          />
+          <span className="font-bold text-base">Crux</span>
         </button>
         </div>
         
