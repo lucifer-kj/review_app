@@ -3,7 +3,7 @@
  * Centralized environment variable management with validation
  */
 
-import { validateEnvironment as validateEnvVars, getEnvironmentError } from './envValidation';
+import { validateEnvironment as validateEnvVars, getEnvironmentError, getOptionalEnvVars } from './envValidation';
 
 interface EnvironmentConfig {
   // Supabase Configuration
@@ -16,6 +16,12 @@ interface EnvironmentConfig {
   // Frontend Configuration
   frontend: {
     url: string;
+  };
+  
+  // App Configuration
+  app: {
+    name: string;
+    supportEmail?: string;
   };
   
   // Optional Services
@@ -44,6 +50,9 @@ const validateEnvironment = (): EnvironmentConfig => {
   const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 
     (typeof window !== 'undefined' ? window.location.origin : 'https://crux.alphabusinessdigital.com');
 
+  // Get optional environment variables
+  const optionalVars = getOptionalEnvVars();
+
   return {
     supabase: {
       url: supabaseUrl || 'https://placeholder.supabase.co',
@@ -52,6 +61,10 @@ const validateEnvironment = (): EnvironmentConfig => {
     },
     frontend: {
       url: frontendUrl,
+    },
+    app: {
+      name: optionalVars.VITE_APP_NAME || 'Crux',
+      supportEmail: optionalVars.VITE_SUPPORT_EMAIL,
     },
     services: {
       sentryDsn: import.meta.env.VITE_SENTRY_DSN,
