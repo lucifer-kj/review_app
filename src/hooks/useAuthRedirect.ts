@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -7,13 +7,18 @@ export const useAuthRedirect = () => {
   const [isChecking, setIsChecking] = useState(true);
   const [hasChecked, setHasChecked] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   useEffect(() => {
     let isMounted = true;
 
     const checkAuthAndRedirect = async () => {
-      if (hasChecked) return; // Prevent multiple checks
+      // Don't redirect if already on a protected route or if we've already checked
+      if (hasChecked || location.pathname.startsWith('/master') || location.pathname.startsWith('/dashboard')) {
+        setIsChecking(false);
+        return;
+      }
       
       try {
         setIsChecking(true);
@@ -25,14 +30,19 @@ export const useAuthRedirect = () => {
           // User is authenticated - check their role and redirect accordingly
           const { data: profile } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, tenant_id')
             .eq('id', session.user.id)
             .single();
 
-          if (profile?.role === 'super_admin') {
-            navigate("/master", { replace: true });
-          } else {
-            navigate("/dashboard", { replace: true });
+          if (profile) {
+            // Only redirect if not already on the correct page
+            if (profile.role === 'super_admin' && !location.pathname.startsWith('/master')) {
+              console.log('Redirecting super admin to master dashboard');
+              navigate("/master", { replace: true });
+            } else if (['tenant_admin', 'user'].includes(profile.role) && !location.pathname.startsWith('/dashboard')) {
+              console.log('Redirecting tenant user to dashboard');
+              navigate("/dashboard", { replace: true });
+            }
           }
         }
       } catch (error) {
@@ -52,12 +62,18 @@ export const useAuthRedirect = () => {
       }
     };
 
-    checkAuthAndRedirect();
+    // Only run the check if we're on the login page or root
+    if (location.pathname === '/' || location.pathname === '/login') {
+      checkAuthAndRedirect();
+    } else {
+      setIsChecking(false);
+      setHasChecked(true);
+    }
 
     return () => {
       isMounted = false;
     };
-  }, [navigate, toast, hasChecked]);
+  }, [navigate, toast, hasChecked, location.pathname]);
 
   return { isChecking, hasChecked };
 };

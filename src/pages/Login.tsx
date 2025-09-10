@@ -1,15 +1,15 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Building2, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ArrowLeft, Shield, AlertTriangle, Key, Mail } from "lucide-react";
-import type { AuthError } from "@supabase/supabase-js";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
-import { useAuth } from "@/hooks/useAuth";
 
 interface LoginFormData {
   email: string;
@@ -27,7 +27,7 @@ const Login = () => {
     password: "",
   });
   const [loading, setLoading] = useState(false);
-  // Signup disabled - invite-only authentication
+  const [showPassword, setShowPassword] = useState(false);
   const [isSignUp] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const navigate = useNavigate();
@@ -41,7 +41,6 @@ const Login = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -51,27 +50,61 @@ const Login = () => {
       const success = await login(formData.email, formData.password);
       
       if (success) {
-        // Login successful, redirect will be handled by useAuth
-        toast({
-          title: "Login Successful",
-          description: "Welcome to Crux!",
-        });
+        // Get user profile to determine role and redirect
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role, tenant_id')
+            .eq('id', user.id)
+            .single();
+
+          if (profile) {
+            // Redirect based on role
+            if (profile.role === 'super_admin') {
+              toast({
+                title: "Login Successful",
+                description: "Welcome, Super Admin! Redirecting to master dashboard...",
+              });
+              navigate('/master', { replace: true });
+            } else if (['tenant_admin', 'user'].includes(profile.role)) {
+              toast({
+                title: "Login Successful", 
+                description: "Welcome! Redirecting to dashboard...",
+              });
+              navigate('/dashboard', { replace: true });
+            } else {
+              toast({
+                title: "Access Denied",
+                description: "Invalid user role. Please contact your administrator.",
+                variant: "destructive",
+              });
+              await supabase.auth.signOut();
+            }
+          } else {
+            toast({
+              title: "Profile Error",
+              description: "Could not load user profile. Please try again.",
+              variant: "destructive",
+            });
+          }
+        }
       } else {
         throw new Error("Login failed. Please check your credentials.");
       }
         
-    } catch (error) {
-      const authError = error as AuthError;
+    } catch (error: any) {
+      console.error('Login error:', error);
       toast({
         title: "Authentication Error",
-        description: authError.message || "An unexpected error occurred",
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
-
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,15 +118,14 @@ const Login = () => {
       if (error) throw error;
       
       toast({
-        title: "Password Reset Email Sent",
-        description: "Please check your email for password reset instructions.",
+        title: "Password Reset Sent",
+        description: "Check your email for password reset instructions.",
       });
       setShowPasswordReset(false);
-    } catch (error) {
-      const authError = error as AuthError;
+    } catch (error: any) {
       toast({
-        title: "Reset Error",
-        description: authError.message || "Failed to send reset email",
+        title: "Password Reset Failed",
+        description: error.message || "Could not send password reset email",
         variant: "destructive",
       });
     } finally {
@@ -101,31 +133,9 @@ const Login = () => {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/` // Redirect to root
-        }
-      });
-      
-      if (error) throw error;
-    } catch (error) {
-      const authError = error as AuthError;
-      toast({
-        title: "Google Sign In Error",
-        description: authError.message || "Failed to sign in with Google",
-        variant: "destructive",
-      });
-    }
-  };
-
-
-  // Show loading while checking authentication
   if (isChecking) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="flex items-center space-x-2">
           <Loader2 className="h-6 w-6 animate-spin" />
           <span>Checking authentication...</span>
@@ -135,134 +145,208 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
-      <Card className="w-full max-w-md mx-auto shadow-2xl border-0 bg-white/90 backdrop-blur-sm">
-        <CardHeader className="text-center px-8 pt-8 pb-6">
-          <div className="flex flex-col items-center mb-6">
-            <img src="/web/icons8-logo-ios-17-outlined-120.png" alt="Crux Logo" className="w-16 h-16 mb-4" />
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">CRUX</h1>
-            <p className="text-sm text-gray-600">Review Management Platform</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        {/* Header */}
+        <div className="text-center">
+          <div className="flex justify-center">
+            <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
+              <Building2 className="w-8 h-8 text-primary-foreground" />
+            </div>
           </div>
-          <CardTitle className="text-xl mb-2">
-            {showPasswordReset ? "Reset Password" : "Manager Sign In"}
-          </CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">
-            {showPasswordReset ? "Enter your email to reset password" : "For platform managers and administrators only"}
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent className="px-8 pb-6">
-          {showPasswordReset ? (
-            <form onSubmit={handlePasswordReset} className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="reset-email" className="text-sm font-medium">Email</Label>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">
+            {isSignUp ? "Create your account" : "Sign in to your account"}
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            {isSignUp ? "Join Crux to manage your reviews" : "Welcome back to Crux"}
+          </p>
+        </div>
+
+        {/* Login Form */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="text-center">
+              {isSignUp ? "Sign Up" : "Sign In"}
+            </CardTitle>
+            <CardDescription className="text-center">
+              {isSignUp ? "Create your Crux account" : "Enter your credentials to access your account"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="email">Email address</Label>
                 <Input
-                  id="reset-email"
+                  id="email"
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  placeholder="Enter your email"
+                  autoComplete="email"
                   required
-                  className="h-11"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  className="mt-1"
+                  placeholder="Enter your email"
                 />
               </div>
-              <Button type="submit" className="w-full h-11" disabled={loading}>
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Send Reset Email
-              </Button>
-              <Button 
-                type="button" 
-                variant="ghost" 
-                onClick={() => setShowPasswordReset(false)}
+
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete={isSignUp ? "new-password" : "current-password"}
+                    required
+                    value={formData.password}
+                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    placeholder="Enter your password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {!isSignUp && (
+                <div className="flex items-center justify-between">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="px-0 text-sm"
+                    onClick={() => setShowPasswordReset(true)}
+                  >
+                    Forgot your password?
+                  </Button>
+                </div>
+              )}
+
+              <Button
+                type="submit"
                 className="w-full"
+                disabled={loading}
               >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Sign In
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isSignUp ? "Creating account..." : "Signing in..."}
+                  </>
+                ) : (
+                  isSignUp ? "Create account" : "Sign in"
+                )}
               </Button>
             </form>
-          ) : (
-            <>
-              <form onSubmit={handleEmailSubmit} className="space-y-6">
-                <div className="space-y-3">
-                  <Label htmlFor="signin-email" className="text-sm font-medium">Email</Label>
-                  <Input
-                    id="signin-email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    placeholder="Enter your email"
-                    required
-                    className="h-11"
-                  />
+
+            {/* Alternative Login */}
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
                 </div>
-                <div className="space-y-3">
-                  <Label htmlFor="signin-password" className="text-sm font-medium">Password</Label>
-                  <Input
-                    id="signin-password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    required
-                    className="h-11"
-                  />
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or</span>
                 </div>
-                <Button type="submit" disabled={loading} className="w-full h-11">
-                  {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Sign In
-                </Button>
-              </form>
-              
-              <div className="text-center mt-4">
-                <Button 
-                  type="button" 
-                  variant="link" 
-                  onClick={() => setShowPasswordReset(true)}
-                  className="text-sm"
-                >
-                  Forgot password?
-                </Button>
               </div>
 
               <div className="mt-6">
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300" />
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">Or</span>
-                  </div>
-                </div>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  asChild
+                >
+                  <Link to="/tenant-login">
+                    <Building2 className="mr-2 h-4 w-4" />
+                    Tenant Login
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-                <div className="mt-6 space-y-3">
+        {/* Footer */}
+        <div className="text-center">
+          <p className="text-sm text-gray-600">
+            {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+            <Button
+              variant="link"
+              className="px-0"
+              onClick={() => {
+                // Signup is disabled - invite only
+                toast({
+                  title: "Signup Disabled",
+                  description: "This system uses invite-only authentication. Please contact your administrator for access.",
+                  variant: "destructive",
+                });
+              }}
+            >
+              {isSignUp ? "Sign in" : "Contact Administrator"}
+            </Button>
+          </p>
+        </div>
+      </div>
+
+      {/* Password Reset Modal */}
+      {showPasswordReset && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Reset Password</CardTitle>
+              <CardDescription>
+                Enter your email address and we'll send you a link to reset your password.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordReset} className="space-y-4">
+                <div>
+                  <Label htmlFor="reset-email">Email address</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
+                    className="mt-1"
+                    placeholder="Enter your email"
+                  />
+                </div>
+                <div className="flex space-x-2">
                   <Button
+                    type="button"
                     variant="outline"
-                    className="w-full"
-                    onClick={() => navigate('/tenant-login')}
+                    className="flex-1"
+                    onClick={() => setShowPasswordReset(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1"
                     disabled={loading}
                   >
-                    <Key className="w-4 h-4 mr-2" />
-                    Use Tenant Login
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Send Reset Link"
+                    )}
                   </Button>
-                  <p className="text-xs text-gray-500 text-center">
-                    Alternative login method with email and password
-                  </p>
                 </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-        
-        <CardFooter className="text-center px-8 pb-8">
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">
-              Users and tenants will receive magic links via email from their managers
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Powered by Alpha Business Digital
-            </p>
-          </div>
-        </CardFooter>
-      </Card>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };
