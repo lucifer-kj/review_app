@@ -20,9 +20,9 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
   const location = useLocation();
 
   const navigationItems = [
-    { label: "Dashboard", href: "/", icon: Home },
-    { label: "Reviews", href: "/reviews", icon: FileText },
-    { label: "Settings", href: "/settings", icon: Settings },
+    { label: "Dashboard", href: "/dashboard", icon: Home },
+    { label: "Reviews", href: "/dashboard/reviews", icon: FileText },
+    { label: "Settings", href: "/dashboard/settings", icon: Settings },
   ];
 
   const isActive = (href: string) => location.pathname === href;
@@ -115,7 +115,7 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
         </Sheet>
           
         <button 
-          onClick={() => navigate("/")}
+          onClick={() => navigate("/dashboard")}
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
           <Building2 className="h-5 w-5 text-primary" />

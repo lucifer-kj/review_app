@@ -15,7 +15,9 @@ export function useReviewsQuery({ search = '', rating = 'all', page = 1, pageSiz
       const res = await ReviewService.getReviews();
       if (!res.success || !res.data) throw new Error(res.error || 'Failed to fetch reviews');
       const filtered = res.data.filter((r) => {
-        const matchesSearch = !search || r.name.toLowerCase().includes(search.toLowerCase()) || r.phone.toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = !search || 
+          r.customer_name.toLowerCase().includes(search.toLowerCase()) || 
+          (r.customer_phone && r.customer_phone.toLowerCase().includes(search.toLowerCase()));
         const matchesRating = rating === 'all' || (rating === 'high' && r.rating >= 4) || (rating === 'low' && r.rating < 4);
         return matchesSearch && matchesRating;
       });

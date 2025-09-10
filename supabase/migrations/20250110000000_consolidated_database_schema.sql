@@ -260,13 +260,30 @@ CREATE OR REPLACE FUNCTION public.get_all_reviews_for_dashboard(p_tenant_id UUID
 RETURNS TABLE (
   id UUID,
   customer_name TEXT,
+  customer_email TEXT,
+  customer_phone TEXT,
   rating INTEGER,
   review_text TEXT,
-  created_at TIMESTAMP WITH TIME ZONE
+  google_review BOOLEAN,
+  redirect_opened BOOLEAN,
+  created_at TIMESTAMP WITH TIME ZONE,
+  metadata JSONB,
+  user_id UUID
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT r.id, r.customer_name, r.rating, r.review_text, r.created_at
+  SELECT 
+    r.id, 
+    r.customer_name, 
+    r.customer_email,
+    r.customer_phone,
+    r.rating, 
+    r.review_text, 
+    r.google_review,
+    r.redirect_opened,
+    r.created_at,
+    r.metadata,
+    r.user_id
   FROM public.reviews r
   WHERE r.tenant_id = p_tenant_id
   ORDER BY r.created_at DESC;
@@ -278,25 +295,14 @@ CREATE OR REPLACE FUNCTION public.get_review_stats_for_dashboard(p_tenant_id UUI
 RETURNS TABLE (
   total_reviews BIGINT,
   average_rating NUMERIC,
-  reviews_this_month BIGINT,
-  reviews_last_month BIGINT,
-  google_reviews BIGINT
+  high_rating_reviews BIGINT
 ) AS $$
 BEGIN
   RETURN QUERY
   SELECT
     COUNT(r.id) as total_reviews,
     COALESCE(AVG(r.rating), 0) as average_rating,
-    COUNT(CASE
-      WHEN r.created_at >= date_trunc('month', CURRENT_DATE)
-      THEN r.id
-    END) as reviews_this_month,
-    COUNT(CASE
-      WHEN r.created_at >= date_trunc('month', CURRENT_DATE - INTERVAL '1 month')
-      AND r.created_at < date_trunc('month', CURRENT_DATE)
-      THEN r.id
-    END) as reviews_last_month,
-    COUNT(CASE WHEN r.google_review = TRUE THEN r.id END) as google_reviews
+    COUNT(CASE WHEN r.rating >= 4 THEN r.id END) as high_rating_reviews
   FROM public.reviews r
   WHERE r.tenant_id = p_tenant_id;
 END;

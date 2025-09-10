@@ -98,11 +98,11 @@ export class AppErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundar
   };
 
   private handleGoHome = () => {
-    window.location.href = '/';
+    window.location.href = '/dashboard';
   };
 
   private handleGoSettings = () => {
-    window.location.href = '/settings';
+    window.location.href = '/dashboard/settings';
   };
 
   render() {

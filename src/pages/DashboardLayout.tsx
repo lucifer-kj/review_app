@@ -43,7 +43,7 @@ const DashboardLayout = () => {
   };
 
   const handleSettings = () => {
-    navigate("/settings");
+    navigate("/dashboard/settings");
   };
 
   return (
@@ -55,7 +55,7 @@ const DashboardLayout = () => {
       <header className="hidden lg:flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/dashboard")}
             className="flex items-center gap-3 hover:opacity-80 transition-opacity duration-200 cursor-pointer"
           >
             <Building2 className="h-6 w-6 text-primary" />

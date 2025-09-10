@@ -45,12 +45,12 @@ const DashboardReviews = () => {
       const csvContent = [
         ['Name', 'Phone', 'Rating', 'Google Review', 'Redirect Opened', 'Feedback', 'Date'],
         ...filteredReviews.map(review => [
-          review.name,
-          review.phone,
+          review.customer_name,
+          review.customer_phone || '',
           review.rating.toString(),
           review.google_review ? 'Yes' : 'No',
           review.redirect_opened ? 'Yes' : 'No',
-          review.feedback || '',
+          review.review_text || '',
           format(new Date(review.created_at), 'yyyy-MM-dd HH:mm:ss')
         ])
       ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -92,6 +92,16 @@ const DashboardReviews = () => {
   const handleRefetch = useCallback(() => {
     refetch();
   }, [refetch]);
+
+  if (isLoading) {
+    return (
+      <AppErrorBoundary componentName="DashboardReviews">
+        <div className="w-full space-y-6 p-6 pt-20 lg:pt-6">
+          <ReviewListSkeleton />
+        </div>
+      </AppErrorBoundary>
+    );
+  }
 
   return (
     <AppErrorBoundary componentName="DashboardReviews">
@@ -301,8 +311,8 @@ const DashboardReviews = () => {
                             <TableRow key={review.id} className="hover:bg-muted/50">
                               <TableCell className="px-2 sm:px-4">
                                 <div>
-                                  <div className="font-medium text-xs sm:text-sm lg:text-base truncate">{review.name}</div>
-                                  <div className="text-xs text-muted-foreground truncate">{review.phone}</div>
+                                  <div className="font-medium text-xs sm:text-sm lg:text-base truncate">{review.customer_name}</div>
+                                  <div className="text-xs text-muted-foreground truncate">{review.customer_phone || 'N/A'}</div>
                                 </div>
                               </TableCell>
                               <TableCell className="px-2 sm:px-4">
@@ -336,7 +346,7 @@ const DashboardReviews = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell className="px-2 sm:px-4">
-                                {review.feedback ? (
+                                {review.review_text ? (
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -397,11 +407,11 @@ const DashboardReviews = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium">Customer Name</label>
-                    <p className="text-sm text-muted-foreground">{selectedReview.name}</p>
+                    <p className="text-sm text-muted-foreground">{selectedReview.customer_name}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium">Phone</label>
-                    <p className="text-sm text-muted-foreground">{selectedReview.phone}</p>
+                    <p className="text-sm text-muted-foreground">{selectedReview.customer_phone || 'N/A'}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium">Rating</label>
@@ -417,11 +427,11 @@ const DashboardReviews = () => {
                     </p>
                   </div>
                 </div>
-                {selectedReview.feedback && (
+                {selectedReview.review_text && (
                   <div>
                     <label className="text-sm font-medium">Customer Feedback</label>
                     <div className="mt-1 p-3 bg-muted rounded-md">
-                      <p className="text-sm">{selectedReview.feedback}</p>
+                      <p className="text-sm">{selectedReview.review_text}</p>
                     </div>
                   </div>
                 )}

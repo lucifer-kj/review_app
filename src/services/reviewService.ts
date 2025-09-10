@@ -25,7 +25,7 @@ export class ReviewService extends BaseService {
       if (!targetTenantId) {
         return {
           data: [],
-          error: 'No tenant context available',
+          error: 'No tenant context available. Please ensure you are properly assigned to a tenant. Contact support if this issue persists.',
           success: false,
         };
       }
@@ -86,7 +86,7 @@ export class ReviewService extends BaseService {
       if (!targetTenantId) {
         return {
           data: { totalReviews: 0, averageRating: 0, highRatingReviews: 0 },
-          error: 'No tenant context available',
+          error: 'No tenant context available. Please ensure you are properly assigned to a tenant. Contact support if this issue persists.',
           success: false,
         };
       }
@@ -169,7 +169,7 @@ export class ReviewService extends BaseService {
       if (!targetTenantId) {
         return {
           data: null,
-          error: 'No tenant context available',
+          error: 'No tenant context available. Please ensure you are properly assigned to a tenant. Contact support if this issue persists.',
           success: false,
         };
       }
@@ -205,6 +205,12 @@ export class ReviewService extends BaseService {
         const { data: tenantId } = await supabase.rpc('get_current_tenant_id');
         if (tenantId) {
           finalReviewData.tenant_id = tenantId;
+        } else {
+          return {
+            data: null,
+            error: 'No tenant context available. Please ensure you are properly assigned to a tenant. Contact support if this issue persists.',
+            success: false,
+          };
         }
       }
 

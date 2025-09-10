@@ -118,6 +118,13 @@ export class BusinessSettingsService extends BaseService {
       } else if (hasUserIdColumn) {
         // Fallback to user_id filter if tenant_id not available
         query = query.eq('user_id', user.id);
+      } else if (!tenantId && hasTenantIdColumn) {
+        // If tenant_id column exists but no tenant context, return error
+        return {
+          data: null,
+          error: 'No tenant context available. Please ensure you are properly assigned to a tenant. Contact support if this issue persists.',
+          success: false,
+        };
       } else {
         // Fallback: get first settings (temporary until migration is run)
         query = query.limit(1);
@@ -179,6 +186,15 @@ export class BusinessSettingsService extends BaseService {
       // Check if user_id and tenant_id columns exist
       const hasUserIdColumn = await this.checkUserIdColumnExists();
       const hasTenantIdColumn = await this.checkTenantIdColumnExists();
+
+      // Validate tenant context if tenant_id column exists
+      if (hasTenantIdColumn && !tenantId) {
+        return {
+          data: null,
+          error: 'No tenant context available. Please ensure you are properly assigned to a tenant. Contact support if this issue persists.',
+          success: false,
+        };
+      }
 
       // First try to get existing settings
       const existingSettings = await this.getBusinessSettings();

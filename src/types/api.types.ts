@@ -93,12 +93,15 @@ export interface TenantSettings {
 export interface Review {
   id: string;
   tenant_id: string;
+  user_id?: string;
   customer_name: string;
   customer_email?: string;
+  customer_phone?: string;
+  country_code?: string;
   rating: number;
-  review_text: string;
-  status: 'pending' | 'approved' | 'rejected';
-  source: 'website' | 'email' | 'api';
+  review_text?: string;
+  google_review: boolean;
+  redirect_opened: boolean;
   created_at: string;
   updated_at: string;
   metadata?: Record<string, any>;

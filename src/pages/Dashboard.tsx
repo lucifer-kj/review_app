@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { MobileDashboard } from "@/components/MobileDashboard";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { LoadingWrapper } from "@/components/LoadingWrapper";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -104,14 +105,80 @@ const Dashboard = () => {
   };
 
   const handleViewReviews = () => {
-    navigate("/reviews");
+    navigate("/dashboard/reviews");
   };
 
   if (loading) {
     return (
       <LoadingWrapper>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="w-full space-y-6 p-6 pt-20 lg:pt-6">
+          {/* Mobile Loading */}
+          <div className="lg:hidden space-y-4">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-8 w-32" />
+              <Skeleton className="h-10 w-24" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+            <Skeleton className="h-32 w-full" />
+            <Skeleton className="h-20 w-full" />
+          </div>
+
+          {/* Desktop Loading */}
+          <div className="hidden lg:block space-y-6">
+            <Breadcrumbs 
+              items={[
+                { label: "Dashboard", href: "/dashboard", isCurrent: true }
+              ]} 
+              className="mb-4" 
+            />
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <Skeleton className="h-8 w-48 mb-2" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+              <Skeleton className="h-10 w-32" />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-4" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-8 w-16 mb-2" />
+                    <Skeleton className="h-3 w-24" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-48" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-32 w-full" />
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-48" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-32 w-full" />
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </LoadingWrapper>
     );

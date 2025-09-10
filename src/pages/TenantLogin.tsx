@@ -26,13 +26,13 @@ export default function TenantLogin() {
       const result = await signIn(email, password);
       
       if (result.success) {
-        // Check if user is a tenant admin
-        if (result.user?.role === 'tenant_admin') {
+        // Check if user has valid tenant role
+        if (['tenant_admin', 'user'].includes(result.user?.role || '')) {
           toast.success("Welcome back!");
           navigate("/dashboard");
         } else {
-          toast.error("Access denied. This area is for tenant administrators only.");
-          setError("Access denied. This area is for tenant administrators only.");
+          toast.error("Access denied. This area is for tenant users only.");
+          setError("Access denied. This area is for tenant users only.");
         }
       } else {
         setError(result.error || "Login failed");

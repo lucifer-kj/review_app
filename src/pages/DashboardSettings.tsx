@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BusinessSettingsService } from "@/services/businessSettingsService";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { MobileSettings } from "@/components/MobileSettings";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { useAuth } from "@/hooks/useAuth";
 import { 
   Settings, 
@@ -299,7 +300,8 @@ const DashboardSettings = () => {
   };
 
   return (
-    <div className="w-full space-y-6 p-6 pt-20 lg:pt-6">
+    <AppErrorBoundary componentName="DashboardSettings">
+      <div className="w-full space-y-6 p-6 pt-20 lg:pt-6">
       {/* Mobile Settings */}
       <MobileSettings
         settings={settings}
@@ -1029,7 +1031,8 @@ const DashboardSettings = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+      </div>
+    </AppErrorBoundary>
   );
 };
 

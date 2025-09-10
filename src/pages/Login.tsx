@@ -72,9 +72,9 @@ const Login = () => {
       // Type guard to ensure profile has the expected structure
       const userProfile = profile as any;
 
-      // Check if user has manager role (super_admin or tenant_admin only)
-      if (!userProfile.role || !['super_admin', 'tenant_admin'].includes(userProfile.role)) {
-        throw new Error('Access denied. This login is for managers only. Users and tenants will receive magic links via email from their managers.');
+      // Check if user has valid role (super_admin, tenant_admin, or user)
+      if (!userProfile.role || !['super_admin', 'tenant_admin', 'user'].includes(userProfile.role)) {
+        throw new Error('Access denied. Invalid user role. Please contact support.');
       }
         
       toast({
