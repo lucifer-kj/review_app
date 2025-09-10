@@ -24,6 +24,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRealtimeUpdates } from "@/hooks/useRealtimeUpdates";
 
 export default function TenantDetails() {
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -65,7 +66,8 @@ export default function TenantDetails() {
     queryKey: ['tenant-users', tenantId],
     queryFn: () => MasterDashboardService.getTenantUsers(tenantId!),
     enabled: !!tenantId,
-  })
+  });
+
   // Enable real-time updates for tenant users
   useRealtimeUpdates({
     tables: [
