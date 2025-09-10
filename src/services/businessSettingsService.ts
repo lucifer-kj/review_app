@@ -194,8 +194,25 @@ export class BusinessSettingsService extends BaseService {
           normalData.form_customization = normalData.settings.form_customization || {};
         }
         
+        // Ensure all required fields have default values
+        const businessSettings: BusinessSettings = {
+          id: normalData.id || '',
+          user_id: normalData.user_id || '',
+          tenant_id: normalData.tenant_id || '',
+          business_name: normalData.business_name || '',
+          business_email: normalData.business_email || '',
+          business_phone: normalData.business_phone || '',
+          business_address: normalData.business_address || '',
+          google_business_url: normalData.google_business_url || '',
+          review_form_url: normalData.review_form_url || '',
+          email_template: normalData.email_template || {},
+          form_customization: normalData.form_customization || {},
+          created_at: normalData.created_at || new Date().toISOString(),
+          updated_at: normalData.updated_at || new Date().toISOString()
+        };
+        
         return {
-          data: normalData as BusinessSettings,
+          data: businessSettings,
           error: null,
           success: true,
         };
@@ -246,10 +263,23 @@ export class BusinessSettingsService extends BaseService {
       const existingSettings = await this.getBusinessSettings();
       
       if (existingSettings.success && existingSettings.data) {
-        // Update existing settings
+        // Update existing settings - use settings JSONB column for complex data
+        const settingsData = {
+          business_name: settings.business_name,
+          business_email: settings.business_email,
+          business_phone: settings.business_phone,
+          business_address: settings.business_address,
+          google_business_url: settings.google_business_url,
+          review_form_url: settings.review_form_url,
+          settings: {
+            email_template: settings.email_template || {},
+            form_customization: settings.form_customization || {}
+          }
+        };
+        
         let query = supabase
           .from('business_settings')
-          .update(settings)
+          .update(settingsData)
           .eq('id', existingSettings.data.id);
         
         if (hasTenantIdColumn && tenantId) {
@@ -261,40 +291,6 @@ export class BusinessSettingsService extends BaseService {
         const { data, error } = await query.select().single();
 
         if (error) {
-          // If error is due to columns not existing, try storing in settings JSONB column
-          if (error.message.includes('column') && error.message.includes('does not exist')) {
-            logger.warn('Required columns not found, storing in settings JSONB column');
-            
-            // Store email_template and form_customization in settings JSONB
-            const settingsData = {
-              ...settings,
-              settings: {
-                email_template: settings.email_template || {},
-                form_customization: settings.form_customization || {}
-              }
-            };
-            
-            // Remove the JSONB fields from the main update
-            delete settingsData.email_template;
-            delete settingsData.form_customization;
-            
-            const fallbackResult = await supabase
-              .from('business_settings')
-              .update(settingsData)
-              .eq('id', existingSettings.data.id)
-              .select()
-              .single();
-            
-            if (fallbackResult.error) {
-              return this.handleError(fallbackResult.error, 'BusinessSettingsService.updateBusinessSettings');
-            }
-            
-            return {
-              data: fallbackResult.data as BusinessSettings,
-              error: null,
-              success: true,
-            };
-          }
           return this.handleError(error, 'BusinessSettingsService.updateBusinessSettings');
         }
 
@@ -304,8 +300,19 @@ export class BusinessSettingsService extends BaseService {
           success: true,
         };
       } else {
-        // Create new settings
-        const insertData: any = { ...settings };
+        // Create new settings - use settings JSONB column for complex data
+        const insertData: any = {
+          business_name: settings.business_name,
+          business_email: settings.business_email,
+          business_phone: settings.business_phone,
+          business_address: settings.business_address,
+          google_business_url: settings.google_business_url,
+          review_form_url: settings.review_form_url,
+          settings: {
+            email_template: settings.email_template || {},
+            form_customization: settings.form_customization || {}
+          }
+        };
         
         if (hasTenantIdColumn && tenantId) {
           insertData.tenant_id = tenantId;
@@ -321,46 +328,6 @@ export class BusinessSettingsService extends BaseService {
           .single();
 
         if (error) {
-          // If error is due to columns not existing, try storing in settings JSONB column
-          if (error.message.includes('column') && error.message.includes('does not exist')) {
-            logger.warn('Required columns not found, storing in settings JSONB column');
-            
-            // Store email_template and form_customization in settings JSONB
-            const settingsData = {
-              ...settings,
-              settings: {
-                email_template: settings.email_template || {},
-                form_customization: settings.form_customization || {}
-              }
-            };
-            
-            // Remove the JSONB fields from the main insert
-            delete settingsData.email_template;
-            delete settingsData.form_customization;
-            
-            if (hasTenantIdColumn && tenantId) {
-              settingsData.tenant_id = tenantId;
-            }
-            if (hasUserIdColumn) {
-              settingsData.user_id = user.id;
-            }
-            
-            const fallbackResult = await supabase
-              .from('business_settings')
-              .insert(settingsData)
-              .select()
-              .single();
-            
-            if (fallbackResult.error) {
-              return this.handleError(fallbackResult.error, 'BusinessSettingsService.createBusinessSettings');
-            }
-            
-            return {
-              data: fallbackResult.data as BusinessSettings,
-              error: null,
-              success: true,
-            };
-          }
           return this.handleError(error, 'BusinessSettingsService.createBusinessSettings');
         }
 
