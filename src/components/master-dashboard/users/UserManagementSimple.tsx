@@ -14,6 +14,7 @@ import {
   MoreHorizontal,
   UserCheck,
   UserX,
+  UserPlus,
   AlertTriangle,
   Key,
   Ban,
@@ -113,12 +114,18 @@ export default function UserManagementSimple() {
 
       } catch (error) {
         console.error('Error fetching users:', error);
-        throw error;
+        // Return empty result instead of throwing to prevent UI crash
+        return {
+          users: [],
+          total: 0,
+          page: page,
+          pageSize: pageSize
+        };
       }
     },
     refetchInterval: 30000, // Refetch every 30 seconds
-    retry: 3,
-    retryDelay: 1000,
+    retry: 1, // Reduce retries to prevent excessive API calls
+    retryDelay: 2000,
   });
 
   // Delete user mutation
@@ -274,7 +281,8 @@ export default function UserManagementSimple() {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Failed to load users. Please check your connection and try again.
+            Failed to load users. This might be due to missing admin configuration. 
+            Please check that the service role key is properly configured in your environment variables.
           </AlertDescription>
         </Alert>
       </div>
@@ -437,15 +445,20 @@ export default function UserManagementSimple() {
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
               <p className="text-gray-500 mb-4">
-                {searchTerm ? 'No users match your search criteria.' : 'Get started by inviting your first user.'}
+                {searchTerm ? 'No users match your search criteria.' : 'No users available. This might be due to admin client configuration issues.'}
               </p>
               {!searchTerm && (
-                <Button asChild>
-                  <Link to="/master/users/invite">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Invite User
-                  </Link>
-                </Button>
+                <div className="space-y-2">
+                  <Button asChild>
+                    <Link to="/master/users/invite">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Invite User
+                    </Link>
+                  </Button>
+                  <p className="text-xs text-gray-400">
+                    If you continue to see no users, please check your admin configuration.
+                  </p>
+                </div>
               )}
             </div>
           )}
