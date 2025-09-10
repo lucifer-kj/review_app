@@ -64,7 +64,23 @@ export default function TenantDetails() {
     queryKey: ['tenant-users', tenantId],
     queryFn: () => MasterDashboardService.getTenantUsers(tenantId!),
     enabled: !!tenantId,
+  })
+  // Enable real-time updates for tenant users
+  useRealtimeUpdates({
+    tables: [
+      {
+        table: 'profiles',
+        queryKey: ['tenant-users', tenantId],
+        tenantId: tenantId,
+        events: ['INSERT', 'UPDATE', 'DELETE']
+      }
+    ],
+    enabled: !!tenantId,
+    onError: (error) => {
+      console.error('Real-time tenant users updates error:', error);
+    }
   });
+;
 
   // Suspend tenant mutation
   const suspendTenantMutation = useMutation({

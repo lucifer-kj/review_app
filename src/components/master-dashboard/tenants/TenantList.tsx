@@ -32,7 +32,22 @@ export default function TenantList() {
     queryKey: ['tenants'],
     queryFn: () => TenantService.getAllTenants(),
     refetchInterval: 30000,
+  })
+  // Enable real-time updates for tenant user counts
+  useRealtimeUpdates({
+    tables: [
+      {
+        table: 'profiles',
+        queryKey: ['tenants'],
+        events: ['INSERT', 'UPDATE', 'DELETE']
+      }
+    ],
+    enabled: true,
+    onError: (error) => {
+      console.error('Real-time tenant updates error:', error);
+    }
   });
+;
 
   // Filter tenants based on search term
   const filteredTenants = useMemo(() => {

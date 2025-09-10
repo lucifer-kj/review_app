@@ -174,14 +174,16 @@ export default function UserManagement() {
       return result.data;
     },
     onSuccess: (_, variables) => {
-      // Invalidate all relevant queries to refresh data
+            // Invalidate all relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['platform-users'] });
       queryClient.invalidateQueries({ queryKey: ['tenant-details'] });
       queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['tenant-usage-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['tenants-for-selection'] });
+      queryClient.invalidateQueries({ queryKey: ['platform-analytics'] });
       queryClient.invalidateQueries({ queryKey: ['business-settings'] });
       queryClient.invalidateQueries({ queryKey: ['reviews'] });
       queryClient.invalidateQueries({ queryKey: ['review-stats'] });
-      
       toast({
         title: "User Moved",
         description: variables.tenantId 
@@ -883,24 +885,22 @@ export default function UserManagement() {
                           
                           <DropdownMenuSeparator />
                           
-                          {/* Tenant Management - Disabled until schema is updated */}
+                          {/* Tenant Management - Now Enabled */}
                           <DropdownMenuItem 
                             onClick={() => handleOpenTenantModal(user)}
-                            disabled={true}
-                            className="opacity-50"
+                            disabled={moveUserToTenantMutation.isPending}
                           >
                             <Building2 className="mr-2 h-4 w-4" />
-                            {tenantId ? 'Move to Different Tenant' : 'Assign to Tenant'} (Coming Soon)
+                            {tenantId ? 'Move to Different Tenant' : 'Assign to Tenant'}
                           </DropdownMenuItem>
                           
-                          {/* Role Management - Disabled until schema is updated */}
+                          {/* Role Management - Now Enabled */}
                           <DropdownMenuItem 
                             onClick={() => handleOpenRoleModal(user)}
-                            disabled={true}
-                            className="opacity-50"
+                            disabled={changeUserRoleMutation.isPending}
                           >
                             <Crown className="mr-2 h-4 w-4" />
-                            Change Role (Coming Soon)
+                            Change Role
                           </DropdownMenuItem>
                           
                           <DropdownMenuSeparator />

@@ -133,7 +133,17 @@ export class UserManagementService extends BaseService {
             tenant_id: updateData.tenant_id,
           }
         });
-      });
+      
+      // Refresh user session to recognize new tenant assignment
+      try {
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.warn('Failed to refresh session after tenant update:', refreshError);
+        }
+      } catch (refreshError) {
+        console.warn('Failed to refresh session after tenant update:', refreshError);
+      }
+});
 
       if (authError) {
         return this.handleError(authError, 'UserManagementService.updateUserProfile');
