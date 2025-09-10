@@ -18,6 +18,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Switch } from "@/components/ui/switch";
@@ -152,24 +154,66 @@ export default function SystemAdministration() {
 
   if (statusLoading || settingsLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">System Administration</h2>
-            <p className="text-muted-foreground">
-              Monitor and manage platform systems
-            </p>
+      <AppErrorBoundary componentName="SystemAdministration">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">System Administration</h2>
+              <p className="text-muted-foreground">
+                Monitor and manage platform systems
+              </p>
+            </div>
           </div>
+          
+          {/* System Status Skeleton */}
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-48" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Skeleton className="h-4 w-4" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Settings Skeleton */}
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-48" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                    <Skeleton className="h-6 w-12" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        <div className="flex justify-center py-8">
-          <LoadingSpinner size="lg" />
-        </div>
-      </div>
+      </AppErrorBoundary>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <AppErrorBoundary componentName="SystemAdministration">
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">System Administration</h2>
@@ -403,6 +447,7 @@ export default function SystemAdministration() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </AppErrorBoundary>
   );
 }

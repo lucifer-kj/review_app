@@ -123,6 +123,18 @@ export const useAuth = () => {
     return () => subscription.unsubscribe();
   }, [fetchUserProfile]);
 
+  const login = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) throw error;
+    
+    // The user profile will be fetched automatically by the auth state listener
+    return !!data.user;
+  };
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
@@ -134,6 +146,7 @@ export const useAuth = () => {
     profile,
     tenant,
     loading, 
+    login,
     signOut,
     refreshUserData,
     isAuthenticated: !!user

@@ -19,6 +19,8 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
@@ -158,19 +160,57 @@ export default function AuditLogs() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Audit Logs</h2>
-            <p className="text-muted-foreground">
-              Monitor platform activity and security events
-            </p>
+      <AppErrorBoundary componentName="AuditLogs">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">Audit Logs</h2>
+              <p className="text-muted-foreground">
+                Monitor platform activity and security events
+              </p>
+            </div>
           </div>
+          
+          {/* Filters Skeleton */}
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-16" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Logs List Skeleton */}
+          <Card>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <Skeleton className="h-4 w-4" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-24" />
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Skeleton className="h-6 w-16" />
+                        <Skeleton className="h-8 w-8" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        <div className="flex justify-center py-8">
-          <LoadingSpinner size="lg" />
-        </div>
-      </div>
+      </AppErrorBoundary>
     );
   }
 
@@ -197,7 +237,8 @@ export default function AuditLogs() {
   const logs = auditLogs?.logs ?? [];
 
   return (
-    <div className="space-y-6">
+    <AppErrorBoundary componentName="AuditLogs">
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Audit Logs</h2>
@@ -367,6 +408,7 @@ export default function AuditLogs() {
           </Button>
         </div>
       </div>
-    </div>
+      </div>
+    </AppErrorBoundary>
   );
 }

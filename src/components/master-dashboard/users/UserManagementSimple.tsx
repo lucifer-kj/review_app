@@ -26,6 +26,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useMemo } from "react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -206,19 +208,53 @@ export default function UserManagementSimple() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">User Management</h2>
-            <p className="text-muted-foreground">
-              Manage platform users and their access
-            </p>
+      <AppErrorBoundary componentName="UserManagement">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">User Management</h2>
+              <p className="text-muted-foreground">
+                Manage platform users and their access
+              </p>
+            </div>
           </div>
+          
+          {/* Search and Actions Skeleton */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <Skeleton className="h-10 w-64" />
+                <Skeleton className="h-10 w-32" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Users List Skeleton */}
+          <Card>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-24" />
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Skeleton className="h-6 w-16" />
+                        <Skeleton className="h-8 w-8" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        <div className="flex justify-center py-8">
-          <LoadingSpinner size="lg" />
-        </div>
-      </div>
+      </AppErrorBoundary>
     );
   }
 
@@ -246,7 +282,8 @@ export default function UserManagementSimple() {
   const totalPages = Math.ceil((users?.total || 0) / pageSize);
 
   return (
-    <div className="space-y-6">
+    <AppErrorBoundary componentName="UserManagement">
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">User Management</h2>
@@ -438,6 +475,7 @@ export default function UserManagementSimple() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </AppErrorBoundary>
   );
 }

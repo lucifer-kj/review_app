@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, ArrowLeft, Shield, AlertTriangle, Key, Mail } from "lucide-react";
 import type { AuthError } from "@supabase/supabase-js";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
+import { useAuth } from "@/hooks/useAuth";
 
 interface LoginFormData {
   email: string;
@@ -34,6 +35,7 @@ const Login = () => {
   
   // Use the auth redirect hook to handle initial auth check
   const { isChecking } = useAuthRedirect();
+  const { login } = useAuth();
 
   const handleInputChange = (field: keyof LoginFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -45,48 +47,17 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Authenticate with Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
-        
-      if (error) throw error;
-        
-      // Verify user has a profile and proper role
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, tenant_id')
-        .eq('id', data.user.id)
-        .single();
-
-      if (profileError) {
-        console.error('Profile query error:', profileError);
-        throw new Error('User profile not found. Please contact support.');
-      }
-
-      if (!profile) {
-        throw new Error('User profile not found. Please contact support.');
-      }
-
-      // Type guard to ensure profile has the expected structure
-      const userProfile = profile as any;
-
-      // Check if user has valid role (super_admin, tenant_admin, or user)
-      if (!userProfile.role || !['super_admin', 'tenant_admin', 'user'].includes(userProfile.role)) {
-        throw new Error('Access denied. Invalid user role. Please contact support.');
-      }
-        
-      toast({
-        title: "Login Successful",
-        description: "Welcome to Crux!",
-      });
-        
-      // Redirect based on user role
-      if (userProfile.role === 'super_admin') {
-        navigate("/master", { replace: true });
+      // Use the useAuth login method
+      const success = await login(formData.email, formData.password);
+      
+      if (success) {
+        // Login successful, redirect will be handled by useAuth
+        toast({
+          title: "Login Successful",
+          description: "Welcome to Crux!",
+        });
       } else {
-        navigate("/dashboard", { replace: true });
+        throw new Error("Login failed. Please check your credentials.");
       }
         
     } catch (error) {

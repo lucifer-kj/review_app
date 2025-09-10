@@ -19,6 +19,8 @@ import {
 import { usePlatformMetrics } from "@/hooks/usePlatformMetrics";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useState } from "react";
 import { toast } from "sonner";
@@ -83,17 +85,75 @@ export default function PlatformOverview() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Platform Overview</h2>
-          <p className="text-muted-foreground">
-            Welcome to the Crux master dashboard. Manage your platform from here.
-          </p>
+      <AppErrorBoundary componentName="PlatformOverview">
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Platform Overview</h2>
+            <p className="text-muted-foreground">
+              Real-time platform analytics and performance metrics
+            </p>
+          </div>
+          
+          {/* Metrics Cards Skeleton */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-4" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-16 mb-2" />
+                  <Skeleton className="h-3 w-20" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Charts Skeleton */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-64 w-full" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-64 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* System Health Skeleton */}
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-48" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Skeleton className="h-4 w-4" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
-        <div className="flex justify-center py-8">
-          <LoadingSpinner size="lg" />
-        </div>
-      </div>
+      </AppErrorBoundary>
     );
   }
 
@@ -140,7 +200,8 @@ export default function PlatformOverview() {
   const stats = { ...defaults, ...(analytics as any || {}) } as typeof defaults;
 
   return (
-    <div className="space-y-6">
+    <AppErrorBoundary componentName="PlatformOverview">
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Platform Overview</h2>
@@ -428,6 +489,7 @@ export default function PlatformOverview() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </AppErrorBoundary>
   );
 }

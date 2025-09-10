@@ -10,6 +10,8 @@ import { TenantService } from "@/services/tenantService";
 import { useMemo } from "react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -122,19 +124,49 @@ export default function TenantList() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Tenant Management</h2>
-            <p className="text-muted-foreground">
-              Manage tenant organizations and their settings
-            </p>
+      <AppErrorBoundary componentName="TenantList">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">Tenant Management</h2>
+              <p className="text-muted-foreground">
+                Manage tenant organizations and their settings
+              </p>
+            </div>
+          </div>
+          
+          {/* Search and Actions Skeleton */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <Skeleton className="h-10 w-64" />
+                <Skeleton className="h-10 w-32" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Tenants Grid Skeleton */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-6 w-32" />
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
-        <div className="flex justify-center py-8">
-          <LoadingSpinner size="lg" />
-        </div>
-      </div>
+      </AppErrorBoundary>
     );
   }
 
@@ -159,7 +191,8 @@ export default function TenantList() {
   }
 
   return (
-    <div className="space-y-6">
+    <AppErrorBoundary componentName="TenantList">
+      <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Tenant Management</h2>
@@ -326,6 +359,7 @@ export default function TenantList() {
           </Button>
         </div>
       </div>
-    </div>
+      </div>
+    </AppErrorBoundary>
   );
 }

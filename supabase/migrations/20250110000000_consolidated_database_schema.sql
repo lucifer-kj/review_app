@@ -219,6 +219,32 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Function to get tenant usage statistics
+CREATE OR REPLACE FUNCTION public.get_tenant_usage_stats(p_tenant_id UUID)
+RETURNS TABLE (
+  reviews_count BIGINT,
+  users_count BIGINT,
+  storage_used BIGINT,
+  api_calls_count BIGINT,
+  last_activity TIMESTAMP WITH TIME ZONE
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    COUNT(r.id) as reviews_count,
+    COUNT(DISTINCT p.id) as users_count,
+    pg_total_relation_size('reviews') as storage_used,
+    COUNT(al.id) as api_calls_count,
+    MAX(r.created_at) as last_activity
+  FROM public.tenants t
+  LEFT JOIN public.reviews r ON r.tenant_id = t.id
+  LEFT JOIN public.profiles p ON p.tenant_id = t.id
+  LEFT JOIN public.audit_logs al ON al.tenant_id = t.id
+  WHERE t.id = p_tenant_id
+  GROUP BY t.id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Function to create tenant with admin removed - using MagicLinkService instead
 
 -- Function to get platform analytics
@@ -473,6 +499,7 @@ GRANT EXECUTE ON FUNCTION public.is_tenant_admin(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_platform_analytics() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_all_reviews_for_dashboard(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_review_stats_for_dashboard(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_tenant_usage_stats(UUID) TO authenticated;
 
 -- Grant table permissions
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.system_settings TO authenticated;
@@ -521,3 +548,4 @@ COMMENT ON FUNCTION public.is_tenant_admin(UUID, UUID) IS 'Checks if user is adm
 COMMENT ON FUNCTION public.get_platform_analytics() IS 'Returns platform-wide analytics for super admin';
 COMMENT ON FUNCTION public.get_all_reviews_for_dashboard(UUID) IS 'Returns all reviews for tenant dashboard';
 COMMENT ON FUNCTION public.get_review_stats_for_dashboard(UUID) IS 'Returns review statistics for tenant dashboard';
+COMMENT ON FUNCTION public.get_tenant_usage_stats(UUID) IS 'Returns usage statistics for specific tenant';
