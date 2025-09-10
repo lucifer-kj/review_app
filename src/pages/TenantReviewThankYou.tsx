@@ -1,101 +1,143 @@
-import { useEffect } from "react";
-import { useSearchParams, Link } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { CheckCircle, Star, ArrowLeft, Building2 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { TenantService } from "@/services/tenantService";
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Star, ExternalLink, Home, Building2 } from 'lucide-react';
+
+interface LocationState {
+  name: string;
+  rating: number;
+  businessName?: string;
+}
 
 export default function TenantReviewThankYou() {
-  const [searchParams] = useSearchParams();
-  const tenantId = searchParams.get('tenant');
-
-  // Fetch tenant information
-  const { data: tenant } = useQuery({
-    queryKey: ['tenant', tenantId],
-    queryFn: async () => {
-      if (!tenantId) return null;
-      const result = await TenantService.getTenantById(tenantId);
-      if (!result.success) {
-        return null;
-      }
-      return result.data!;
-    },
-    enabled: !!tenantId,
-  });
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  const reviewData = location.state as LocationState;
 
   useEffect(() => {
-    // Auto-redirect after 10 seconds
-    const timer = setTimeout(() => {
-      if (tenant?.domain) {
-        window.location.href = `https://${tenant.domain}`;
-      }
-    }, 10000);
+    // If no review data, redirect to home
+    if (!reviewData?.name) {
+      navigate('/');
+    }
+  }, [reviewData, navigate]);
 
-    return () => clearTimeout(timer);
-  }, [tenant]);
+  if (!reviewData) {
+    return null; // Will redirect
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Thank You!
-          </h2>
-          <p className="mt-2 text-lg text-gray-600">
-            Your review has been submitted successfully
-          </p>
-        </div>
-
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl mx-auto">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-center">Review Submitted</CardTitle>
-            <CardDescription className="text-center">
-              {tenant ? (
-                <>Thank you for reviewing <strong>{tenant.name}</strong></>
-              ) : (
-                "Thank you for your review"
-              )}
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <CheckCircle className="h-16 w-16 text-green-500" />
+                <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1">
+                  <Building2 className="h-4 w-4" />
+                </div>
+              </div>
+            </div>
+            <CardTitle className="text-3xl font-bold text-green-600">
+              Thank You, {reviewData.name}!
+            </CardTitle>
+            <CardDescription className="text-lg mt-2">
+              Your review for {reviewData.businessName || 'this business'} has been submitted successfully.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center">
-              <div className="flex justify-center space-x-1 mb-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star key={star} className="h-6 w-6 text-yellow-400 fill-current" />
-                ))}
-              </div>
-              <p className="text-sm text-gray-600">
-                Your feedback helps improve our service
+          <CardContent className="text-center space-y-6">
+            <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+              <h3 className="text-lg font-semibold text-green-800 mb-2">
+                Review Submitted Successfully
+              </h3>
+              <p className="text-green-700">
+                Thank you for taking the time to share your experience with {reviewData.businessName || 'this business'}. 
+                Your feedback is valuable and helps the business maintain high standards of service.
               </p>
             </div>
 
-            <div className="space-y-3">
-              <Button asChild className="w-full">
-                <Link to="/">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Return to Home
-                </Link>
-              </Button>
-
-              {tenant?.domain && (
-                <Button variant="outline" asChild className="w-full">
-                  <a href={`https://${tenant.domain}`} target="_blank" rel="noopener noreferrer">
-                    <Building2 className="mr-2 h-4 w-4" />
-                    Visit {tenant.name} Website
-                  </a>
-                </Button>
-              )}
+            <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+              <span>Your rating:</span>
+              <div className="flex">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`h-4 w-4 ${
+                      star <= reviewData.rating
+                        ? 'text-yellow-400 fill-current'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span>({reviewData.rating} out of 5)</span>
             </div>
 
-            {tenant?.domain && (
-              <div className="text-center">
-                <p className="text-xs text-gray-500">
-                  You will be redirected to {tenant.name}'s website in 10 seconds
+            {reviewData.rating >= 4 && (
+              <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="text-lg font-semibold text-blue-800 mb-2">
+                  Help {reviewData.businessName || 'This Business'} Grow
+                </h3>
+                <p className="text-blue-700 mb-4">
+                  Since you had a great experience, would you consider sharing your review on Google? 
+                  It helps other customers discover this business and helps them grow.
                 </p>
+                <Button
+                  onClick={() => window.open('https://g.page/r/CZEmfT3kD-k-EBM/review', '_blank')}
+                  className="w-full sm:w-auto"
+                  size="lg"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Leave a Google Review
+                </Button>
               </div>
             )}
+
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold">What happens next?</h4>
+              <div className="text-left space-y-3">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                    1
+                  </div>
+                  <p className="text-gray-700">
+                    Your review will be visible to the business owner and other potential customers.
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                    2
+                  </div>
+                  <p className="text-gray-700">
+                    The business will review your feedback and use it to improve their services.
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                    3
+                  </div>
+                  <p className="text-gray-700">
+                    Your review helps build trust and credibility for the business.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t">
+              <p className="text-sm text-gray-500 mb-4">
+                Thank you for supporting local businesses and helping them grow through your feedback!
+              </p>
+              <Button
+                onClick={() => navigate('/')}
+                className="w-full sm:w-auto"
+                size="lg"
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Return Home
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

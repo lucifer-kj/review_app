@@ -1,78 +1,125 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Building2, CheckCircle, MessageCircle } from "lucide-react";
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Star, Home, MessageSquare } from 'lucide-react';
 
 interface LocationState {
   name: string;
   rating: number;
-  reviewId: string;
 }
 
 export default function FeedbackThankYouPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const state = location.state as LocationState;
-  const { name, rating } = state || {};
+  
+  const reviewData = location.state as LocationState;
 
-  const handleNewReview = () => {
-    navigate('/review');
-  };
+  useEffect(() => {
+    // If no review data, redirect to home
+    if (!reviewData?.name) {
+      navigate('/');
+    }
+  }, [reviewData, navigate]);
 
-  const handleGoHome = () => {
-    navigate('/');
-  };
+  if (!reviewData) {
+    return null; // Will redirect
+  }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="form-container fade-in max-w-md w-full mx-auto text-center">
-        <div className="mb-6 sm:mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <div className="relative">
-              <Building2 className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 absolute -top-1 -right-1 bg-white rounded-full" />
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <CheckCircle className="h-16 w-16 text-green-500" />
+                <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1">
+                  <MessageSquare className="h-4 w-4" />
+                </div>
+              </div>
             </div>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
-            Thank You, {name}!
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground mb-4">
-            Your feedback has been received and is greatly appreciated.
-          </p>
-        </div>
+            <CardTitle className="text-3xl font-bold text-green-600">
+              Thank You, {reviewData.name}!
+            </CardTitle>
+            <CardDescription className="text-lg mt-2">
+              Your feedback has been received and will help us improve our service.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-6">
+            <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+              <h3 className="text-lg font-semibold text-green-800 mb-2">
+                Your Feedback Matters
+              </h3>
+              <p className="text-green-700">
+                We truly appreciate you taking the time to share your thoughts. 
+                Your input helps us understand what we can do better and ensures 
+                we provide the best possible experience for all our customers.
+              </p>
+            </div>
 
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-          <MessageCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 mx-auto mb-3" />
-          <h3 className="font-semibold text-green-800 mb-2 text-sm sm:text-base">Feedback Received</h3>
-          <p className="text-xs sm:text-sm text-green-700">
-            We take all feedback seriously and will use your input to improve our services. 
-            Our team will review your comments and work on making things better.
-          </p>
-        </div>
+            <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+              <span>Your rating:</span>
+              <div className="flex">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`h-4 w-4 ${
+                      star <= reviewData.rating
+                        ? 'text-orange-400 fill-current'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span>({reviewData.rating} out of 5)</span>
+            </div>
 
-        <div className="space-y-3 sm:space-y-4">
-          <Button
-            onClick={handleNewReview}
-            className="w-full"
-          >
-            Leave Another Review
-          </Button>
-          
-          <Button
-            onClick={handleGoHome}
-            variant="outline"
-            className="w-full"
-          >
-            Go to Homepage
-          </Button>
-        </div>
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold">What happens next?</h4>
+              <div className="text-left space-y-3">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                    1
+                  </div>
+                  <p className="text-gray-700">
+                    Our team will review your feedback and identify areas for improvement.
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                    2
+                  </div>
+                  <p className="text-gray-700">
+                    We'll implement changes based on your suggestions where possible.
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                    3
+                  </div>
+                  <p className="text-gray-700">
+                    We'll continue to monitor and improve our service based on all feedback.
+                  </p>
+                </div>
+              </div>
+            </div>
 
-        <div className="mt-6 sm:mt-8 p-4 bg-muted/30 rounded-lg">
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            <strong>What happens next?</strong><br />
-            Our team will review your feedback and may reach out if we need clarification. 
-            We're committed to continuous improvement based on customer input.
-          </p>
-        </div>
+            <div className="pt-6 border-t">
+              <p className="text-sm text-gray-500 mb-4">
+                If you have any urgent concerns or questions, please don't hesitate to contact us directly.
+              </p>
+              <Button
+                onClick={() => navigate('/')}
+                className="w-full sm:w-auto"
+                size="lg"
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Return Home
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

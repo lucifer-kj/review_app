@@ -1,107 +1,144 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Building2, Star, ExternalLink, CheckCircle } from "lucide-react";
-import { APP_CONFIG } from "@/constants";
+import { useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, Star, ExternalLink, Home } from 'lucide-react';
 
 interface LocationState {
   name: string;
   rating: number;
-  reviewId: string;
 }
 
 export default function ReviewThankYouPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const state = location.state as LocationState;
-  const { name, rating } = state || {};
+  
+  const reviewData = location.state as LocationState;
 
-  const handleNewReview = () => {
-    navigate('/review');
-  };
+  useEffect(() => {
+    // If no review data, redirect to home
+    if (!reviewData?.name) {
+      navigate('/');
+    }
+  }, [reviewData, navigate]);
 
-  const handleGoHome = () => {
-    navigate('/');
-  };
-
-  const handleGoogleReview = () => {
-    // Add simple tracking parameter when redirecting to Google review
-    const url = `${APP_CONFIG.GOOGLE_REVIEWS_URL}`;
-    window.open(url, '_blank');
-  };
+  if (!reviewData) {
+    return null; // Will redirect
+  }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="form-container fade-in max-w-md w-full mx-auto text-center">
-        <div className="mb-6 sm:mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <div className="relative">
-              <Building2 className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
-              <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-500 absolute -top-1 -right-1 bg-white rounded-full" />
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-6">
+              <div className="relative">
+                <CheckCircle className="h-16 w-16 text-green-500" />
+                <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1">
+                  <Star className="h-4 w-4" />
+                </div>
+              </div>
             </div>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
-            Thank You, {name}!
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground mb-4">
-            We're thrilled that you had a great experience with us!
-          </p>
-        </div>
+            <CardTitle className="text-3xl font-bold text-green-600">
+              Thank You, {reviewData.name}!
+            </CardTitle>
+            <CardDescription className="text-lg mt-2">
+              Your review has been submitted successfully.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-6">
+            <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
+              <h3 className="text-lg font-semibold text-green-800 mb-2">
+                Review Submitted Successfully
+              </h3>
+              <p className="text-green-700">
+                Thank you for taking the time to share your experience with us. 
+                Your feedback is valuable and helps us maintain high standards of service.
+              </p>
+            </div>
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-          <div className="flex items-center justify-center mb-3">
-            {[...Array(5)].map((_, i) => (
-              <Star 
-                key={i} 
-                className={`w-5 h-5 sm:w-6 sm:h-6 ${i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
-              />
-            ))}
-          </div>
-          <h3 className="font-semibold text-yellow-800 mb-2 text-sm sm:text-base">
-            {rating} Star Rating Received!
-          </h3>
-          <p className="text-xs sm:text-sm text-yellow-700">
-            Your positive feedback means the world to us and helps other customers discover our services.
-          </p>
-        </div>
+            <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
+              <span>Your rating:</span>
+              <div className="flex">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={`h-4 w-4 ${
+                      star <= reviewData.rating
+                        ? 'text-yellow-400 fill-current'
+                        : 'text-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span>({reviewData.rating} out of 5)</span>
+            </div>
 
-        <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-          <Button
-            onClick={handleGoogleReview}
-            className="w-full bg-blue-600 hover:bg-blue-700"
-          >
-            <ExternalLink className="w-4 h-4 mr-2" />
-            Leave Google Review
-          </Button>
-          
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Help others discover us by sharing your experience on Google Reviews
-          </p>
-        </div>
+            {reviewData.rating >= 4 && (
+              <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="text-lg font-semibold text-blue-800 mb-2">
+                  Help Us Spread the Word
+                </h3>
+                <p className="text-blue-700 mb-4">
+                  Since you had a great experience, would you consider sharing your review on Google? 
+                  It helps other customers discover our business and helps us grow.
+                </p>
+                <Button
+                  onClick={() => window.open('https://g.page/r/CZEmfT3kD-k-EBM/review', '_blank')}
+                  className="w-full sm:w-auto"
+                  size="lg"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Leave a Google Review
+                </Button>
+              </div>
+            )}
 
-        <div className="space-y-3">
-          <Button
-            onClick={handleNewReview}
-            variant="outline"
-            className="w-full"
-          >
-            Leave Another Review
-          </Button>
-          
-          <Button
-            onClick={handleGoHome}
-            variant="ghost"
-            className="w-full"
-          >
-            Go to Homepage
-          </Button>
-        </div>
+            <div className="space-y-4">
+              <h4 className="text-lg font-semibold">What happens next?</h4>
+              <div className="text-left space-y-3">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                    1
+                  </div>
+                  <p className="text-gray-700">
+                    Your review will be visible to other customers and potential clients.
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                    2
+                  </div>
+                  <p className="text-gray-700">
+                    Our team will review your feedback and use it to improve our services.
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">
+                    3
+                  </div>
+                  <p className="text-gray-700">
+                    We may reach out to you if we have any follow-up questions about your experience.
+                  </p>
+                </div>
+              </div>
+            </div>
 
-        <div className="mt-6 sm:mt-8 p-4 bg-muted/30 rounded-lg">
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            <strong>Thank you for choosing {APP_CONFIG.NAME}!</strong><br />
-            We look forward to serving you again in the future.
-          </p>
-        </div>
+            <div className="pt-6 border-t">
+              <p className="text-sm text-gray-500 mb-4">
+                Thank you for being a valued customer. We appreciate your business!
+              </p>
+              <Button
+                onClick={() => navigate('/')}
+                className="w-full sm:w-auto"
+                size="lg"
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Return Home
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

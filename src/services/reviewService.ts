@@ -343,8 +343,13 @@ export class ReviewService extends BaseService {
     tenant_id: string;
     customer_name: string;
     customer_email?: string;
+    customer_phone?: string;
+    country_code?: string;
     rating: number;
     review_text?: string;
+    google_review?: boolean;
+    redirect_opened?: boolean;
+    metadata?: any;
   }): Promise<ServiceResponse<Review>> {
     try {
       const { data, error } = await supabase
@@ -353,9 +358,13 @@ export class ReviewService extends BaseService {
           tenant_id: reviewData.tenant_id,
           customer_name: reviewData.customer_name,
           customer_email: reviewData.customer_email,
+          customer_phone: reviewData.customer_phone,
+          country_code: reviewData.country_code || '+1',
           rating: reviewData.rating,
           review_text: reviewData.review_text,
-          status: 'published',
+          google_review: reviewData.google_review || false,
+          redirect_opened: reviewData.redirect_opened || false,
+          metadata: reviewData.metadata || {},
         }])
         .select()
         .single();

@@ -1,118 +1,154 @@
-import { z } from "zod";
-import { VALIDATION } from "@/constants";
+import { VALIDATION } from '@/constants';
 
-// Review validation schema
-export const reviewSchema = z.object({
-  name: z.string()
-    .min(2, "Name must be at least 2 characters")
-    .max(VALIDATION.MAX_NAME_LENGTH, `Name must be less than ${VALIDATION.MAX_NAME_LENGTH} characters`)
-    .regex(/^[a-zA-Z\s]+$/, "Name can only contain letters and spaces"),
-  phone: z.string()
-    .min(7, "Phone number must be at least 7 digits")
-    .max(VALIDATION.MAX_PHONE_LENGTH, `Phone number must be less than ${VALIDATION.MAX_PHONE_LENGTH} digits`)
-    .regex(VALIDATION.PHONE_REGEX, "Phone number must contain only digits"),
-  countryCode: z.string()
-    .regex(/^\+\d{1,4}$/, "Invalid country code format"),
-  rating: z.number()
-    .min(1, "Rating must be at least 1")
-    .max(5, "Rating must be at most 5")
-    .int("Rating must be a whole number"),
-});
+// Input sanitization utilities
+export class InputSanitizer {
+  /**
+   * Sanitize text input to prevent XSS and injection attacks
+   */
+  static sanitizeText(input: string | null | undefined): string {
+    if (!input) return '';
+    
+    return input
+      .trim()
+      .replace(/[<>]/g, '') // Remove < and > to prevent HTML injection
+      .replace(/javascript:/gi, '') // Remove javascript: protocol
+      .replace(/on\w+=/gi, '') // Remove event handlers
+      .replace(/data:/gi, '') // Remove data: protocol
+      .replace(/vbscript:/gi, '') // Remove vbscript: protocol
+      .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
+      .substring(0, 1000); // Limit length
+  }
 
+  /**
+   * Sanitize email input
+   */
+  static sanitizeEmail(input: string | null | undefined): string {
+    if (!input) return '';
+    
+    const sanitized = this.sanitizeText(input);
+    return sanitized.toLowerCase();
+  }
 
+  /**
+   * Sanitize phone number input
+   */
+  static sanitizePhone(input: string | null | undefined): string {
+    if (!input) return '';
+    
+    // Remove all non-digit characters except + at the beginning
+    const cleaned = input.replace(/[^\d+]/g, '');
+    
+    // Ensure it starts with + if it has country code
+    if (cleaned.length > 0 && !cleaned.startsWith('+')) {
+      return '+' + cleaned;
+    }
+    
+    return cleaned;
+  }
 
-// Auth validation schemas
-export const loginSchema = z.object({
-  email: z.string().email("Invalid email address").optional(),
-  phone: z.string().regex(VALIDATION.PHONE_REGEX, "Invalid phone number").optional(),
-  password: z.string()
-    .min(VALIDATION.MIN_PASSWORD_LENGTH, `Password must be at least ${VALIDATION.MIN_PASSWORD_LENGTH} characters`),
-}).refine((data) => data.email || data.phone, {
-  message: "Either email or phone is required",
-  path: ["email"],
-});
-
-export const signupSchema = z.object({
-  email: z.string().email("Invalid email address").optional(),
-  phone: z.string().regex(VALIDATION.PHONE_REGEX, "Invalid phone number").optional(),
-  password: z.string()
-    .min(VALIDATION.MIN_PASSWORD_LENGTH, `Password must be at least ${VALIDATION.MIN_PASSWORD_LENGTH} characters`)
-    .max(100, "Password must be less than 100 characters"),
-}).refine((data) => data.email || data.phone, {
-  message: "Either email or phone is required",
-  path: ["email"],
-});
-
-// Type exports
-export type ReviewFormData = z.infer<typeof reviewSchema>;
-export type LoginFormData = z.infer<typeof loginSchema>;
-export type SignupFormData = z.infer<typeof signupSchema>;
-
-// Validation result type
-export interface ValidationResult<T> {
-  success: boolean;
-  data?: T;
-  errors?: Record<string, string>;
+  /**
+   * Sanitize URL input
+   */
+  static sanitizeUrl(input: string | null | undefined): string {
+    if (!input) return '';
+    
+    const sanitized = this.sanitizeText(input);
+    
+    // Basic URL validation
+    try {
+      const url = new URL(sanitized);
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        return '';
+      }
+      return url.toString();
+    } catch {
+      return '';
+    }
+  }
 }
 
-// Validation helper functions with better type safety
-export const validateReview = (data: unknown): ValidationResult<ReviewFormData> => {
-  const result = reviewSchema.safeParse(data);
-  if (result.success) {
-    return { success: true, data: result.data };
+// Validation utilities
+export class InputValidator {
+  /**
+   * Validate email format
+   */
+  static validateEmail(email: string): { isValid: boolean; error?: string } {
+    if (!email) {
+      return { isValid: false, error: 'Email is required' };
+    }
+
+    if (!VALIDATION.EMAIL_REGEX.test(email)) {
+      return { isValid: false, error: 'Please enter a valid email address' };
+    }
+
+    if (email.length > 254) {
+      return { isValid: false, error: 'Email address is too long' };
+    }
+
+    return { isValid: true };
   }
-  return { 
-    success: false, 
-    errors: result.error.flatten().fieldErrors as Record<string, string>
-  };
-};
 
+  /**
+   * Validate phone number format
+   */
+  static validatePhone(phone: string, countryCode: string = '+1'): { isValid: boolean; error?: string } {
+    if (!phone) {
+      return { isValid: false, error: 'Phone number is required' };
+    }
 
+    const cleaned = phone.replace(/\D/g, '');
+    
+    if (!VALIDATION.PHONE_REGEX.test(cleaned)) {
+      return { isValid: false, error: 'Please enter a valid phone number' };
+    }
 
-export const validateLogin = (data: unknown): ValidationResult<LoginFormData> => {
-  const result = loginSchema.safeParse(data);
-  if (result.success) {
-    return { success: true, data: result.data };
+    if (cleaned.length < 7 || cleaned.length > 15) {
+      return { isValid: false, error: 'Phone number must be between 7 and 15 digits' };
+    }
+
+    return { isValid: true };
   }
-  return { 
-    success: false, 
-    errors: result.error.flatten().fieldErrors as Record<string, string>
-  };
-};
 
-export const validateSignup = (data: unknown): ValidationResult<SignupFormData> => {
-  const result = signupSchema.safeParse(data);
-  if (result.success) {
-    return { success: true, data: result.data };
+  /**
+   * Validate name format
+   */
+  static validateName(name: string): { isValid: boolean; error?: string } {
+    if (!name) {
+      return { isValid: false, error: 'Name is required' };
+    }
+
+    if (name.length < 2) {
+      return { isValid: false, error: 'Name must be at least 2 characters long' };
+    }
+
+    if (name.length > VALIDATION.MAX_NAME_LENGTH) {
+      return { isValid: false, error: `Name must be less than ${VALIDATION.MAX_NAME_LENGTH} characters` };
+    }
+
+    // Check for valid characters (letters, spaces, hyphens, apostrophes)
+    if (!/^[a-zA-Z\s\-']+$/.test(name)) {
+      return { isValid: false, error: 'Name can only contain letters, spaces, hyphens, and apostrophes' };
+    }
+
+    return { isValid: true };
   }
-  return { 
-    success: false, 
-    errors: result.error.flatten().fieldErrors as Record<string, string>
-  };
-};
 
-// Utility functions for common validations
-export const isValidEmail = (email: string): boolean => {
-  return VALIDATION.EMAIL_REGEX.test(email);
-};
+  /**
+   * Validate rating value
+   */
+  static validateRating(rating: number): { isValid: boolean; error?: string } {
+    if (typeof rating !== 'number' || isNaN(rating)) {
+      return { isValid: false, error: 'Rating must be a number' };
+    }
 
-export const isValidPhone = (phone: string): boolean => {
-  return VALIDATION.PHONE_REGEX.test(phone);
-};
+    if (rating < 1 || rating > 5) {
+      return { isValid: false, error: 'Rating must be between 1 and 5' };
+    }
 
-export const isValidPassword = (password: string): boolean => {
-  return password.length >= VALIDATION.MIN_PASSWORD_LENGTH;
-};
+    if (!Number.isInteger(rating)) {
+      return { isValid: false, error: 'Rating must be a whole number' };
+    }
 
-// Sanitization functions
-export const sanitizeString = (input: string): string => {
-  return input.trim().replace(/[<>]/g, '');
-};
-
-export const sanitizeEmail = (email: string): string => {
-  return email.trim().toLowerCase();
-};
-
-export const sanitizePhone = (phone: string): string => {
-  return phone.replace(/\D/g, '');
-};
+    return { isValid: true };
+  }
+}

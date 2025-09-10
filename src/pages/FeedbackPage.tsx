@@ -1,10 +1,13 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { supabasePublic } from "@/integrations/supabase/client";
-import { Building2, MessageCircle, Send, ArrowLeft } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Star, MessageSquare, ArrowLeft } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { ReviewService } from '@/services/reviewService';
 
 interface LocationState {
   name: string;
@@ -13,29 +16,34 @@ interface LocationState {
 }
 
 export default function FeedbackPage() {
-  const [feedback, setFeedback] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  const [feedback, setFeedback] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [reviewData, setReviewData] = useState<LocationState | null>(null);
 
-  const state = location.state as LocationState;
-  const { name, rating, reviewId } = state || {};
-
-  // Redirect if no state data
   useEffect(() => {
-    if (!state || !name || !reviewId) {
-      navigate('/review');
+    // Get data from navigation state
+    const state = location.state as LocationState;
+    if (state?.name && state?.rating && state?.reviewId) {
+      setReviewData(state);
+    } else {
+      // If no state, redirect to home
+      navigate('/');
     }
-  }, [state, name, reviewId, navigate]);
+  }, [location.state, navigate]);
 
-  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!reviewData) return;
+
     if (!feedback.trim()) {
       toast({
         title: "Feedback Required",
-        description: "Please share your feedback with us",
+        description: "Please provide some feedback to help us improve.",
         variant: "destructive",
       });
       return;
@@ -44,29 +52,24 @@ export default function FeedbackPage() {
     setIsSubmitting(true);
 
     try {
-      // Update the review with feedback using public client
-      const { error } = await supabasePublic
-        .from('reviews')
-        .update({ 
-          feedback: feedback.trim(),
-          metadata: { 
-            feedback_submitted: true,
-            feedback_submitted_at: new Date().toISOString()
+      const response = await ReviewService.updateReviewFeedback(reviewData.reviewId, feedback);
+      
+      if (response.success) {
+        toast({
+          title: "Thank You!",
+          description: "Your feedback has been submitted successfully.",
+        });
+        
+        // Navigate to thank you page
+        navigate('/review/feedback-thank-you', {
+          state: {
+            name: reviewData.name,
+            rating: reviewData.rating,
           }
-        })
-        .eq('id', reviewId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Thank You!",
-        description: "Your feedback has been submitted successfully.",
-      });
-
-      // Navigate to thank you page
-      navigate('/review/feedback-thank-you', { 
-        state: { name, rating, reviewId } 
-      });
+        });
+      } else {
+        throw new Error(response.error || 'Failed to submit feedback');
+      }
     } catch (error) {
       console.error('Error submitting feedback:', error);
       toast({
@@ -79,85 +82,105 @@ export default function FeedbackPage() {
     }
   };
 
-  const handleGoBack = () => {
-    navigate('/review');
-  };
-
-  if (!state || !name || !reviewId) {
-    return null; // Will redirect in useEffect
+  if (!reviewData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="form-container fade-in max-w-md w-full mx-auto">
-        <div className="text-center mb-6 sm:mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <Building2 className="w-8 h-8 sm:w-10 sm:h-10 text-primary" />
-          </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
-            We're Sorry, {name}
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground mb-4">
-            We didn't meet your expectations this time.
-          </p>
-          <div className="bg-muted/30 rounded-lg p-4 mb-6">
-            <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-primary mx-auto mb-2" />
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Your feedback is valuable to us. Please let us know how we can improve our services.
-            </p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="flex items-center justify-center mb-4">
+              <MessageSquare className="h-8 w-8 text-orange-600 mr-3" />
+              <div>
+                <CardTitle className="text-3xl font-bold">Help Us Improve</CardTitle>
+                <CardDescription className="text-lg">
+                  We value your feedback, {reviewData.name}
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="flex items-center justify-center mb-2">
+                <span className="text-sm font-medium text-orange-800 mr-2">Your Rating:</span>
+                <div className="flex">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={`h-5 w-5 ${
+                        star <= reviewData.rating
+                          ? 'text-orange-400 fill-current'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <p className="text-sm text-orange-700 text-center">
+                We noticed you rated us {reviewData.rating} out of 5 stars. 
+                We'd love to hear how we can improve your experience.
+              </p>
+            </div>
 
-        <form onSubmit={handleFeedbackSubmit} className="space-y-4 sm:space-y-6">
-          <div className="form-field">
-            <label className="form-label">
-              How can we improve? *
-            </label>
-            <Textarea
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              placeholder="Please share your feedback and suggestions for improvement..."
-              className="min-h-[120px] resize-none"
-              disabled={isSubmitting}
-            />
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="feedback" className="text-sm font-medium">
+                  What could we do better? *
+                </Label>
+                <Textarea
+                  id="feedback"
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  placeholder="Please share your thoughts on how we can improve our service..."
+                  rows={6}
+                  className="text-base"
+                  required
+                />
+                <p className="text-sm text-gray-500">
+                  Your feedback helps us provide better service to all our customers.
+                </p>
+              </div>
 
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleGoBack}
-              disabled={isSubmitting}
-              className="flex-1"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || !feedback.trim()}
-              className="flex-1"
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <Send className="w-4 h-4 mr-2" />
-                  Submit Feedback
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/')}
+                  className="flex-1"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Skip for Now
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit Feedback'
+                  )}
+                </Button>
+              </div>
+            </form>
 
-        <div className="text-center mt-4 sm:mt-6">
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Thank you for taking the time to help us improve
-          </p>
-        </div>
+            <div className="mt-6 text-center text-sm text-gray-500">
+              <p>
+                Your feedback is confidential and will be used to improve our services.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

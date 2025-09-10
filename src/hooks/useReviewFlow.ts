@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabasePublic } from "@/integrations/supabase/client";
 import { APP_CONFIG } from "@/constants";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { ErrorHandler } from "@/utils/errorHandler";
 
 interface ReviewFormData {
   name: string;
@@ -55,12 +56,29 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
     setIsSubmitting(true);
 
     try {
-      // Environment variables are available since you have a .env file
-
       analytics.track('review_submit_attempt', {
         rating: data.rating,
         source: sanitizedUtmParams.utmSource || 'direct',
       });
+
+      // Get tenant's Google Review URL if tenantId is provided
+      let googleReviewUrl = APP_CONFIG.GOOGLE_REVIEWS_URL; // Fallback to default
+      
+      if (data.tenantId) {
+        try {
+          const { data: businessSettings } = await supabasePublic
+            .from('business_settings')
+            .select('google_business_url')
+            .eq('tenant_id', data.tenantId)
+            .single();
+          
+          if (businessSettings?.google_business_url) {
+            googleReviewUrl = businessSettings.google_business_url;
+          }
+        } catch (error) {
+          console.warn('Could not fetch tenant Google Review URL, using default:', error);
+        }
+      }
 
       // Simple direct database insert - no Edge Function needed!
       const finalRating = prefilled.rating || data.rating;
@@ -68,8 +86,8 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
       const { data: insertedData, error } = await supabasePublic
         .from('reviews')
         .insert({
-          name: data.name.trim(),
-          phone: data.phone.trim(),
+          customer_name: data.name.trim(),
+          customer_phone: data.phone.trim(),
           country_code: data.countryCode || '+1',
           rating: finalRating,
           google_review: finalRating >= 4,
@@ -79,7 +97,8 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
             trackingId: sanitizedUtmParams.trackingId,
             managerName: undefined,
             source: 'email_form',
-            submitted_at: new Date().toISOString()
+            submitted_at: new Date().toISOString(),
+            google_review_url: googleReviewUrl
           }
         })
         .select()
@@ -100,9 +119,9 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
 
       // Handle conditional redirect based on rating
       if (finalRating >= 4) {
-        // Redirect directly to Google Reviews for ratings 4 and above
+        // Redirect to tenant-specific Google Review URL for ratings 4 and above
         analytics.track('review_redirect_google', { rating: finalRating });
-        window.location.href = APP_CONFIG.GOOGLE_REVIEWS_URL;
+        window.location.href = googleReviewUrl;
       } else {
         // Navigate to feedback page for ratings below 4
         analytics.track('review_feedback_redirect', { rating: finalRating });
@@ -115,36 +134,7 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
         });
       }
     } catch (error: unknown) {
-      console.error('Error saving review:', error);
-      
-      // Simplified error handling
-      let errorMessage = "Failed to submit review. Please try again.";
-      
-      const errorMessageStr = error instanceof Error ? error.message : String(error);
-      
-      if (errorMessageStr.includes('column "phone" does not exist')) {
-        errorMessage = "Review system is being updated. Please try again in a few minutes.";
-      } else if (errorMessageStr.includes('row-level security policy') || errorMessageStr.includes('RLS')) {
-        errorMessage = "Review system is not properly configured. Please contact support.";
-      } else if (errorMessageStr.includes('network') || errorMessageStr.includes('fetch')) {
-        errorMessage = "Network error. Please check your connection and try again.";
-      } else if (errorMessageStr.includes('timeout')) {
-        errorMessage = "Request timed out. Please try again.";
-      } else if (errorMessageStr.includes('rate limit') || errorMessageStr.includes('too many requests')) {
-        errorMessage = "Too many requests. Please wait a moment and try again.";
-      } else if (errorMessageStr.includes('unauthorized') || errorMessageStr.includes('forbidden') || errorMessageStr.includes('401')) {
-        errorMessage = "Review system is not properly configured. Please contact support.";
-      } else if (errorMessageStr.includes('database') || errorMessageStr.includes('connection')) {
-        errorMessage = "Database connection issue. Please try again in a moment.";
-      } else if (errorMessageStr.includes('Supabase configuration is missing')) {
-        errorMessage = "Review system is not properly configured. Please contact support.";
-      }
-      
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      ErrorHandler.handleServiceError(error, 'ReviewFormPage');
     } finally {
       setIsSubmitting(false);
     }

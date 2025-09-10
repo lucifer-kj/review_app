@@ -14,24 +14,85 @@ export type Database = {
   }
   public: {
     Tables: {
-
+      tenants: {
+        Row: {
+          id: string
+          name: string
+          domain?: string
+          status: 'active' | 'suspended' | 'pending'
+          settings?: Json
+          plan_type?: 'basic' | 'pro' | 'enterprise'
+          billing_email?: string
+          created_at: string
+          updated_at: string
+          created_by?: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          domain?: string
+          status?: 'active' | 'suspended' | 'pending'
+          settings?: Json
+          plan_type?: 'basic' | 'pro' | 'enterprise'
+          billing_email?: string
+          created_at?: string
+          updated_at?: string
+          created_by?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          domain?: string
+          status?: 'active' | 'suspended' | 'pending'
+          settings?: Json
+          plan_type?: 'basic' | 'pro' | 'enterprise'
+          billing_email?: string
+          created_at?: string
+          updated_at?: string
+          created_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenants_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
-          created_at: string
           id: string
+          email: string
+          full_name?: string
           role: string
+          tenant_id?: string
+          avatar_url?: string
+          preferences?: Json
+          created_at: string
           updated_at: string
         }
         Insert: {
-          created_at?: string
           id: string
+          email: string
+          full_name?: string
           role?: string
+          tenant_id?: string
+          avatar_url?: string
+          preferences?: Json
+          created_at?: string
           updated_at?: string
         }
         Update: {
-          created_at?: string
           id?: string
+          email?: string
+          full_name?: string
           role?: string
+          tenant_id?: string
+          avatar_url?: string
+          preferences?: Json
+          created_at?: string
           updated_at?: string
         }
         Relationships: [
@@ -46,43 +107,52 @@ export type Database = {
       }
       reviews: {
         Row: {
-          country_code: string
-          created_at: string
-          feedback: string | null
-          google_review: boolean
           id: string
-          metadata: Json | null
-          name: string
-          phone: string
+          tenant_id: string
+          user_id?: string
+          customer_name: string
+          customer_email?: string
+          customer_phone?: string
+          country_code: string
           rating: number
+          review_text?: string
+          google_review: boolean
           redirect_opened: boolean
-          user_id: string | null
+          metadata?: Json
+          created_at: string
+          updated_at: string
         }
         Insert: {
-          country_code?: string
-          created_at?: string
-          feedback?: string | null
-          google_review?: boolean
           id?: string
-          metadata?: Json | null
-          name: string
-          phone: string
+          tenant_id: string
+          user_id?: string
+          customer_name: string
+          customer_email?: string
+          customer_phone?: string
+          country_code?: string
           rating: number
+          review_text?: string
+          google_review?: boolean
           redirect_opened?: boolean
-          user_id?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
         }
         Update: {
-          country_code?: string
-          created_at?: string
-          feedback?: string | null
-          google_review?: boolean
           id?: string
-          metadata?: Json | null
-          name?: string
-          phone?: string
+          tenant_id?: string
+          user_id?: string
+          customer_name?: string
+          customer_email?: string
+          customer_phone?: string
+          country_code?: string
           rating?: number
+          review_text?: string
+          google_review?: boolean
           redirect_opened?: boolean
-          user_id?: string | null
+          metadata?: Json
+          created_at?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -97,34 +167,49 @@ export type Database = {
       business_settings: {
         Row: {
           id: string
+          tenant_id: string
           user_id: string
-          google_business_url: string | null
-          business_name: string | null
-          business_email: string | null
-          business_phone: string | null
-          business_address: string | null
+          business_name?: string
+          business_email?: string
+          business_phone?: string
+          business_address?: string
+          google_business_url?: string
+          review_form_url?: string
+          email_template?: Json
+          form_customization?: Json
+          settings?: Json
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
+          tenant_id: string
           user_id: string
-          google_business_url?: string | null
-          business_name?: string | null
-          business_email?: string | null
-          business_phone?: string | null
-          business_address?: string | null
+          business_name?: string
+          business_email?: string
+          business_phone?: string
+          business_address?: string
+          google_business_url?: string
+          review_form_url?: string
+          email_template?: Json
+          form_customization?: Json
+          settings?: Json
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
+          tenant_id?: string
           user_id?: string
-          google_business_url?: string | null
-          business_name?: string | null
-          business_email?: string | null
-          business_phone?: string | null
-          business_address?: string | null
+          business_name?: string
+          business_email?: string
+          business_phone?: string
+          business_address?: string
+          google_business_url?: string
+          review_form_url?: string
+          email_template?: Json
+          form_customization?: Json
+          settings?: Json
           created_at?: string
           updated_at?: string
         }
@@ -137,6 +222,122 @@ export type Database = {
             referencedColumns: ["id"]
           }
         ]
+      }
+      audit_logs: {
+        Row: {
+          id: string
+          tenant_id?: string
+          user_id?: string
+          action: string
+          resource_type?: string
+          resource_id?: string
+          details?: Json
+          ip_address?: string
+          user_agent?: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id?: string
+          user_id?: string
+          action: string
+          resource_type?: string
+          resource_id?: string
+          details?: Json
+          ip_address?: string
+          user_agent?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          user_id?: string
+          action?: string
+          resource_type?: string
+          resource_id?: string
+          details?: Json
+          ip_address?: string
+          user_agent?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      usage_metrics: {
+        Row: {
+          id: string
+          tenant_id: string
+          metric_type: string
+          metric_value: number
+          metadata?: Json
+          recorded_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          metric_type: string
+          metric_value: number
+          metadata?: Json
+          recorded_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          metric_type?: string
+          metric_value?: number
+          metadata?: Json
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_metrics_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      system_settings: {
+        Row: {
+          id: string
+          key: string
+          value: Json
+          description?: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          key: string
+          value?: Json
+          description?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          key?: string
+          value?: Json
+          description?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
