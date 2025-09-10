@@ -85,6 +85,8 @@ CREATE TABLE public.business_settings (
   business_address TEXT,
   google_business_url TEXT,
   review_form_url TEXT,
+  email_template JSONB DEFAULT '{}',
+  form_customization JSONB DEFAULT '{}',
   settings JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

@@ -146,8 +146,25 @@ export class BusinessSettingsService extends BaseService {
             return this.handleError(fallbackResult.error, 'BusinessSettingsService.getBusinessSettings');
           }
           
+          // Handle fallback data - extract from settings JSONB if needed
+          if (fallbackResult.data) {
+            const fallbackData = fallbackResult.data as any;
+            
+            // If email_template and form_customization are in settings JSONB, extract them
+            if (fallbackData.settings && typeof fallbackData.settings === 'object') {
+              fallbackData.email_template = fallbackData.settings.email_template || {};
+              fallbackData.form_customization = fallbackData.settings.form_customization || {};
+            }
+            
+            return {
+              data: fallbackData as BusinessSettings,
+              error: null,
+              success: true,
+            };
+          }
+          
           return {
-            data: fallbackResult.data as BusinessSettings || null,
+            data: null,
             error: null,
             success: true,
           };
@@ -155,8 +172,25 @@ export class BusinessSettingsService extends BaseService {
         return this.handleError(error, 'BusinessSettingsService.getBusinessSettings');
       }
 
+      // Handle normal data - extract from settings JSONB if needed
+      if (data) {
+        const normalData = data as any;
+        
+        // If email_template and form_customization are in settings JSONB, extract them
+        if (normalData.settings && typeof normalData.settings === 'object') {
+          normalData.email_template = normalData.settings.email_template || {};
+          normalData.form_customization = normalData.settings.form_customization || {};
+        }
+        
+        return {
+          data: normalData as BusinessSettings,
+          error: null,
+          success: true,
+        };
+      }
+
       return {
-        data: data as BusinessSettings || null,
+        data: null,
         error: null,
         success: true,
       };
@@ -215,12 +249,26 @@ export class BusinessSettingsService extends BaseService {
         const { data, error } = await query.select().single();
 
         if (error) {
-          // If error is due to columns not existing, try without them
+          // If error is due to columns not existing, try storing in settings JSONB column
           if (error.message.includes('column') && error.message.includes('does not exist')) {
-            logger.warn('Required columns not found, falling back to basic update');
+            logger.warn('Required columns not found, storing in settings JSONB column');
+            
+            // Store email_template and form_customization in settings JSONB
+            const settingsData = {
+              ...settings,
+              settings: {
+                email_template: settings.email_template || {},
+                form_customization: settings.form_customization || {}
+              }
+            };
+            
+            // Remove the JSONB fields from the main update
+            delete settingsData.email_template;
+            delete settingsData.form_customization;
+            
             const fallbackResult = await supabase
               .from('business_settings')
-              .update(settings)
+              .update(settingsData)
               .eq('id', existingSettings.data.id)
               .select()
               .single();
@@ -261,12 +309,33 @@ export class BusinessSettingsService extends BaseService {
           .single();
 
         if (error) {
-          // If error is due to columns not existing, try without them
+          // If error is due to columns not existing, try storing in settings JSONB column
           if (error.message.includes('column') && error.message.includes('does not exist')) {
-            logger.warn('Required columns not found, falling back to basic insert');
+            logger.warn('Required columns not found, storing in settings JSONB column');
+            
+            // Store email_template and form_customization in settings JSONB
+            const settingsData = {
+              ...settings,
+              settings: {
+                email_template: settings.email_template || {},
+                form_customization: settings.form_customization || {}
+              }
+            };
+            
+            // Remove the JSONB fields from the main insert
+            delete settingsData.email_template;
+            delete settingsData.form_customization;
+            
+            if (hasTenantIdColumn && tenantId) {
+              settingsData.tenant_id = tenantId;
+            }
+            if (hasUserIdColumn) {
+              settingsData.user_id = user.id;
+            }
+            
             const fallbackResult = await supabase
               .from('business_settings')
-              .insert(settings)
+              .insert(settingsData)
               .select()
               .single();
             
