@@ -48,6 +48,7 @@ export default function TenantList() {
     enabled: true,
     onError: (error) => {
       console.error('Real-time tenant updates error:', error);
+      // Don't show error to user, just log it
     }
   });
 

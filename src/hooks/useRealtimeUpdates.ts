@@ -64,6 +64,10 @@ export function useRealtimeUpdates({
               const error = new Error(`Real-time subscription error for ${table}`);
               console.error(error.message);
               onError?.(error);
+            } else if (status === 'TIMED_OUT') {
+              console.warn(`Real-time subscription timed out for ${table}`);
+            } else if (status === 'CLOSED') {
+              console.log(`Real-time subscription closed for ${table}`);
             }
           });
 
@@ -78,8 +82,12 @@ export function useRealtimeUpdates({
 
     return () => {
       subscriptions.forEach((subscription, table) => {
-        supabase.removeChannel(subscription);
-        console.log(`🔌 Disconnected real-time subscription for ${table}`);
+        try {
+          supabase.removeChannel(subscription);
+          console.log(`🔌 Disconnected real-time subscription for ${table}`);
+        } catch (error) {
+          console.error(`Error disconnecting real-time subscription for ${table}:`, error);
+        }
       });
       subscriptions.clear();
     };

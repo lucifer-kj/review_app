@@ -9,7 +9,7 @@ export interface AppError {
   tenantId?: string;
 }
 
-export class ErrorHandler {
+class ErrorHandler {
   /**
    * Handle service errors with consistent user feedback
    */

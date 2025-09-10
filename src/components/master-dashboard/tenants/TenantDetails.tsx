@@ -81,9 +81,9 @@ export default function TenantDetails() {
     enabled: !!tenantId,
     onError: (error) => {
       console.error('Real-time tenant users updates error:', error);
+      // Don't show error to user, just log it
     }
   });
-;
 
   // Suspend tenant mutation
   const suspendTenantMutation = useMutation({

@@ -2,7 +2,15 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { BaseService, type ServiceResponse } from "./baseService";
 import { logger } from "@/utils/logger";
-import { handleServiceError, AppError } from "@/utils/errorHandler";
+import { handleError } from "@/utils/errorHandler";
+
+// Simple error class for this service
+class ServiceError extends Error {
+  constructor(message: string, public code: string) {
+    super(message);
+    this.name = 'ServiceError';
+  }
+}
 
 type Review = Tables<'reviews'>;
 type CreateReviewData = Omit<Review, 'id' | 'created_at'>;
@@ -22,18 +30,16 @@ export class ReviewService extends BaseService {
         const { data: tenantResponse, error: tenantError } = await supabase.rpc('get_current_tenant_id');
         
         if (tenantError) {
-          throw handleServiceError(tenantError, 'ReviewService', 'getReviews', { tenantId });
+          throw handleError(tenantError, 'ReviewService.getReviews');
         }
         
         targetTenantId = tenantResponse;
       }
       
       if (!targetTenantId) {
-        throw new AppError(
+        throw new ServiceError(
           'No tenant context available. Please ensure you are properly assigned to a tenant.',
-          'TENANT_CONTEXT_MISSING',
-          { tenantId },
-          true
+          'TENANT_CONTEXT_MISSING'
         );
       }
 
@@ -68,7 +74,7 @@ export class ReviewService extends BaseService {
         success: true,
       };
     } catch (error) {
-      if (error instanceof AppError) {
+      if (error instanceof ServiceError) {
         return {
           data: [],
           error: error.message,
@@ -76,7 +82,7 @@ export class ReviewService extends BaseService {
         };
       }
       
-      const serviceError = handleServiceError(error, 'ReviewService', 'getReviews', { tenantId });
+      const serviceError = handleError(error, 'ReviewService.getReviews');
       return {
         data: [],
         error: serviceError.message,

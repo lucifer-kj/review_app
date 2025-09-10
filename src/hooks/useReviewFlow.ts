@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabasePublic } from "@/integrations/supabase/client";
 import { APP_CONFIG } from "@/constants";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { ErrorHandler } from "@/utils/errorHandler";
+import { handleError } from "@/utils/errorHandler";
 
 interface ReviewFormData {
   name: string;
@@ -134,7 +134,7 @@ export const useReviewFlow = (): UseReviewFlowReturn => {
         });
       }
     } catch (error: unknown) {
-      ErrorHandler.handleServiceError(error, 'ReviewFormPage');
+      handleError(error, 'ReviewFormPage');
     } finally {
       setIsSubmitting(false);
     }

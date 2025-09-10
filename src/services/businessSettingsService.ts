@@ -1,7 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
 import { BaseService, type ServiceResponse } from "./baseService";
 import { logger } from "@/utils/logger";
-import { handleServiceError, AppError } from "@/utils/errorHandler";
+import { handleError } from "@/utils/errorHandler";
+
+// Simple error class for this service
+class ServiceError extends Error {
+  constructor(message: string, public code: string) {
+    super(message);
+    this.name = 'ServiceError';
+  }
+}
 
 export interface BusinessSettings {
   id: string;
@@ -97,15 +105,13 @@ export class BusinessSettingsService extends BaseService {
       // Get current user
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError) {
-        throw handleServiceError(authError, 'BusinessSettingsService', 'getBusinessSettings');
+        throw handleError(authError, 'BusinessSettingsService.getBusinessSettings');
       }
       
       if (!user) {
-        throw new AppError(
+        throw new ServiceError(
           'User not authenticated',
-          'USER_NOT_AUTHENTICATED',
-          {},
-          true
+          'USER_NOT_AUTHENTICATED'
         );
       }
 
