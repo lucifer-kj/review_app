@@ -351,4 +351,36 @@ export class InvitationService extends BaseService {
       };
     }
   }
+
+  /**
+   * Mark invitation as used
+   */
+  static async markInvitationAsUsed(invitationId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase
+        .from('user_invitations')
+        .update({ 
+          status: 'accepted',
+          used_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', invitationId);
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+
+      return {
+        success: true
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to mark invitation as used'
+      };
+    }
+  }
 }

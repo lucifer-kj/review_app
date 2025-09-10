@@ -124,7 +124,36 @@ export const useAuth = () => {
   }, [fetchUserProfile]);
 
   const login = async (email: string, password: string) => {
-    // First check if user has a valid invitation
+    // First authenticate with Supabase
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) throw error;
+    
+    if (!data.user) {
+      throw new Error('Authentication failed');
+    }
+
+    // Get user profile to check role
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profileError || !profile) {
+      throw new Error('User profile not found. Please contact your administrator.');
+    }
+
+    // For super admins, skip invitation check
+    if (profile.role === 'super_admin') {
+      // Super admin can login directly
+      return !!data.user;
+    }
+
+    // For regular users, check if they have a valid invitation
     const { data: invitation, error: invitationError } = await supabase
       .from('user_invitations')
       .select('*')
@@ -146,13 +175,6 @@ export const useAuth = () => {
       
       throw new Error('Your invitation has expired. Please contact your administrator for a new invitation.');
     }
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) throw error;
     
     // The user profile will be fetched automatically by the auth state listener
     return !!data.user;

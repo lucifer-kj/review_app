@@ -8,7 +8,8 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from '../hooks/useToast';
 import { SessionManagementService, SessionInfo } from '../services/sessionManagementService';
 import { EmailVerificationService } from '../services/emailVerificationService';
-import { EnhancedInvitationService } from '../services/enhancedInvitationService';
+import { InvitationService } from '../services/invitationService';
+import { supabase } from '../integrations/supabase/client';
 
 export interface AuthState {
   user: any | null;
@@ -98,20 +99,93 @@ export function useEnhancedAuth(): AuthState & AuthActions {
     try {
       setAuthState(prev => ({ ...prev, loading: true }));
 
-      // Check if user has valid invitation (for invite-only system)
-      const invitationResponse = await EnhancedInvitationService.getInvitationByEmail(email);
-      
-      if (!invitationResponse.success) {
+      // First, try to authenticate with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (authError || !authData.user) {
         toast({
-          title: "Access Denied",
-          description: "You need a valid invitation to access this system.",
+          title: "Authentication Error",
+          description: authError?.message || "Invalid credentials",
           variant: "destructive"
         });
         setAuthState(prev => ({ ...prev, loading: false }));
         return false;
       }
 
-      // Proceed with login
+      // Get user profile to check role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        toast({
+          title: "Profile Error",
+          description: "User profile not found. Please contact your administrator.",
+          variant: "destructive"
+        });
+        setAuthState(prev => ({ ...prev, loading: false }));
+        return false;
+      }
+
+      // For super admins, skip invitation check
+      if (profile.role === 'super_admin') {
+        // Super admin can login directly
+        const sessionResponse = await SessionManagementService.initializeSession();
+        
+        if (sessionResponse.success && sessionResponse.data) {
+          const sessionInfo = sessionResponse.data;
+          
+          setAuthState({
+            user: sessionInfo.user,
+            session: sessionInfo.session,
+            profile: sessionInfo.profile,
+            tenant: sessionInfo.tenant,
+            loading: false,
+            isAuthenticated: true,
+            isEmailVerified: !!sessionInfo.user.email_confirmed_at,
+            sessionExpiringSoon: sessionInfo.timeUntilExpiry / (1000 * 60) <= 5,
+            timeUntilExpiry: sessionInfo.timeUntilExpiry
+          });
+
+          // Redirect to master dashboard for super admin
+          navigate('/master', { replace: true });
+
+          toast({
+            title: "Login Successful",
+            description: "Welcome, Super Admin!",
+          });
+
+          return true;
+        } else {
+          toast({
+            title: "Login Failed",
+            description: sessionResponse.error || "Session initialization failed",
+            variant: "destructive"
+          });
+          setAuthState(prev => ({ ...prev, loading: false }));
+          return false;
+        }
+      }
+
+      // For regular users, check if they have a valid invitation
+      const invitationResponse = await InvitationService.getInvitationByEmail(email);
+      
+      if (!invitationResponse.success) {
+        toast({
+          title: "Access Denied",
+          description: "No valid invitation found for this email. Please contact your administrator.",
+          variant: "destructive"
+        });
+        setAuthState(prev => ({ ...prev, loading: false }));
+        return false;
+      }
+
+      // Proceed with login for invited users
       const sessionResponse = await SessionManagementService.initializeSession();
       
       if (sessionResponse.success && sessionResponse.data) {
@@ -374,7 +448,7 @@ export function useEnhancedAuth(): AuthState & AuthActions {
       setAuthState(prev => ({ ...prev, loading: true }));
 
       // Validate invitation token
-      const invitationResponse = await EnhancedInvitationService.validateInvitationToken(token);
+      const invitationResponse = await InvitationService.getInvitationByToken(token);
       
       if (!invitationResponse.success || !invitationResponse.data) {
         toast({
@@ -415,7 +489,7 @@ export function useEnhancedAuth(): AuthState & AuthActions {
 
       if (authData.user) {
         // Mark invitation as used
-        await EnhancedInvitationService.markInvitationAsUsed(invitation.id);
+        await InvitationService.markInvitationAsUsed(invitation.id);
 
         toast({
           title: "Account Created Successfully",
