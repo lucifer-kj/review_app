@@ -136,30 +136,69 @@ export default function TenantReviewForm() {
     }
 
     try {
-      await handleReviewSubmit({
-        name: formData.name,
-        phone: formData.phone,
-        countryCode: formData.countryCode,
-        rating: formData.rating,
-        tenantId: tenantId,
+      // Submit the review directly to get the review ID
+      const { data: insertedData, error } = await supabase
+        .from('reviews')
+        .insert({
+          customer_name: formData.name.trim(),
+          customer_phone: formData.phone.trim(),
+          country_code: formData.countryCode || '+1',
+          rating: formData.rating,
+          google_review: formData.rating >= 4,
+          redirect_opened: false,
+          tenant_id: tenantId,
+          metadata: {
+            source: 'tenant_review_form',
+            submitted_at: new Date().toISOString(),
+            google_review_url: businessSettings?.google_business_url
+          }
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Database error:", error);
+        throw error;
+      }
+
+      // Show success message
+      toast({
+        title: "Review Submitted",
+        description: "Thank you for your feedback!",
       });
 
-      // Redirect to tenant's Business Review URL if configured
-      const businessReviewUrl = businessSettings?.google_business_url || businessSettings?.review_form_url;
-      if (businessReviewUrl) {
-        // Open in new tab to allow user to leave review
-        window.open(businessReviewUrl, '_blank');
-        toast({
-          title: "Review Submitted!",
-          description: "Thank you for your feedback. Please consider leaving a review on our business page.",
-        });
+      // Handle conditional redirect based on rating
+      if (formData.rating >= 4) {
+        // Redirect to tenant's Google Review URL for ratings 4 and above
+        const googleReviewUrl = businessSettings?.google_business_url;
+        if (googleReviewUrl) {
+          toast({
+            title: "Redirecting to Google Reviews",
+            description: "Please help us by leaving a review on Google!",
+          });
+          // Redirect to Google Review URL
+          window.location.href = googleReviewUrl;
+        } else {
+          // Fallback to thank you page if no Google Review URL configured
+          navigate('/review/tenant-thank-you', {
+            state: {
+              name: formData.name,
+              rating: formData.rating,
+              businessName: businessSettings?.business_name || loadingState.data?.name
+            }
+          });
+        }
       } else {
-        // Fallback to thank you page
-        navigate('/review/tenant-thank-you', {
+        // Navigate to feedback page for ratings below 4
+        toast({
+          title: "We'd love to hear more",
+          description: "Please help us improve by sharing more details about your experience.",
+        });
+        navigate('/review/feedback', {
           state: {
             name: formData.name,
             rating: formData.rating,
-            businessName: businessSettings?.business_name || loadingState.data?.name
+            reviewId: insertedData.id
           }
         });
       }
@@ -361,6 +400,25 @@ export default function TenantReviewForm() {
                   {formData.rating === 4 && 'Very Good - Exceeded expectations'}
                   {formData.rating === 5 && 'Excellent - Outstanding service'}
                 </p>
+                
+                {/* Helpful message about what happens next */}
+                {formData.rating > 0 && (
+                  <div className="mt-3 p-3 rounded-lg text-sm" style={{
+                    backgroundColor: formData.rating >= 4 ? '#dbeafe' : '#fef3c7',
+                    borderColor: formData.rating >= 4 ? '#3b82f6' : '#f59e0b',
+                    borderWidth: '1px'
+                  }}>
+                    {formData.rating >= 4 ? (
+                      <p className="text-blue-800">
+                        <strong>Great!</strong> After submitting, you'll be redirected to Google Reviews to help others discover {businessName}.
+                      </p>
+                    ) : (
+                      <p className="text-amber-800">
+                        <strong>We appreciate your feedback!</strong> After submitting, you'll be asked to share more details to help us improve.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Review Text */}
