@@ -124,6 +124,29 @@ export const useAuth = () => {
   }, [fetchUserProfile]);
 
   const login = async (email: string, password: string) => {
+    // First check if user has a valid invitation
+    const { data: invitation, error: invitationError } = await supabase
+      .from('user_invitations')
+      .select('*')
+      .eq('email', email)
+      .eq('status', 'pending')
+      .single();
+
+    if (invitationError || !invitation) {
+      throw new Error('No valid invitation found for this email. Please contact your administrator.');
+    }
+
+    // Check if invitation is expired
+    if (new Date(invitation.expires_at) < new Date()) {
+      // Mark as expired
+      await supabase
+        .from('user_invitations')
+        .update({ status: 'expired' })
+        .eq('id', invitation.id);
+      
+      throw new Error('Your invitation has expired. Please contact your administrator for a new invitation.');
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,

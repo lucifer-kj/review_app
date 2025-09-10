@@ -26,10 +26,36 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useState } from "react";
 import { toast } from "sonner";
+import { useRealtimeUpdates } from "@/hooks/useRealtimeUpdates";
 
 export default function PlatformOverview() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const { data: analytics, isLoading, error, refetch } = usePlatformMetrics();
+
+  // Enable real-time updates for master dashboard
+  useRealtimeUpdates({
+    tables: [
+      {
+        table: 'reviews',
+        queryKey: ['platform-metrics'],
+        events: ['INSERT', 'UPDATE', 'DELETE']
+      },
+      {
+        table: 'profiles',
+        queryKey: ['platform-metrics'],
+        events: ['INSERT', 'UPDATE', 'DELETE']
+      },
+      {
+        table: 'tenants',
+        queryKey: ['platform-metrics'],
+        events: ['INSERT', 'UPDATE', 'DELETE']
+      }
+    ],
+    enabled: true,
+    onError: (error) => {
+      console.error('Master dashboard real-time update error:', error);
+    }
+  });
 
   const handleRefresh = async () => {
     try {

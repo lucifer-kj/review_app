@@ -47,6 +47,13 @@ export function useRealtimeUpdates({
               
               // Check if the event type is in our allowed events
               if (events.includes(payload.eventType as any)) {
+                // For master dashboard, we need to handle tenant-specific updates
+                if (table === 'reviews' && !tenantId) {
+                  // This is a master dashboard subscription - invalidate platform metrics
+                  queryClient.invalidateQueries({ queryKey: ['platform-metrics'] });
+                  queryClient.invalidateQueries({ queryKey: ['tenants'] });
+                }
+                
                 // Invalidate and refetch the query
                 queryClient.invalidateQueries({ queryKey });
                 

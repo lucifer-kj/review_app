@@ -28,7 +28,7 @@ const Login = () => {
   });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [isSignUp] = useState(false);
+  // Signup is disabled - invitation only system
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -155,10 +155,10 @@ const Login = () => {
             </div>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            {isSignUp ? "Create your account" : "Sign in to your account"}
+            Sign in to your account
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {isSignUp ? "Join Crux to manage your reviews" : "Welcome back to Crux"}
+            Welcome back to Crux - Invitation Required
           </p>
         </div>
 
@@ -166,10 +166,10 @@ const Login = () => {
         <Card className="mt-8">
           <CardHeader>
             <CardTitle className="text-center">
-              {isSignUp ? "Sign Up" : "Sign In"}
+              Sign In
             </CardTitle>
             <CardDescription className="text-center">
-              {isSignUp ? "Create your Crux account" : "Enter your credentials to access your account"}
+              Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -194,7 +194,7 @@ const Login = () => {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    autoComplete={isSignUp ? "new-password" : "current-password"}
+                    autoComplete="current-password"
                     required
                     value={formData.password}
                     onChange={(e) => handleInputChange("password", e.target.value)}
@@ -216,18 +216,16 @@ const Login = () => {
                 </div>
               </div>
 
-              {!isSignUp && (
-                <div className="flex items-center justify-between">
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="px-0 text-sm"
-                    onClick={() => setShowPasswordReset(true)}
-                  >
-                    Forgot your password?
-                  </Button>
-                </div>
-              )}
+              <div className="flex items-center justify-between">
+                <Button
+                  type="button"
+                  variant="link"
+                  className="px-0 text-sm"
+                  onClick={() => setShowPasswordReset(true)}
+                >
+                  Forgot your password?
+                </Button>
+              </div>
 
               <Button
                 type="submit"
@@ -237,10 +235,10 @@ const Login = () => {
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {isSignUp ? "Creating account..." : "Signing in..."}
+                    Signing in...
                   </>
                 ) : (
-                  isSignUp ? "Create account" : "Sign in"
+                  "Sign in"
                 )}
               </Button>
             </form>
@@ -275,22 +273,29 @@ const Login = () => {
         {/* Footer */}
         <div className="text-center">
           <p className="text-sm text-gray-600">
-            {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+            Don't have an account?{" "}
             <Button
               variant="link"
               className="px-0"
               onClick={() => {
-                // Signup is disabled - invite only
                 toast({
-                  title: "Signup Disabled",
+                  title: "Invitation Required",
                   description: "This system uses invite-only authentication. Please contact your administrator for access.",
                   variant: "destructive",
                 });
               }}
             >
-              {isSignUp ? "Sign in" : "Contact Administrator"}
+              Contact Administrator
             </Button>
           </p>
+          <div className="mt-2">
+            <Alert>
+              <AlertDescription className="text-xs">
+                <strong>Invitation-Only System:</strong> Access is granted only through administrator invitations. 
+                Contact your system administrator to request access.
+              </AlertDescription>
+            </Alert>
+          </div>
         </div>
       </div>
 

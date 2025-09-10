@@ -7,6 +7,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { useToast } from '../hooks/use-toast';
+import { InvitationService } from '../services/invitationService';
 
 export default function AcceptInvitation() {
   const [searchParams] = useSearchParams();
@@ -26,59 +27,31 @@ export default function AcceptInvitation() {
       try {
         console.log('Handling invitation callback...');
         
-        // Check for existing session first
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          console.log('Existing session found');
-          setEmail(session.user.email || '');
-          setFullName(session.user.user_metadata?.full_name || '');
+        // Get token from URL parameters
+        const token = searchParams.get('token');
+        if (!token) {
+          setError('Invalid invitation link - no token found');
           setLoading(false);
           return;
         }
+
+        // Validate invitation token
+        const invitationResult = await InvitationService.getInvitationByToken(token);
+        if (!invitationResult.success || !invitationResult.data) {
+          setError(invitationResult.error || 'Invalid or expired invitation');
+          setLoading(false);
+          return;
+        }
+
+        const invitation = invitationResult.data;
+        setEmail(invitation.email);
         
-        // Check for magic link hash fragment (Supabase format)
-        const hash = window.location.hash;
-        if (hash) {
-          const urlParams = new URLSearchParams(hash.substring(1));
-          const accessToken = urlParams.get('access_token');
-          const refreshToken = urlParams.get('refresh_token');
-          const type = urlParams.get('type');
-          
-          if (accessToken && refreshToken && type === 'signup') {
-            console.log('Magic link detected, setting session...');
-            
-            // Set the session using the tokens
-            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-
-            if (sessionError) {
-              console.error('Session setting error:', sessionError);
-              setError('Invalid or expired magic link');
-              return;
-            }
-
-            console.log('Session set successfully');
-            
-            // Get user data from the session
-            if (sessionData.user) {
-              setEmail(sessionData.user.email || '');
-              setFullName(sessionData.user.user_metadata?.full_name || '');
-            }
-          } else {
-            setError('Invalid magic link format');
-            return;
-          }
-        } else {
-          // Check URL parameters for email
-          const emailParam = searchParams.get('email');
-          if (emailParam) {
-            setEmail(emailParam);
-          } else {
-            setError('Invalid invitation link - no email or magic link found');
-            return;
-          }
+        // Check for existing session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          console.log('Existing session found');
+          setLoading(false);
+          return;
         }
         
       } catch (err) {
@@ -116,67 +89,33 @@ export default function AcceptInvitation() {
     setIsSubmitting(true);
 
     try {
-      // Update the user's password and profile
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password,
-        data: {
-          full_name: fullName,
-        }
-      });
-
-      if (updateError) {
-        throw updateError;
+      // Get token from URL parameters
+      const token = searchParams.get('token');
+      if (!token) {
+        throw new Error('Invalid invitation token');
       }
 
-      // Update the profile with full name and ensure tenant assignment
+      // Accept invitation and create user account
+      const invitationResult = await InvitationService.acceptInvitation(token, password);
+      if (!invitationResult.success) {
+        throw new Error(invitationResult.error || 'Failed to accept invitation');
+      }
+
+      // Update user profile with full name
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Get the current profile to check tenant assignment
-        const { data: currentProfile } = await supabase
+        const { error: profileError } = await supabase
           .from('profiles')
-          .select('tenant_id, role')
-          .eq('id', user.id)
-          .single();
+          .update({
+            full_name: fullName,
+            email: user.email,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
 
-        if (currentProfile) {
-          // Update profile with full name
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .update({
-              full_name: fullName,
-              email: user.email,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', user.id);
-
-          if (profileError) {
-            console.warn('Profile update error:', profileError);
-            // Don't fail the entire process for this
-          }
-
-          // Check if user has tenant assignment
-          if (!currentProfile.tenant_id && currentProfile.role !== 'super_admin') {
-            console.warn('User created without tenant assignment:', {
-              userId: user.id,
-              email: user.email,
-              role: currentProfile.role
-            });
-            
-            toast({
-              title: "Account Setup Incomplete",
-              description: "Your account is not assigned to any business. Please contact support.",
-              variant: "destructive"
-            });
-            return;
-          }
-        } else {
-          console.error('Profile not found for user:', user.id);
-          toast({
-            title: "Account Setup Failed",
-            description: "Unable to complete account setup. Please contact support.",
-            variant: "destructive"
-          });
-          return;
+        if (profileError) {
+          console.warn('Profile update error:', profileError);
+          // Don't fail the entire process for this
         }
       }
 
