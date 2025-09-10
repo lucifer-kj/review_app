@@ -13,7 +13,6 @@ import { Analytics } from "@vercel/analytics/react";
 
 // Lazy load pages for better performance
 const Login = lazy(() => import("./pages/Login"));
-const TenantLogin = lazy(() => import("./pages/TenantLogin"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const DashboardReviews = lazy(() => import("./pages/DashboardReviews"));
