@@ -376,17 +376,157 @@ export class BusinessSettingsService extends BaseService {
   }
 
   /**
-   * Alias for getBusinessSettings - used by DashboardSettings component
+   * Simplified get settings method - used by DashboardSettings component
    */
   static async getSettings(): Promise<ServiceResponse<BusinessSettings>> {
-    return this.getBusinessSettings();
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return {
+          data: null,
+          error: 'User not authenticated',
+          success: false,
+        };
+      }
+
+      // Get tenant context from user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        return {
+          data: null,
+          error: 'No tenant context available. Please ensure you are properly assigned to a tenant.',
+          success: false,
+        };
+      }
+
+      // Get business settings for this tenant and user
+      const { data, error } = await supabase
+        .from('business_settings')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No settings found, return default settings
+          return {
+            data: this.getDefaultBusinessSettings(),
+            error: null,
+            success: true,
+          };
+        }
+        return this.handleError(error, 'BusinessSettingsService.getSettings');
+      }
+
+      return {
+        data: data as BusinessSettings,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'BusinessSettingsService.getSettings');
+    }
   }
 
   /**
-   * Alias for upsertBusinessSettings - used by DashboardSettings component
+   * Simplified update settings method - used by DashboardSettings component
    */
   static async updateSettings(settings: BusinessSettingsFormData): Promise<ServiceResponse<BusinessSettings>> {
-    return this.upsertBusinessSettings(settings);
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return {
+          data: null,
+          error: 'User not authenticated',
+          success: false,
+        };
+      }
+
+      // Get tenant context from user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.tenant_id) {
+        return {
+          data: null,
+          error: 'No tenant context available. Please ensure you are properly assigned to a tenant.',
+          success: false,
+        };
+      }
+
+      // Prepare settings data
+      const settingsData = {
+        business_name: settings.business_name,
+        business_email: settings.business_email,
+        business_phone: settings.business_phone,
+        business_address: settings.business_address,
+        google_business_url: settings.google_business_url,
+        review_form_url: settings.review_form_url,
+        email_template: settings.email_template || {},
+        form_customization: settings.form_customization || {},
+        updated_at: new Date().toISOString()
+      };
+
+      // Try to update existing settings first
+      const { data: existingSettings } = await supabase
+        .from('business_settings')
+        .select('id')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('user_id', user.id)
+        .single();
+
+      let result;
+      if (existingSettings) {
+        // Update existing settings
+        const { data, error } = await supabase
+          .from('business_settings')
+          .update(settingsData)
+          .eq('id', existingSettings.id)
+          .select()
+          .single();
+
+        if (error) {
+          return this.handleError(error, 'BusinessSettingsService.updateSettings');
+        }
+        result = data;
+      } else {
+        // Create new settings
+        const { data, error } = await supabase
+          .from('business_settings')
+          .insert({
+            ...settingsData,
+            tenant_id: profile.tenant_id,
+            user_id: user.id,
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (error) {
+          return this.handleError(error, 'BusinessSettingsService.updateSettings');
+        }
+        result = data;
+      }
+
+      return {
+        data: result as BusinessSettings,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'BusinessSettingsService.updateSettings');
+    }
   }
 
   /**

@@ -13,7 +13,7 @@ export const CopyLinkButton = ({
 }: CopyLinkButtonProps) => {
   // Generate review URL with tenant_id if provided
   const defaultReviewUrl = tenantId 
-    ? `${window.location.origin}/review?tenant_id=${tenantId}`
+    ? `${window.location.origin}/review/${tenantId}`
     : `${window.location.origin}/review`;
   
   const finalReviewUrl = reviewUrl || defaultReviewUrl;

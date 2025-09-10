@@ -12,9 +12,10 @@ const CopyLinkButton = lazy(() => import("@/components/CopyLinkButton").then(mod
 
 interface MobileHeaderProps {
   onLogout: () => void;
+  tenantId?: string;
 }
 
-export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
+export const MobileHeader = ({ onLogout, tenantId }: MobileHeaderProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -95,8 +96,8 @@ export const MobileHeader = ({ onLogout }: MobileHeaderProps) => {
                   <div className="text-sm font-medium text-muted-foreground mb-4">Share & Copy</div>
                   <Suspense fallback={<LoadingSpinner />}>
                     <div className="space-y-3">
-                      <CopyLinkButton />
-                      <ShareButton />
+                      <CopyLinkButton tenantId={tenantId} />
+                      <ShareButton tenantId={tenantId} />
                     </div>
                   </Suspense>
                 </div>

@@ -23,7 +23,7 @@ const CopyLinkButton = lazy(() => import("@/components/CopyLinkButton").then(mod
 const DashboardLayout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -50,7 +50,7 @@ const DashboardLayout = () => {
   return (
     <div className="min-h-screen flex flex-col w-full">
       {/* Mobile Header */}
-      <MobileHeader onLogout={handleLogout} />
+      <MobileHeader onLogout={handleLogout} tenantId={profile?.tenant_id} />
       
       {/* Desktop Header */}
       <header className="hidden lg:flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
@@ -69,10 +69,10 @@ const DashboardLayout = () => {
         </div>
         <div className="flex items-center gap-3">
           <Suspense fallback={<LoadingSpinner />}>
-            <CopyLinkButton tenantId={user?.tenant_id} />
+            <CopyLinkButton tenantId={profile?.tenant_id} />
           </Suspense>
           <Suspense fallback={<LoadingSpinner />}>
-            <ShareButton tenantId={user?.tenant_id} />
+            <ShareButton tenantId={profile?.tenant_id} />
           </Suspense>
           
           <DropdownMenu>

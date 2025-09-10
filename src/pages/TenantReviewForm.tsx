@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useLoadingState } from '@/hooks/useLoadingState';
 import { supabase } from '@/integrations/supabase/client';
+import { BusinessSettingsService } from '@/services/businessSettingsService';
 
 export default function TenantReviewForm() {
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -33,6 +34,7 @@ export default function TenantReviewForm() {
   });
 
   const [hoveredRating, setHoveredRating] = useState(0);
+  const [businessSettings, setBusinessSettings] = useState<any>(null);
 
   useEffect(() => {
     const fetchTenantInfo = async () => {
@@ -41,14 +43,15 @@ export default function TenantReviewForm() {
       }
 
       await executeWithLoading(async () => {
-        const { data, error } = await supabase
+        // Fetch tenant basic info
+        const { data: tenantData, error: tenantError } = await supabase
           .from('tenants')
           .select('name, domain')
           .eq('id', tenantId)
           .single();
 
-        if (error) {
-          console.error('Error fetching tenant info:', error);
+        if (tenantError) {
+          console.error('Error fetching tenant info:', tenantError);
           toast({
             title: "Error",
             description: "Unable to load business information. Please try again.",
@@ -58,7 +61,24 @@ export default function TenantReviewForm() {
           return null;
         }
 
-        return data;
+        // Fetch business settings for customization
+        try {
+          const { data: settingsData, error: settingsError } = await supabase
+            .from('business_settings')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .single();
+
+          if (settingsError && settingsError.code !== 'PGRST116') {
+            console.warn('Error fetching business settings:', settingsError);
+          } else if (settingsData) {
+            setBusinessSettings(settingsData);
+          }
+        } catch (error) {
+          console.warn('Error loading business settings:', error);
+        }
+
+        return tenantData;
       });
     };
 
@@ -171,23 +191,35 @@ export default function TenantReviewForm() {
   }
 
   const tenantInfo = loadingState.data;
+  
+  // Apply customizations from business settings
+  const customizations = businessSettings?.form_customization || {};
+  const primaryColor = customizations.primary_color || '#3b82f6';
+  const secondaryColor = customizations.secondary_color || '#1e40af';
+  const welcomeMessage = customizations.welcome_message || `Share your experience with ${tenantInfo.name}`;
+  const businessName = businessSettings?.business_name || tenantInfo.name;
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
-        <Card>
+        <Card style={{ 
+          borderColor: primaryColor,
+          boxShadow: `0 4px 6px -1px ${primaryColor}20`
+        }}>
           <CardHeader className="text-center">
             <div className="flex items-center justify-center mb-4">
-              <Building2 className="h-8 w-8 text-blue-600 mr-3" />
+              <Building2 className="h-8 w-8 mr-3" style={{ color: primaryColor }} />
               <div>
-                <CardTitle className="text-3xl font-bold">{tenantInfo.name}</CardTitle>
+                <CardTitle className="text-3xl font-bold" style={{ color: primaryColor }}>
+                  {businessName}
+                </CardTitle>
                 {tenantInfo.domain && (
                   <p className="text-sm text-gray-500">{tenantInfo.domain}</p>
                 )}
               </div>
             </div>
             <CardDescription className="text-lg">
-              Share your experience with {tenantInfo.name}
+              {welcomeMessage}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -302,6 +334,10 @@ export default function TenantReviewForm() {
                 disabled={isSubmitting}
                 className="w-full text-base py-3"
                 size="lg"
+                style={{ 
+                  backgroundColor: primaryColor,
+                  borderColor: primaryColor
+                }}
               >
                 {isSubmitting ? (
                   <>
