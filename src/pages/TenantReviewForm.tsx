@@ -20,6 +20,7 @@ export default function TenantReviewForm() {
   const { toast } = useToast();
   const { isSubmitting, handleReviewSubmit } = useReviewFlow();
 
+
   const { loadingState, execute: executeWithLoading } = useLoadingState<{
     name: string;
     domain?: string;
@@ -39,7 +40,15 @@ export default function TenantReviewForm() {
   useEffect(() => {
     const fetchTenantInfo = async () => {
       if (!tenantId) {
+        console.error('No tenantId provided in URL');
         return;
+      }
+
+      // Validate UUID format
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(tenantId)) {
+        console.error('Invalid tenantId format:', tenantId);
+        throw new Error('Invalid business link format. Please check the URL and try again.');
       }
 
       await executeWithLoading(async () => {
@@ -52,13 +61,11 @@ export default function TenantReviewForm() {
 
         if (tenantError) {
           console.error('Error fetching tenant info:', tenantError);
-          toast({
-            title: "Error",
-            description: "Unable to load business information. Please try again.",
-            variant: "destructive",
-          });
-          navigate('/');
-          return null;
+          // If tenant not found, show 404 error instead of redirecting
+          if (tenantError.code === 'PGRST116') {
+            throw new Error('Business not found. The review link may be invalid or expired.');
+          }
+          throw new Error('Unable to load business information. Please try again.');
         }
 
         // Fetch business settings for customization
@@ -136,14 +143,58 @@ export default function TenantReviewForm() {
         rating: formData.rating,
         tenantId: tenantId,
       });
+
+      // Redirect to tenant's Business Review URL if configured
+      const businessReviewUrl = businessSettings?.google_business_url || businessSettings?.review_form_url;
+      if (businessReviewUrl) {
+        // Open in new tab to allow user to leave review
+        window.open(businessReviewUrl, '_blank');
+        toast({
+          title: "Review Submitted!",
+          description: "Thank you for your feedback. Please consider leaving a review on our business page.",
+        });
+      } else {
+        // Fallback to thank you page
+        navigate('/review/tenant-thank-you', {
+          state: {
+            name: formData.name,
+            rating: formData.rating,
+            businessName: businessSettings?.business_name || loadingState.data?.name
+          }
+        });
+      }
     } catch (error) {
       console.error('Review submission error:', error);
+      toast({
+        title: "Submission Error",
+        description: "Failed to submit review. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  // Early return for invalid tenantId
+  if (!tenantId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h2 className="text-2xl font-bold text-red-600 mb-4">Invalid Review Link</h2>
+            <p className="text-gray-600 mb-4">
+              The review link is missing the business identifier. Please check the URL and try again.
+            </p>
+            <Button onClick={() => navigate('/')} className="w-full">
+              Go Home
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loadingState.isLoading) {
     return (
