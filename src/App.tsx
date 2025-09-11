@@ -57,6 +57,7 @@ const TestSupabaseConnection = lazy(() => import("./pages/TestSupabaseConnection
 const TestPublicReview = lazy(() => import("./pages/TestPublicReview"));
 const DebugTenantLookup = lazy(() => import("./pages/DebugTenantLookup"));
 const PublicReviewForm = lazy(() => import("./pages/PublicReviewForm"));
+const PublicReviewPage = lazy(() => import("./pages/PublicReviewPage"));
 const TestReviewForm = lazy(() => import("./pages/TestReviewForm"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const FeedbackThankYouPage = lazy(() => import("./pages/FeedbackThankYouPage"));
@@ -142,8 +143,10 @@ const RouterContent = () => {
           <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
           <Route path="/review/tenant-thank-you" element={<TenantReviewThankYou />} />
           <Route path="/review/link/:linkCode" element={<PublicReviewForm />} />
+          {/* Slug-based public review form - must be before tenant ID route */}
+          <Route path="/review/:slug" element={<PublicReviewPage />} />
           {/* Tenant-specific review form - must be last to avoid conflicts */}
-          <Route path="/review/:tenantId" element={<PublicReviewForm />} />
+          <Route path="/review/tenant/:tenantId" element={<PublicReviewForm />} />
           
           {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />

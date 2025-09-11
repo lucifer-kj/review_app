@@ -1,39 +1,61 @@
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Star, MessageSquare, ArrowLeft } from 'lucide-react';
+import { Star, MessageSquare, ArrowLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { ReviewService } from '@/services/reviewService';
+import { createClient } from '@supabase/supabase-js';
 
 interface LocationState {
   name: string;
   rating: number;
   reviewId: string;
+  businessName?: string;
 }
 
 export default function FeedbackPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reviewData, setReviewData] = useState<LocationState | null>(null);
 
+  // Initialize Supabase client
+  const supabase = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY
+  );
+
   useEffect(() => {
-    // Get data from navigation state
+    // Get data from navigation state or URL parameters
     const state = location.state as LocationState;
+    const reviewId = searchParams.get('review_id');
+    const name = searchParams.get('name');
+    const rating = searchParams.get('rating');
+    const businessName = searchParams.get('business_name');
+
     if (state?.name && state?.rating && state?.reviewId) {
+      // Data from navigation state (preferred)
       setReviewData(state);
+    } else if (reviewId && name && rating) {
+      // Data from URL parameters
+      setReviewData({
+        reviewId,
+        name: decodeURIComponent(name),
+        rating: parseInt(rating),
+        businessName: businessName ? decodeURIComponent(businessName) : undefined
+      });
     } else {
-      // If no state, redirect to home
+      // If no data available, redirect to home
       navigate('/');
     }
-  }, [location.state, navigate]);
+  }, [location.state, searchParams, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,38 +74,20 @@ export default function FeedbackPage() {
     setIsSubmitting(true);
 
     try {
-      // For now, simulate successful feedback submission without database update
-      // This ensures the feedback flow works even without proper tenant setup
-      console.log('Feedback submitted:', {
-        reviewId: reviewData.reviewId,
-        feedback: feedback,
-        name: reviewData.name,
-        rating: reviewData.rating
-      });
+      // Update the review with detailed feedback
+      const { error } = await supabase
+        .from('reviews')
+        .update({
+          feedback_text: feedback.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', reviewData.reviewId);
 
-      // TODO: Uncomment when tenant is properly set up in database
-      /*
-      const response = await ReviewService.updateReviewFeedback(reviewData.reviewId, feedback);
-      
-      if (response.success) {
-        toast({
-          title: "Thank You!",
-          description: "Your feedback has been submitted successfully.",
-        });
-        
-        // Navigate to thank you page
-        navigate('/review/feedback-thank-you', {
-          state: {
-            name: reviewData.name,
-            rating: reviewData.rating,
-          }
-        });
-      } else {
-        throw new Error(response.error || 'Failed to submit feedback');
+      if (error) {
+        console.error('Error updating review:', error);
+        throw new Error('Failed to submit feedback');
       }
-      */
 
-      // Mock successful response
       toast({
         title: "Thank You!",
         description: "Your feedback has been submitted successfully.",
@@ -94,6 +98,7 @@ export default function FeedbackPage() {
         state: {
           name: reviewData.name,
           rating: reviewData.rating,
+          businessName: reviewData.businessName
         }
       });
 
