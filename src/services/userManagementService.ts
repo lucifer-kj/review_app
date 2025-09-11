@@ -283,24 +283,67 @@ export class UserManagementService extends BaseService {
   }
 
   /**
-   * Delete user (admin function)
+   * Delete user (admin function) - Comprehensive deletion with related data cleanup
    */
   static async deleteUser(userId: string): Promise<ServiceResponse<boolean>> {
     try {
-      const { error } = await withAdminAuth(async () => {
+      // Step 1: Delete user-related data from all tables
+      console.log(`Starting comprehensive deletion for user: ${userId}`);
+
+      // Delete from tenant_users table
+      const { error: tenantUsersError } = await supabase
+        .from('tenant_users')
+        .delete()
+        .eq('user_id', userId);
+
+      if (tenantUsersError) {
+        console.error('Error deleting from tenant_users:', tenantUsersError);
+        return this.handleError(tenantUsersError, 'UserManagementService.deleteUser - tenant_users');
+      }
+
+      // Delete from profiles table
+      const { error: profilesError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      if (profilesError) {
+        console.error('Error deleting from profiles:', profilesError);
+        return this.handleError(profilesError, 'UserManagementService.deleteUser - profiles');
+      }
+
+      // Delete from audit_logs table (using user_id column)
+      const { error: auditLogsError } = await supabase
+        .from('audit_logs')
+        .delete()
+        .eq('user_id', userId);
+
+      if (auditLogsError) {
+        console.error('Error deleting from audit_logs:', auditLogsError);
+        // Don't fail the entire operation for audit logs
+      }
+
+      // Note: usage_metrics table doesn't have user_id or created_by columns
+      // so we don't need to delete from it
+
+      // Step 2: Delete from auth.users (this will cascade to any auth-related data)
+      const { error: authError } = await withAdminAuth(async () => {
         return await supabaseAdmin.auth.admin.deleteUser(userId);
       });
 
-      if (error) {
-        return this.handleError(error, 'UserManagementService.deleteUser');
+      if (authError) {
+        console.error('Error deleting from auth.users:', authError);
+        return this.handleError(authError, 'UserManagementService.deleteUser - auth');
       }
 
+      console.log(`Successfully deleted user: ${userId}`);
       return {
         data: true,
         error: null,
         success: true,
       };
     } catch (error) {
+      console.error('Unexpected error in deleteUser:', error);
       return this.handleError(error, 'UserManagementService.deleteUser');
     }
   }

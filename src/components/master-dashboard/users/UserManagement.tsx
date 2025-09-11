@@ -455,26 +455,32 @@ export default function UserManagement() {
     },
   });
 
-  // Delete user mutation
+  // Delete user mutation - Updated to use comprehensive deletion
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await withAdminAuth(async () => {
-        return await supabaseAdmin.auth.admin.deleteUser(userId);
-      });
-
-      if (error) throw error;
+      console.log(`Attempting to delete user: ${userId}`);
+      const result = await UserManagementService.deleteUser(userId);
+      
+      if (!result.success) {
+        console.error('User deletion failed:', result.error);
+        throw new Error(result.error || 'Failed to delete user');
+      }
+      
+      console.log(`User ${userId} deleted successfully`);
+      return result.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['platform-users'] });
       toast({
         title: "User Deleted",
-        description: "User has been deleted successfully.",
+        description: "User and all related data have been deleted successfully.",
       });
     },
     onError: (error) => {
+      console.error('Delete user mutation error:', error);
       toast({
-        title: "Failed to Delete User",
-        description: error.message || "Failed to delete user.",
+        title: "Delete Failed",
+        description: error.message || "Database error deleting user. Please try again or contact support.",
         variant: "destructive",
       });
     },

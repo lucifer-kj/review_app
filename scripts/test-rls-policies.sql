@@ -5,24 +5,26 @@
 -- SETUP TEST DATA
 -- ============================================================================
 
--- Create test tenants
-INSERT INTO public.tenants (id, name, status, created_by) VALUES
-  ('11111111-1111-1111-1111-111111111111', 'Test Business A', 'active', '00000000-0000-0000-0000-000000000000'),
-  ('22222222-2222-2222-2222-222222222222', 'Test Business B', 'active', '00000000-0000-0000-0000-000000000000')
-ON CONFLICT (id) DO NOTHING;
-
--- Create test users
+-- Create test users first (including super admin)
 INSERT INTO auth.users (id, email, email_confirmed_at, created_at, updated_at) VALUES
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'user-a@test.com', NOW(), NOW(), NOW()),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'user-b@test.com', NOW(), NOW(), NOW()),
-  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'super-admin@test.com', NOW(), NOW(), NOW())
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'super-admin@test.com', NOW(), NOW(), NOW()),
+  ('00000000-0000-0000-0000-000000000000', 'test-super-admin@test.com', NOW(), NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- Create test tenants (using the super admin user ID)
+INSERT INTO public.tenants (id, name, status, created_by) VALUES
+  ('11111111-1111-1111-1111-111111111111', 'Test Business A', 'active', '00000000-0000-0000-0000-000000000000'),
+  ('22222222-2222-2222-2222-222222222222', 'Test Business B', 'active', '00000000-0000-0000-0000-000000000000')
 ON CONFLICT (id) DO NOTHING;
 
 -- Create test profiles
 INSERT INTO public.profiles (id, email, full_name, role, tenant_id) VALUES
   ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'user-a@test.com', 'User A', 'tenant_admin', '11111111-1111-1111-1111-111111111111'),
   ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'user-b@test.com', 'User B', 'tenant_admin', '22222222-2222-2222-2222-222222222222'),
-  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'super-admin@test.com', 'Super Admin', 'super_admin', NULL)
+  ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'super-admin@test.com', 'Super Admin', 'super_admin', NULL),
+  ('00000000-0000-0000-0000-000000000000', 'test-super-admin@test.com', 'Test Super Admin', 'super_admin', NULL)
 ON CONFLICT (id) DO NOTHING;
 
 -- Create test tenant_users relationships
@@ -32,11 +34,11 @@ INSERT INTO public.tenant_users (tenant_id, user_id, role) VALUES
 ON CONFLICT (tenant_id, user_id) DO NOTHING;
 
 -- Create test reviews
-INSERT INTO public.reviews (id, tenant_id, reviewer_name, rating, feedback_text, is_anonymous) VALUES
-  ('review-a-1', '11111111-1111-1111-1111-111111111111', 'Customer A1', 5, 'Great service!', true),
-  ('review-a-2', '11111111-1111-1111-1111-111111111111', 'Customer A2', 4, 'Very good experience', true),
-  ('review-b-1', '22222222-2222-2222-2222-222222222222', 'Customer B1', 3, 'Average service', true),
-  ('review-b-2', '22222222-2222-2222-2222-222222222222', 'Customer B2', 2, 'Could be better', true)
+INSERT INTO public.reviews (id, tenant_id, customer_name, reviewer_name, rating, review_text, feedback_text, is_anonymous) VALUES
+  ('aaaaaaaa-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Customer A1', 'Customer A1', 5, 'Great service!', 'Great service!', true),
+  ('aaaaaaaa-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'Customer A2', 'Customer A2', 4, 'Very good experience', 'Very good experience', true),
+  ('bbbbbbbb-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222', 'Customer B1', 'Customer B1', 3, 'Average service', 'Average service', true),
+  ('bbbbbbbb-2222-2222-2222-222222222222', '22222222-2222-2222-2222-222222222222', 'Customer B2', 'Customer B2', 2, 'Could be better', 'Could be better', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
@@ -89,7 +91,7 @@ SELECT 'TEST 2: Tenant Isolation - Reviews Table' as test_name;
 SELECT 'User A should only see Tenant A reviews' as expectation;
 
 -- This should only return Tenant A reviews
-SELECT id, tenant_id, reviewer_name, rating FROM public.reviews;
+SELECT id, tenant_id, customer_name, reviewer_name, rating FROM public.reviews;
 
 -- Reset context
 RESET ALL;
@@ -100,7 +102,7 @@ SET LOCAL "request.jwt.claims" TO '{"sub": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb
 SELECT 'User B should only see Tenant B reviews' as expectation;
 
 -- This should only return Tenant B reviews
-SELECT id, tenant_id, reviewer_name, rating FROM public.reviews;
+SELECT id, tenant_id, customer_name, reviewer_name, rating FROM public.reviews;
 
 -- Reset context
 RESET ALL;
@@ -111,7 +113,7 @@ SET LOCAL "request.jwt.claims" TO '{"sub": "cccccccc-cccc-cccc-cccc-cccccccccccc
 SELECT 'Super Admin should see all reviews' as expectation;
 
 -- This should return all reviews
-SELECT id, tenant_id, reviewer_name, rating FROM public.reviews;
+SELECT id, tenant_id, customer_name, reviewer_name, rating FROM public.reviews;
 
 -- Reset context
 RESET ALL;
@@ -125,14 +127,14 @@ SELECT 'TEST 3: Anonymous Review Insertion' as test_name;
 SELECT 'Anonymous users should be able to insert reviews' as expectation;
 
 -- This should succeed
-INSERT INTO public.reviews (id, tenant_id, reviewer_name, rating, feedback_text, is_anonymous) 
-VALUES ('test-anon-review', '11111111-1111-1111-1111-111111111111', 'Anonymous User', 4, 'Test review', true);
+INSERT INTO public.reviews (id, tenant_id, customer_name, reviewer_name, rating, review_text, feedback_text, is_anonymous) 
+VALUES ('test-anon-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Anonymous User', 'Anonymous User', 4, 'Test review', 'Test review', true);
 
 -- Verify the review was inserted
-SELECT id, tenant_id, reviewer_name, rating, is_anonymous FROM public.reviews WHERE id = 'test-anon-review';
+SELECT id, tenant_id, customer_name, reviewer_name, rating, is_anonymous FROM public.reviews WHERE id = 'test-anon-1111-1111-1111-111111111111';
 
 -- Clean up test review
-DELETE FROM public.reviews WHERE id = 'test-anon-review';
+DELETE FROM public.reviews WHERE id = 'test-anon-1111-1111-1111-111111111111';
 
 -- ============================================================================
 -- TEST 4: TENANT_USERS TABLE ISOLATION
@@ -179,7 +181,7 @@ SELECT 'User A should NOT be able to access Tenant B data' as expectation;
 SELECT id, name FROM public.tenants WHERE id = '22222222-2222-2222-2222-222222222222';
 
 -- This should return empty or fail
-SELECT id, tenant_id, reviewer_name FROM public.reviews WHERE tenant_id = '22222222-2222-2222-2222-222222222222';
+SELECT id, tenant_id, customer_name, reviewer_name FROM public.reviews WHERE tenant_id = '22222222-2222-2222-2222-222222222222';
 
 -- Reset context
 RESET ALL;
@@ -224,10 +226,10 @@ SELECT * FROM public.get_tenant_by_slug('non-existent-slug');
 SELECT 'CLEANUP: Removing test data' as cleanup;
 
 -- Remove test data
-DELETE FROM public.reviews WHERE id IN ('review-a-1', 'review-a-2', 'review-b-1', 'review-b-2');
+DELETE FROM public.reviews WHERE id IN ('aaaaaaaa-1111-1111-1111-111111111111', 'aaaaaaaa-2222-2222-2222-222222222222', 'bbbbbbbb-1111-1111-1111-111111111111', 'bbbbbbbb-2222-2222-2222-222222222222');
 DELETE FROM public.tenant_users WHERE tenant_id IN ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222');
-DELETE FROM public.profiles WHERE id IN ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'cccccccc-cccc-cccc-cccc-cccccccccccc');
-DELETE FROM auth.users WHERE id IN ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'cccccccc-cccc-cccc-cccc-cccccccccccc');
+DELETE FROM public.profiles WHERE id IN ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'cccccccc-cccc-cccc-cccc-cccccccccccc', '00000000-0000-0000-0000-000000000000');
+DELETE FROM auth.users WHERE id IN ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'cccccccc-cccc-cccc-cccc-cccccccccccc', '00000000-0000-0000-0000-000000000000');
 DELETE FROM public.tenants WHERE id IN ('11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222');
 
 SELECT 'All tests completed!' as final_status;
