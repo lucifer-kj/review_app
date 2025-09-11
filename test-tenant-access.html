@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Tenant Access</title>
+</head>
+<body>
+    <h1>Testing Tenant Access</h1>
+    <div id="result"></div>
+    
+    <script>
+        const tenantId = '9509987d-21e5-4205-87c1-021560ba6581';
+        
+        async function testTenantAccess() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // Test 1: Check if tenant exists
+                const response = await fetch(`https://demo.alphabusinessdesigns.co.in/api/test-tenant/${tenantId}`);
+                const data = await response.json();
+                
+                resultDiv.innerHTML = `
+                    <h2>Test Results:</h2>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h2>Error:</h2>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+        
+        testTenantAccess();
+    </script>
+</body>
+</html>

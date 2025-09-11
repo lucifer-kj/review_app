@@ -51,6 +51,8 @@ const TenantLogin = lazy(() => import("./pages/BackupLogin"));
 // Review flow pages
 const TenantReviewForm = lazy(() => import("./pages/TenantReviewForm"));
 const TenantReviewThankYou = lazy(() => import("./pages/TenantReviewThankYou"));
+const DebugTenantAccess = lazy(() => import("./pages/DebugTenantAccess"));
+const TestSupabaseConnection = lazy(() => import("./pages/TestSupabaseConnection"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const FeedbackThankYouPage = lazy(() => import("./pages/FeedbackThankYouPage"));
 const ReviewThankYouPage = lazy(() => import("./pages/ReviewThankYouPage"));
@@ -81,6 +83,8 @@ const RouterContent = () => {
           {/* Test routes for debugging */}
           <Route path="/test-accept-invitation" element={<TestAcceptInvitation />} />
           <Route path="/test-callback" element={<TestCallback />} />
+          <Route path="/debug-tenant/:tenantId" element={<DebugTenantAccess />} />
+          <Route path="/test-supabase" element={<TestSupabaseConnection />} />
           
           {/* Master Dashboard routes - super admin only */}
           <Route path="/master" element={
