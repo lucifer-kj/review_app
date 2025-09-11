@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
-import { useAuthActions } from "@/stores/authStore";
+import { useSignIn } from "@/stores/authStore";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -16,7 +16,7 @@ export default function TenantLogin() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuthActions();
+  const signIn = useSignIn();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,7 +25,7 @@ export default function TenantLogin() {
     setError("");
 
     try {
-      const result = await login(email, password);
+      const result = await signIn(email, password);
       
       if (result.success) {
         // Get user profile to check role

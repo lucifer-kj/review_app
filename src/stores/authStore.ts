@@ -510,20 +510,47 @@ export const useAuthError = () => useAuthStore((state) => state.error);
 export const useIsAuthenticated = () => useAuthStore((state) => state.isAuthenticated);
 export const useIsEmailVerified = () => useAuthStore((state) => state.isEmailVerified);
 
-// Action selectors
-export const useAuthActions = () => useAuthStore((state) => ({
-  signIn: state.signIn,
-  signOut: state.signOut,
-  signUp: state.signUp,
-  refreshSession: state.refreshSession,
-  refreshProfile: state.refreshProfile,
-  updateProfile: state.updateProfile,
-  acceptInvitation: state.acceptInvitation,
-  sendVerificationEmail: state.sendVerificationEmail,
-  verifyEmail: state.verifyEmail,
-  initialize: state.initialize,
-  reset: state.reset,
-}));
+// Individual action selectors to prevent infinite re-renders
+export const useSignIn = () => useAuthStore((state) => state.signIn);
+export const useSignOut = () => useAuthStore((state) => state.signOut);
+export const useSignUp = () => useAuthStore((state) => state.signUp);
+export const useRefreshSession = () => useAuthStore((state) => state.refreshSession);
+export const useRefreshProfile = () => useAuthStore((state) => state.refreshProfile);
+export const useUpdateProfile = () => useAuthStore((state) => state.updateProfile);
+export const useAcceptInvitation = () => useAuthStore((state) => state.acceptInvitation);
+export const useSendVerificationEmail = () => useAuthStore((state) => state.sendVerificationEmail);
+export const useVerifyEmail = () => useAuthStore((state) => state.verifyEmail);
+export const useInitialize = () => useAuthStore((state) => state.initialize);
+export const useReset = () => useAuthStore((state) => state.reset);
+
+// Memoized action selector to prevent infinite re-renders
+export const useAuthActions = () => {
+  const signIn = useSignIn();
+  const signOut = useSignOut();
+  const signUp = useSignUp();
+  const refreshSession = useRefreshSession();
+  const refreshProfile = useRefreshProfile();
+  const updateProfile = useUpdateProfile();
+  const acceptInvitation = useAcceptInvitation();
+  const sendVerificationEmail = useSendVerificationEmail();
+  const verifyEmail = useVerifyEmail();
+  const initialize = useInitialize();
+  const reset = useReset();
+
+  return React.useMemo(() => ({
+    signIn,
+    signOut,
+    signUp,
+    refreshSession,
+    refreshProfile,
+    updateProfile,
+    acceptInvitation,
+    sendVerificationEmail,
+    verifyEmail,
+    initialize,
+    reset,
+  }), [signIn, signOut, signUp, refreshSession, refreshProfile, updateProfile, acceptInvitation, sendVerificationEmail, verifyEmail, initialize, reset]);
+};
 
 // Computed selectors
 export const useIsAdmin = () => useAuthStore((state) => 

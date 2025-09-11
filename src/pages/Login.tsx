@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
-import { useAuthActions } from "@/stores/authStore";
+import { useSignIn } from "@/stores/authStore";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -33,7 +33,7 @@ const Login = () => {
   const { toast } = useToast();
   
   // Use Zustand stores instead of useAuth hook
-  const { login } = useAuthActions();
+  const signIn = useSignIn();
 
   const handleInputChange = (field: keyof LoginFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -45,7 +45,7 @@ const Login = () => {
 
     try {
       // Use the Zustand login method
-      const result = await login(formData.email, formData.password);
+      const result = await signIn(formData.email, formData.password);
       
       if (result.success) {
         // Get user profile to determine role and redirect
