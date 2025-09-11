@@ -35,11 +35,11 @@ export const useAuthRedirect = () => {
             .single();
 
           if (profile) {
-            // Only redirect if not already on the correct page
-            if (profile.role === 'super_admin' && !location.pathname.startsWith('/master')) {
+            // Only redirect if not already on the correct page and not on login page
+            if (profile.role === 'super_admin' && !location.pathname.startsWith('/master') && location.pathname !== '/') {
               console.log('Redirecting super admin to master dashboard');
               navigate("/master", { replace: true });
-            } else if (['tenant_admin', 'user'].includes(profile.role) && !location.pathname.startsWith('/dashboard')) {
+            } else if (['tenant_admin', 'user'].includes(profile.role) && !location.pathname.startsWith('/dashboard') && location.pathname !== '/') {
               console.log('Redirecting tenant user to dashboard');
               navigate("/dashboard", { replace: true });
             }
@@ -62,8 +62,8 @@ export const useAuthRedirect = () => {
       }
     };
 
-    // Only run the check if we're on the login page or root
-    if (location.pathname === '/' || location.pathname === '/login') {
+    // Only run the check if we're on the login page or root, but not during login process
+    if ((location.pathname === '/' || location.pathname === '/login') && !location.pathname.includes('authenticating')) {
       checkAuthAndRedirect();
     } else {
       setIsChecking(false);

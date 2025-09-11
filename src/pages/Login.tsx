@@ -6,10 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthActions } from "@/stores/authStore";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 
 interface LoginFormData {
   email: string;
@@ -33,9 +32,8 @@ const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Use the auth redirect hook to handle initial auth check
-  const { isChecking } = useAuthRedirect();
-  const { login } = useAuth();
+  // Use Zustand stores instead of useAuth hook
+  const { login } = useAuthActions();
 
   const handleInputChange = (field: keyof LoginFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -46,10 +44,10 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Use the useAuth login method
-      const success = await login(formData.email, formData.password);
+      // Use the Zustand login method
+      const result = await login(formData.email, formData.password);
       
-      if (success) {
+      if (result.success) {
         // Get user profile to determine role and redirect
         const { data: { user } } = await supabase.auth.getUser();
         
@@ -91,7 +89,7 @@ const Login = () => {
           }
         }
       } else {
-        throw new Error("Login failed. Please check your credentials.");
+        throw new Error(result.error || "Login failed. Please check your credentials.");
       }
         
     } catch (error: any) {
@@ -133,16 +131,7 @@ const Login = () => {
     }
   };
 
-  if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="flex items-center space-x-2">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Checking authentication...</span>
-        </div>
-      </div>
-    );
-  }
+  // Remove the auth loading check to prevent conflicts with login process
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
