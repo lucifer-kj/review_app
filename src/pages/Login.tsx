@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
-import { useSignIn } from "@/stores/authStore";
+import { useSignIn, useAuthProfile, useAuthLoading, useAuthStore } from "@/stores/authStore";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,7 +25,7 @@ const Login = () => {
     email: "",
     password: "",
   });
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   // Signup is disabled - invitation only system
   const [showPasswordReset, setShowPasswordReset] = useState(false);
@@ -34,6 +34,9 @@ const Login = () => {
   
   // Use Zustand stores instead of useAuth hook
   const signIn = useSignIn();
+  const profile = useAuthProfile();
+  const authLoading = useAuthLoading();
+  const get = useAuthStore.getState;
 
   const handleInputChange = (field: keyof LoginFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -41,36 +44,25 @@ const Login = () => {
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSubmitting(true);
 
     try {
       // Use the Zustand login method
       const result = await signIn(formData.email, formData.password);
       
       if (result.success) {
-        // Get user profile to determine role and redirect
-        const { data: { user } } = await supabase.auth.getUser();
+        toast({
+          title: "Login Successful",
+          description: "Welcome! Redirecting...",
+        });
         
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role, tenant_id')
-            .eq('id', user.id)
-            .single();
-
-          if (profile) {
-            // Redirect based on role
-            if (profile.role === 'super_admin') {
-              toast({
-                title: "Login Successful",
-                description: "Welcome, Super Admin! Redirecting to master dashboard...",
-              });
+        // Wait for profile to be available, then navigate
+        const waitForProfileAndNavigate = () => {
+          const currentProfile = get().profile;
+          if (currentProfile?.role) {
+            if (currentProfile.role === 'super_admin') {
               navigate('/master', { replace: true });
-            } else if (['tenant_admin', 'user'].includes(profile.role)) {
-              toast({
-                title: "Login Successful", 
-                description: "Welcome! Redirecting to dashboard...",
-              });
+            } else if (['tenant_admin', 'user'].includes(currentProfile.role)) {
               navigate('/dashboard', { replace: true });
             } else {
               toast({
@@ -78,16 +70,15 @@ const Login = () => {
                 description: "Invalid user role. Please contact your administrator.",
                 variant: "destructive",
               });
-              await supabase.auth.signOut();
             }
           } else {
-            toast({
-              title: "Profile Error",
-              description: "Could not load user profile. Please try again.",
-              variant: "destructive",
-            });
+            // Profile not ready yet, wait a bit more
+            setTimeout(waitForProfileAndNavigate, 100);
           }
-        }
+        };
+        
+        // Start waiting for profile
+        setTimeout(waitForProfileAndNavigate, 100);
       } else {
         throw new Error(result.error || "Login failed. Please check your credentials.");
       }
@@ -100,13 +91,13 @@ const Login = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsSubmitting(true);
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
@@ -127,7 +118,7 @@ const Login = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -219,9 +210,9 @@ const Login = () => {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={loading}
+                disabled={isSubmitting}
               >
-                {loading ? (
+                {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Signing in...
@@ -324,9 +315,9 @@ const Login = () => {
                   <Button
                     type="submit"
                     className="flex-1"
-                    disabled={loading}
+                    disabled={isSubmitting}
                   >
-                    {loading ? (
+                    {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Sending...

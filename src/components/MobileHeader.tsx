@@ -99,7 +99,7 @@ export const MobileHeader = ({ onLogout, tenantId, businessSettings }: MobileHea
                   <Suspense fallback={<LoadingSpinner />}>
                     <div className="space-y-3">
                       <CopyLinkButton tenantId={tenantId} businessSettings={businessSettings} />
-                      <ShareButton tenantId={tenantId} />
+                      <ShareButton tenantId={tenantId} businessSettings={businessSettings} />
                     </div>
                   </Suspense>
                 </div>

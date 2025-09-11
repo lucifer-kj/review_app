@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { SHARE_CONFIG } from "@/constants";
+import type { BusinessSettings } from "@/types";
 import {
   Share2,
   Copy,
@@ -23,6 +24,7 @@ import {
 interface ShareButtonProps {
   reviewUrl?: string;
   tenantId?: string;
+  businessSettings?: BusinessSettings | null;
   title?: string;
   description?: string;
 }
@@ -30,6 +32,7 @@ interface ShareButtonProps {
 export const ShareButton = ({ 
   reviewUrl,
   tenantId,
+  businessSettings,
   title = SHARE_CONFIG.TITLE,
   description = SHARE_CONFIG.DESCRIPTION
 }: ShareButtonProps) => {
@@ -38,7 +41,8 @@ export const ShareButton = ({
     ? `${window.location.origin}/review/${tenantId}`
     : `${window.location.origin}/review`;
   
-  const finalReviewUrl = reviewUrl || defaultReviewUrl;
+  // Use saved review URL from settings if available, otherwise use default
+  const finalReviewUrl = businessSettings?.review_form_url || reviewUrl || defaultReviewUrl;
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 

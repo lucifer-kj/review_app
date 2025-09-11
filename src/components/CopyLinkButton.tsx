@@ -20,7 +20,8 @@ export const CopyLinkButton = ({
     ? `${window.location.origin}/review/${tenantId}`
     : `${window.location.origin}/review`;
 
-  const finalReviewUrl = reviewUrl || defaultReviewUrl;
+  // Use saved review URL from settings if available, otherwise use default
+  const finalReviewUrl = businessSettings?.review_form_url || reviewUrl || defaultReviewUrl;
   const { toast } = useToast();
 
   const copyToClipboard = async () => {

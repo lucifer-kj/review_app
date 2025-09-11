@@ -27,7 +27,8 @@ import {
   ExternalLink,
   CheckCircle2,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  Copy
 } from "lucide-react";
 import type { BusinessSettings } from "@/services/businessSettingsService";
 
@@ -100,6 +101,18 @@ const DashboardSettingsFixed = () => {
   const validateColor = (color: string) => {
     const colorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
     return colorRegex.test(color);
+  };
+
+  // Generate review URL based on tenant ID and business settings
+  const generateReviewUrl = () => {
+    const baseUrl = window.location.origin;
+    const tenantId = tenant?.id || settings.tenant_id;
+    
+    if (tenantId) {
+      return `${baseUrl}/review/${tenantId}`;
+    }
+    
+    return `${baseUrl}/review`;
   };
 
   const validateSettings = () => {
@@ -253,7 +266,7 @@ const DashboardSettingsFixed = () => {
         business_email: settings.business_email || '',
         business_phone: settings.business_phone || '',
         business_address: settings.business_address || '',
-        review_form_url: settings.review_form_url || '',
+        review_form_url: generateReviewUrl(), // Use generated URL
         email_template: settings.email_template,
         form_customization: settings.form_customization
       });
@@ -288,27 +301,13 @@ const DashboardSettingsFixed = () => {
 
       const errorMessage = error instanceof Error ? error.message : 'Failed to save settings';
       
-      if (retryCount < MAX_RETRY_ATTEMPTS) {
-        setRetryCount(prev => prev + 1);
-        toast({
-          title: "Save Failed - Retrying",
-          description: `Attempt ${retryCount + 1} failed. Retrying... (${errorMessage})`,
-          variant: "destructive",
-        });
-        
-        // Retry after delay
-        setTimeout(() => {
-          setSaving(false);
-          handleSaveSettings();
-        }, 2000 * (retryCount + 1));
-      } else {
-        toast({
-          title: "Save Failed",
-          description: `Failed to save settings after ${MAX_RETRY_ATTEMPTS} attempts: ${errorMessage}`,
-          variant: "destructive",
-        });
-        setRetryCount(0);
-      }
+      // Don't retry automatically - just show error
+      toast({
+        title: "Save Failed",
+        description: `Failed to save settings: ${errorMessage}`,
+        variant: "destructive",
+      });
+      setRetryCount(0);
     } finally {
       setSaving(false);
     }
@@ -423,6 +422,58 @@ const DashboardSettingsFixed = () => {
               Settings saved successfully! Your changes have been applied.
             </AlertDescription>
           </Alert>
+        )}
+
+        {/* Review Link Section */}
+        {showPreview && settings.business_name && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Link className="mr-2 h-5 w-5" />
+                Your Review Link
+              </CardTitle>
+              <CardDescription>
+                Share this link with your customers to collect reviews
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Input
+                  value={generateReviewUrl()}
+                  readOnly
+                  className="font-mono text-sm"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const reviewUrl = generateReviewUrl();
+                      await navigator.clipboard.writeText(reviewUrl);
+                      toast({
+                        title: "Link Copied!",
+                        description: "Review link has been copied to clipboard",
+                      });
+                    } catch (error) {
+                      toast({
+                        title: "Copy Failed",
+                        description: "Failed to copy link. Please try again.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy Link
+                </Button>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <p>This link will take customers to your custom review form for <strong>{settings.business_name}</strong>.</p>
+                <p className="mt-1">Make sure to share this link with your customers to start collecting reviews!</p>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Error Display */}

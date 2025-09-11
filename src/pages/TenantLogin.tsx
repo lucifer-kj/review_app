@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
-import { useSignIn } from "@/stores/authStore";
+import { useSignIn, useAuthProfile, useAuthStore } from "@/stores/authStore";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,7 +17,9 @@ export default function TenantLogin() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const signIn = useSignIn();
+  const profile = useAuthProfile();
   const navigate = useNavigate();
+  const get = useAuthStore.getState;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,33 +30,28 @@ export default function TenantLogin() {
       const result = await signIn(email, password);
       
       if (result.success) {
-        // Get user profile to check role
-        const { data: { user } } = await supabase.auth.getUser();
+        toast.success("Welcome back!");
         
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role, tenant_id')
-            .eq('id', user.id)
-            .single();
-
-          if (profile) {
-            // Check if user has valid tenant role
-            if (['tenant_admin', 'user'].includes(profile.role)) {
-              toast.success("Welcome back!");
+        // Wait for profile to be available, then navigate
+        const waitForProfileAndNavigate = () => {
+          const currentProfile = get().profile;
+          if (currentProfile?.role) {
+            if (['tenant_admin', 'user'].includes(currentProfile.role)) {
               navigate("/dashboard");
-            } else if (profile.role === 'super_admin') {
-              toast.success("Welcome, Super Admin! Redirecting to master dashboard...");
+            } else if (currentProfile.role === 'super_admin') {
               navigate("/master");
             } else {
               toast.error("Access denied. Invalid user role.");
               setError("Access denied. Invalid user role.");
             }
           } else {
-            toast.error("Could not load user profile.");
-            setError("Could not load user profile.");
+            // Profile not ready yet, wait a bit more
+            setTimeout(waitForProfileAndNavigate, 100);
           }
-        }
+        };
+        
+        // Start waiting for profile
+        setTimeout(waitForProfileAndNavigate, 100);
       } else {
         setError("Login failed. Please check your credentials.");
       }

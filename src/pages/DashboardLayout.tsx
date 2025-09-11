@@ -74,7 +74,7 @@ const DashboardLayout = () => {
       <MobileHeader onLogout={handleLogout} tenantId={currentTenantId} businessSettings={businessSettings} />
       
       {/* Desktop Header */}
-      <header className="hidden lg:flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
+      <header className="hidden lg:flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 lg:px-8 xl:px-12">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => navigate("/dashboard")}
@@ -93,7 +93,7 @@ const DashboardLayout = () => {
             <CopyLinkButton tenantId={currentTenantId} businessSettings={businessSettings} />
           </Suspense>
           <Suspense fallback={<LoadingSpinner />}>
-            <ShareButton tenantId={currentTenantId} />
+            <ShareButton tenantId={currentTenantId} businessSettings={businessSettings} />
           </Suspense>
           
           <DropdownMenu>
