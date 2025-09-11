@@ -17,6 +17,8 @@
     "deploy:prod": "node scripts/deploy-production-fixes.cjs",
     "fix-schema": "node scripts/deploy-schema-fixes.js",
     "validate-schema": "node scripts/validate-database-schema.js",
+    "cleanup-migrations": "node scripts/cleanup-conflicting-migrations.js",
+    "validate-rls": "node scripts/validate-rls-policies.js",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
