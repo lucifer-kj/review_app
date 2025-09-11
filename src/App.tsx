@@ -53,6 +53,7 @@ const TenantReviewForm = lazy(() => import("./pages/TenantReviewForm"));
 const TenantReviewThankYou = lazy(() => import("./pages/TenantReviewThankYou"));
 const DebugTenantAccess = lazy(() => import("./pages/DebugTenantAccess"));
 const TestSupabaseConnection = lazy(() => import("./pages/TestSupabaseConnection"));
+const PublicReviewForm = lazy(() => import("./pages/PublicReviewForm"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const FeedbackThankYouPage = lazy(() => import("./pages/FeedbackThankYouPage"));
 const ReviewThankYouPage = lazy(() => import("./pages/ReviewThankYouPage"));
@@ -129,7 +130,8 @@ const RouterContent = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           
           {/* Public customer review form */}
-          <Route path="/review/:tenantId" element={<TenantReviewForm />} />
+          <Route path="/review/:linkCode" element={<PublicReviewForm />} />
+          <Route path="/review/tenant/:tenantId" element={<TenantReviewForm />} />
           <Route path="/review/feedback" element={<FeedbackPage />} />
           <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
           <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
