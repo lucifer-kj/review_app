@@ -169,7 +169,7 @@ export default function QualityCareReviewForm() {
           phone: formData.phone.trim(),
           country_code: formData.countryCode,
           rating: formData.rating,
-          review_text: formData.reviewText.trim(),
+          review_text: '',
           google_review: formData.rating >= 4,
           redirect_opened: false,
           tenant_id: loadingState.data?.tenantId || QUALITY_CARE_TENANT_ID,
