@@ -319,6 +319,16 @@ export const useAuthStore = create<AuthStore>()(
 
             if (error) {
               console.error('🔐 AuthStore: Profile fetch error:', error);
+              // If profile doesn't exist, this might be a new user or corrupted data
+              if (error.code === 'PGRST116') {
+                console.warn('🔐 AuthStore: Profile not found, user may need to be recreated');
+                // Clear the user session since profile is missing
+                get().setUser(null);
+                get().setSession(null);
+                get().setProfile(null);
+                get().setTenant(null);
+                return;
+              }
               return;
             }
 
@@ -339,6 +349,15 @@ export const useAuthStore = create<AuthStore>()(
                 get().setTenant(tenant);
               } else {
                 console.warn('🔐 AuthStore: Tenant not found for user:', profile.tenant_id, tenantError);
+                // If tenant doesn't exist, clear the tenant_id from profile
+                if (tenantError?.code === 'PGRST116') {
+                  console.log('🔐 AuthStore: Clearing invalid tenant_id from profile');
+                  await supabase
+                    .from('profiles')
+                    .update({ tenant_id: null })
+                    .eq('id', user.id);
+                  get().setProfile({ ...profile, tenant_id: null });
+                }
                 get().setTenant(null);
               }
             } else {
