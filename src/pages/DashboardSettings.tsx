@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { BusinessSettingsService } from "@/services/businessSettingsService";
+import { TenantReviewFormService } from "@/services/tenantReviewFormService";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { MobileSettings } from "@/components/MobileSettings";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
@@ -37,6 +38,7 @@ import {
   Check
 } from "lucide-react";
 import ChangePasswordDialog from "@/components/ChangePasswordDialog";
+import { ReviewFormPreview } from "@/components/ReviewFormPreview";
 import type { BusinessSettings } from "@/types";
 
 const DashboardSettings = () => {
@@ -72,7 +74,18 @@ const DashboardSettings = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isShareable, setIsShareable] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const checkShareable = () => {
+      const hasBusinessName = !!settings.business_name;
+      const hasGoogleUrl = !!settings.google_business_url;
+      const isGoogleUrlValid = validateUrl(settings.google_business_url || '');
+      setIsShareable(hasBusinessName && hasGoogleUrl && isGoogleUrlValid);
+    };
+    checkShareable();
+  }, [settings]);
 
   // Calculate setup completion
   const setupProgress = {
@@ -241,6 +254,7 @@ const DashboardSettings = () => {
           description: "Your business settings have been updated successfully.",
         });
         setValidationErrors({});
+        setShowPreview(true);
       } else {
         toast({
           title: "Save Failed",
@@ -836,32 +850,36 @@ const DashboardSettings = () => {
 
             {/* Review Form URL */}
             <div className="space-y-2">
-              <Label htmlFor="review-form-url" className="text-sm">Review Form URL</Label>
+              <Label htmlFor="review-form-url" className="text-sm">Your Unique Review Form URL</Label>
               <div className="flex gap-2">
                 <Input
                   id="review-form-url"
-                  value={settings.review_form_url || ''}
-                  onChange={(e) => setSettings(prev => ({ ...prev, review_form_url: e.target.value }))}
-                  placeholder="https://yourdomain.com/review"
-                  className={`text-sm sm:text-base ${validationErrors.review_form_url ? 'border-red-500' : ''}`}
+                  readOnly
+                  value={tenant ? TenantReviewFormService.getTenantReviewFormUrl(tenant.id) : ''}
+                  className="text-sm sm:text-base bg-muted"
                 />
-                {settings.review_form_url && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => window.open(settings.review_form_url, '_blank')}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => tenant && copyToClipboard(TenantReviewFormService.getTenantReviewFormUrl(tenant.id), 'Review Form URL')}
+                  disabled={!isShareable}
+                >
+                  {copiedField === 'Review Form URL' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
               </div>
-              {validationErrors.review_form_url && (
-                <p className="text-sm text-red-500">{validationErrors.review_form_url}</p>
+              {!isShareable && (
+                <p className="text-xs text-yellow-600">
+                  Please provide a business name and a valid Google Business URL to enable the copy link button.
+                </p>
               )}
               <p className="text-xs text-muted-foreground">
-                This URL will be used in your email templates to direct customers to your review form.
+                Share this link with your customers to collect reviews.
               </p>
             </div>
+
+            {showPreview && tenant && (
+              <ReviewFormPreview settings={settings} tenantName={tenant.name} />
+            )}
           </CardContent>
             </Card>
           </TabsContent>
