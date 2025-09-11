@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Building2, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react";
-import { useSignIn, useAuthProfile, useAuthStore } from "@/stores/authStore";
+import { useSignIn, useAuthProfile, useRefreshProfile, useAuthStore } from "@/stores/authStore";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,6 +18,7 @@ export default function TenantLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const signIn = useSignIn();
   const profile = useAuthProfile();
+  const refreshProfile = useRefreshProfile();
   const navigate = useNavigate();
   const get = useAuthStore.getState;
 
@@ -33,9 +34,12 @@ export default function TenantLogin() {
         toast.success("Welcome back!");
         
         // Wait for profile to be available, then navigate
-        const waitForProfileAndNavigate = () => {
+        const waitForProfileAndNavigate = async (retryCount = 0) => {
+          const maxRetries = 50; // 5 seconds max wait time
           const currentProfile = get().profile;
+          
           if (currentProfile?.role) {
+            console.log('Profile loaded successfully:', currentProfile);
             if (['tenant_admin', 'user'].includes(currentProfile.role)) {
               navigate("/dashboard");
             } else if (currentProfile.role === 'super_admin') {
@@ -44,14 +48,32 @@ export default function TenantLogin() {
               toast.error("Access denied. Invalid user role.");
               setError("Access denied. Invalid user role.");
             }
-          } else {
+          } else if (retryCount < maxRetries) {
             // Profile not ready yet, wait a bit more
-            setTimeout(waitForProfileAndNavigate, 100);
+            console.log(`Waiting for profile... attempt ${retryCount + 1}/${maxRetries}`);
+            setTimeout(() => waitForProfileAndNavigate(retryCount + 1), 100);
+          } else {
+            // Max retries reached, try to refresh profile manually
+            console.log('Max retries reached, refreshing profile manually');
+            await refreshProfile();
+            
+            // Check one more time
+            const finalProfile = get().profile;
+            if (finalProfile?.role) {
+              if (['tenant_admin', 'user'].includes(finalProfile.role)) {
+                navigate("/dashboard");
+              } else if (finalProfile.role === 'super_admin') {
+                navigate("/master");
+              }
+            } else {
+              toast.error("Profile loading failed. Please try logging in again.");
+              setError("Profile loading failed. Please try logging in again.");
+            }
           }
         };
         
         // Start waiting for profile
-        setTimeout(waitForProfileAndNavigate, 100);
+        setTimeout(() => waitForProfileAndNavigate(0), 100);
       } else {
         setError("Login failed. Please check your credentials.");
       }
