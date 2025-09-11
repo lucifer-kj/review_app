@@ -55,6 +55,7 @@ const QualityCareReviewForm = lazy(() => import("./pages/QualityCareReviewForm")
 const DebugTenantAccess = lazy(() => import("./pages/DebugTenantAccess"));
 const TestSupabaseConnection = lazy(() => import("./pages/TestSupabaseConnection"));
 const TestPublicReview = lazy(() => import("./pages/TestPublicReview"));
+const DebugTenantLookup = lazy(() => import("./pages/DebugTenantLookup"));
 const PublicReviewForm = lazy(() => import("./pages/PublicReviewForm"));
 const TestReviewForm = lazy(() => import("./pages/TestReviewForm"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
@@ -90,6 +91,7 @@ const RouterContent = () => {
           <Route path="/debug-tenant/:tenantId" element={<DebugTenantAccess />} />
           <Route path="/test-supabase" element={<TestSupabaseConnection />} />
           <Route path="/test-public-review" element={<TestPublicReview />} />
+          <Route path="/debug-tenant-lookup" element={<DebugTenantLookup />} />
           
           {/* Master Dashboard routes - super admin only */}
           <Route path="/master" element={
