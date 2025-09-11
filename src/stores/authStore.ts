@@ -162,6 +162,7 @@ export const useAuthStore = create<AuthStore>()(
         // Authentication actions
         signIn: async (email: string, password: string) => {
           try {
+            console.log('🔐 AuthStore: Starting sign in process');
             set({ loading: true, error: null });
             
             const { data, error } = await supabase.auth.signInWithPassword({
@@ -170,20 +171,28 @@ export const useAuthStore = create<AuthStore>()(
             });
 
             if (error) {
+              console.error('🔐 AuthStore: Sign in error:', error);
               set({ error: error.message, loading: false });
               return { success: false, error: error.message };
             }
 
             if (data.user && data.session) {
+              console.log('🔐 AuthStore: Sign in successful, setting user and session');
               get().setUser(data.user);
               get().setSession(data.session);
+              
+              console.log('🔐 AuthStore: Refreshing profile...');
               await get().refreshProfile();
+              
+              const finalProfile = get().profile;
+              console.log('🔐 AuthStore: Final profile after refresh:', finalProfile);
             }
 
             set({ loading: false });
             return { success: true };
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
+            console.error('🔐 AuthStore: Sign in exception:', errorMessage);
             set({ error: errorMessage, loading: false });
             return { success: false, error: errorMessage };
           }
@@ -296,8 +305,12 @@ export const useAuthStore = create<AuthStore>()(
         refreshProfile: async () => {
           try {
             const { user } = get();
-            if (!user) return;
+            if (!user) {
+              console.log('🔐 AuthStore: No user for profile refresh');
+              return;
+            }
 
+            console.log('🔐 AuthStore: Fetching profile for user:', user.id);
             const { data: profile, error } = await supabase
               .from('profiles')
               .select('*')
@@ -305,14 +318,16 @@ export const useAuthStore = create<AuthStore>()(
               .single();
 
             if (error) {
-              console.error('Profile fetch error:', error);
+              console.error('🔐 AuthStore: Profile fetch error:', error);
               return;
             }
 
+            console.log('🔐 AuthStore: Profile fetched successfully:', profile);
             get().setProfile(profile);
 
             // Fetch tenant info if user has tenant_id
             if (profile.tenant_id) {
+              console.log('🔐 AuthStore: Fetching tenant info:', profile.tenant_id);
               const { data: tenant, error: tenantError } = await supabase
                 .from('tenants')
                 .select('*')
@@ -320,17 +335,18 @@ export const useAuthStore = create<AuthStore>()(
                 .single();
 
               if (!tenantError && tenant) {
+                console.log('🔐 AuthStore: Tenant fetched successfully:', tenant);
                 get().setTenant(tenant);
               } else {
-                console.warn('Tenant not found for user:', profile.tenant_id);
+                console.warn('🔐 AuthStore: Tenant not found for user:', profile.tenant_id, tenantError);
                 get().setTenant(null);
               }
             } else {
-              // User doesn't have a tenant assigned
+              console.log('🔐 AuthStore: User has no tenant assigned');
               get().setTenant(null);
             }
           } catch (error) {
-            console.error('Profile refresh failed:', error);
+            console.error('🔐 AuthStore: Profile refresh failed:', error);
           }
         },
 
