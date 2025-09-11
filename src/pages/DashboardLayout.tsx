@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthUser, useAuthProfile, useAuthActions } from "@/stores/authStore";
+import { useCurrentTenantId } from "@/stores/tenantStore";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,12 +25,18 @@ const CopyLinkButton = lazy(() => import("@/components/CopyLinkButton").then(mod
 const DashboardLayout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, profile, signOut } = useAuth();
+  
+  // Use Zustand stores instead of useAuth hook
+  const user = useAuthUser();
+  const profile = useAuthProfile();
+  const { signOut } = useAuthActions();
+  const currentTenantId = useCurrentTenantId();
+  
   const [businessSettings, setBusinessSettings] = useState<BusinessSettings | null>(null);
 
   useEffect(() => {
     const fetchSettings = async () => {
-      if (profile?.tenant_id) {
+      if (currentTenantId) {
         const response = await BusinessSettingsService.getBusinessSettings();
         if (response.success && response.data) {
           setBusinessSettings(response.data);
@@ -37,7 +44,7 @@ const DashboardLayout = () => {
       }
     };
     fetchSettings();
-  }, [profile?.tenant_id]);
+  }, [currentTenantId]);
 
   const handleLogout = async () => {
     try {
@@ -64,7 +71,7 @@ const DashboardLayout = () => {
   return (
     <div className="min-h-screen flex flex-col w-full">
       {/* Mobile Header */}
-      <MobileHeader onLogout={handleLogout} tenantId={profile?.tenant_id} businessSettings={businessSettings} />
+      <MobileHeader onLogout={handleLogout} tenantId={currentTenantId} businessSettings={businessSettings} />
       
       {/* Desktop Header */}
       <header className="hidden lg:flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
@@ -83,10 +90,10 @@ const DashboardLayout = () => {
         </div>
         <div className="flex items-center gap-3">
           <Suspense fallback={<LoadingSpinner />}>
-            <CopyLinkButton tenantId={profile?.tenant_id} businessSettings={businessSettings} />
+            <CopyLinkButton tenantId={currentTenantId} businessSettings={businessSettings} />
           </Suspense>
           <Suspense fallback={<LoadingSpinner />}>
-            <ShareButton tenantId={profile?.tenant_id} />
+            <ShareButton tenantId={currentTenantId} />
           </Suspense>
           
           <DropdownMenu>

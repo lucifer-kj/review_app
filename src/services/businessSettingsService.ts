@@ -590,4 +590,97 @@ export class BusinessSettingsService extends BaseService {
       return this.handleError(error, 'BusinessSettingsService.deleteBusinessSettings');
     }
   }
+
+  /**
+   * Create default business settings for current user with tenant context
+   */
+  static async createDefaultSettings(): Promise<ServiceResponse<BusinessSettings>> {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return {
+          data: null,
+          error: 'User not authenticated',
+          success: false,
+        };
+      }
+
+      // Get tenant context
+      const { data: tenantId } = await supabase.rpc('get_current_tenant_id');
+      
+      // Check if user_id and tenant_id columns exist
+      const hasUserIdColumn = await this.checkUserIdColumnExists();
+      const hasTenantIdColumn = await this.checkTenantIdColumnExists();
+
+      // Create default settings data
+      const defaultSettings = {
+        google_business_url: '',
+        business_name: '',
+        business_email: '',
+        business_phone: '',
+        business_address: '',
+        review_form_url: '',
+        email_template: {
+          subject: 'We\'d love your feedback!',
+          body: 'Hi {{customer_name}},\n\nThank you for choosing us! We\'d love to hear about your experience.\n\nPlease take a moment to share your feedback: {{review_url}}\n\nBest regards,\n{{business_name}}',
+          footer: 'This email was sent by {{business_name}}. If you have any questions, please contact us.'
+        },
+        form_customization: {
+          primary_color: '#3b82f6',
+          secondary_color: '#1e40af',
+          welcome_message: 'Share your experience with us',
+          thank_you_message: 'Thank you for your feedback!',
+          required_fields: ['customer_name', 'rating'],
+          optional_fields: ['customer_phone', 'review_text']
+        }
+      };
+
+      // Add tenant_id and user_id if columns exist
+      const settingsData: any = { ...defaultSettings };
+      if (hasTenantIdColumn && tenantId) {
+        settingsData.tenant_id = tenantId;
+      }
+      if (hasUserIdColumn) {
+        settingsData.user_id = user.id;
+      }
+
+      const { data, error } = await supabase
+        .from('business_settings')
+        .insert(settingsData)
+        .select()
+        .single();
+
+      if (error) {
+        // If error is due to columns not existing, try without them
+        if (error.message.includes('column') && error.message.includes('does not exist')) {
+          logger.warn('Required columns not found, falling back to basic insert');
+          const fallbackResult = await supabase
+            .from('business_settings')
+            .insert(defaultSettings)
+            .select()
+            .single();
+          
+          if (fallbackResult.error) {
+            return this.handleError(fallbackResult.error, 'BusinessSettingsService.createDefaultSettings');
+          }
+          
+          return {
+            data: fallbackResult.data as BusinessSettings,
+            error: null,
+            success: true,
+          };
+        }
+        return this.handleError(error, 'BusinessSettingsService.createDefaultSettings');
+      }
+
+      return {
+        data: data as BusinessSettings,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'BusinessSettingsService.createDefaultSettings');
+    }
+  }
 }

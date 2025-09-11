@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import React, { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -6,9 +6,10 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
+import SettingsErrorBoundary from "./components/SettingsErrorBoundary";
 import { useRouteProgress } from "@/hooks/useRouteProgress";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { TenantProvider } from "@/hooks/useTenantContext";
+import { useAuthStore, useTenantStore } from "@/stores";
 import { Analytics } from "@vercel/analytics/react";
 
 // Lazy load pages for better performance
@@ -16,7 +17,7 @@ const Login = lazy(() => import("./pages/Login"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const DashboardReviews = lazy(() => import("./pages/DashboardReviews"));
-const DashboardSettings = lazy(() => import("./pages/DashboardSettings"));
+const DashboardSettings = lazy(() => import("./pages/DashboardSettingsFixed"));
 const DashboardLayout = lazy(() => import("./pages/DashboardLayout"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -58,6 +59,26 @@ const queryClient = new QueryClient();
 const RouterContent = () => {
   const { ProgressBar } = useRouteProgress();
   const reduced = useReducedMotion();
+  
+  // Initialize Zustand stores
+  const { initialize: initAuth } = useAuthStore();
+  const { initialize: initTenant } = useTenantStore();
+  
+  // Initialize stores on app start
+  React.useEffect(() => {
+    const initializeStores = async () => {
+      try {
+        await Promise.all([
+          initAuth(),
+          initTenant(),
+        ]);
+      } catch (error) {
+        console.error('Failed to initialize stores:', error);
+      }
+    };
+    
+    initializeStores();
+  }, [initAuth, initTenant]);
 
   return (
     <>
@@ -102,7 +123,11 @@ const RouterContent = () => {
           }>
             <Route index element={<Dashboard />} />
             <Route path="reviews" element={<DashboardReviews />} />
-            <Route path="settings" element={<DashboardSettings />} />
+            <Route path="settings" element={
+              <SettingsErrorBoundary>
+                <DashboardSettings />
+              </SettingsErrorBoundary>
+            } />
           </Route>
           
           {/* Authentication routes */}
@@ -129,20 +154,18 @@ const RouterContent = () => {
 const App = () => (
   <AppErrorBoundary>
     <QueryClientProvider client={queryClient}>
-        <TenantProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter 
-            basename="/"
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true
-            }}
-          >
-            <RouterContent />
-          </BrowserRouter>
-          <Analytics />
-        </TenantProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter 
+        basename="/"
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true
+        }}
+      >
+        <RouterContent />
+      </BrowserRouter>
+      <Analytics />
     </QueryClientProvider>
   </AppErrorBoundary>
 );

@@ -17,7 +17,7 @@ import { SendReviewEmailDialog } from "@/components/SendReviewEmailDialog";
 import ReviewLimitBanner from "@/components/ReviewLimitBanner";
 import GoogleReviewLink from "@/components/GoogleReviewLink";
 import PlanUpgradePrompt from "@/components/PlanUpgradePrompt";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthUser, useAuthProfile, useCurrentTenant, useCurrentTenantId } from "@/stores";
 import { useRealtimeUpdates } from "@/hooks/useRealtimeUpdates";
 import { BusinessSettingsService } from "@/services/businessSettingsService";
 
@@ -37,7 +37,11 @@ const Dashboard = () => {
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, profile, tenant, refreshUserData } = useAuth();
+  // Use Zustand stores instead of useAuth hook
+  const user = useAuthUser();
+  const profile = useAuthProfile();
+  const tenant = useCurrentTenant();
+  const currentTenantId = useCurrentTenantId();
 
   // Enable real-time updates for dashboard data
   useRealtimeUpdates({
@@ -75,7 +79,7 @@ const Dashboard = () => {
         }
 
         // Fetch business settings if user has a tenant
-        if (profile?.tenant_id) {
+        if (currentTenantId) {
           const settingsResponse = await BusinessSettingsService.getBusinessSettings();
           if (settingsResponse.success && settingsResponse.data) {
             setBusinessSettings({
@@ -99,11 +103,11 @@ const Dashboard = () => {
     };
 
     fetchData();
-  }, [toast, profile?.tenant_id]);
+  }, [toast, currentTenantId]);
 
   // Refresh data when user profile changes (e.g., when moved to tenant)
   useEffect(() => {
-    if (profile?.tenant_id) {
+    if (currentTenantId) {
       const fetchBusinessSettings = async () => {
         try {
           const settingsResponse = await BusinessSettingsService.getBusinessSettings();
@@ -122,7 +126,7 @@ const Dashboard = () => {
 
       fetchBusinessSettings();
     }
-  }, [profile?.tenant_id]);
+  }, [currentTenantId]);
 
   const handleSendReview = () => {
     setShowReviewDialog(true);
@@ -368,23 +372,23 @@ const Dashboard = () => {
         </div>
 
         {/* Review Limits and Google Review Link */}
-        {user?.tenant_id && (
+        {currentTenantId && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ReviewLimitBanner 
-              tenantId={user.tenant_id}
+              tenantId={currentTenantId}
               onUpgrade={() => navigate('/dashboard/settings')}
             />
             <GoogleReviewLink 
-              tenantId={user.tenant_id}
+              tenantId={currentTenantId}
               businessName="Your Business"
             />
           </div>
         )}
 
         {/* Plan Upgrade Prompt */}
-        {user?.tenant_id && (
+        {currentTenantId && (
           <PlanUpgradePrompt 
-            tenantId={user.tenant_id}
+            tenantId={currentTenantId}
             onUpgrade={() => navigate('/dashboard/settings')}
           />
         )}
@@ -406,7 +410,7 @@ const Dashboard = () => {
       <SendReviewEmailDialog
         open={showReviewDialog}
         onOpenChange={setShowReviewDialog}
-        tenantId={user?.tenant_id}
+        tenantId={currentTenantId}
         onSuccess={() => {
           setShowReviewDialog(false);
           toast({

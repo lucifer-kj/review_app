@@ -14,7 +14,8 @@ import { TenantReviewFormService } from "@/services/tenantReviewFormService";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { MobileSettings } from "@/components/MobileSettings";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthProfile, useIsAuthenticated } from "@/stores/authStore";
+import { useCurrentTenantId, useIsTenantActive } from "@/stores/tenantStore";
 import { 
   Settings, 
   Link, 
@@ -42,7 +43,11 @@ import { ReviewFormPreview } from "@/components/ReviewFormPreview";
 import type { BusinessSettings } from "@/types";
 
 const DashboardSettings = () => {
-  const { profile, tenant, refreshUserData } = useAuth();
+  // Use Zustand stores instead of useAuth hook
+  const profile = useAuthProfile();
+  const isAuthenticated = useIsAuthenticated();
+  const currentTenantId = useCurrentTenantId();
+  const isTenantActive = useIsTenantActive();
   const [settings, setSettings] = useState<BusinessSettings>({
     id: '',
     user_id: '',
