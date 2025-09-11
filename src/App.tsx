@@ -135,6 +135,8 @@ const RouterContent = () => {
           {/* Public customer review form */}
           <Route path="/review/link/:linkCode" element={<PublicReviewForm />} />
           <Route path="/review/Quality-and-care-building-inspection" element={<QualityCareReviewForm />} />
+          <Route path="/review/demo" element={<SimpleReviewForm />} />
+          <Route path="/review/public" element={<SimpleReviewForm />} />
           <Route path="/review/feedback" element={<FeedbackPage />} />
           <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
           <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
