@@ -134,12 +134,12 @@ const RouterContent = () => {
           
           {/* Public customer review form */}
           <Route path="/review/link/:linkCode" element={<PublicReviewForm />} />
-          <Route path="/review/:tenantId" element={<SimpleReviewForm />} />
           <Route path="/review/Quality-and-care-building-inspection" element={<QualityCareReviewForm />} />
           <Route path="/review/feedback" element={<FeedbackPage />} />
           <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
           <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
           <Route path="/review/tenant-thank-you" element={<TenantReviewThankYou />} />
+          <Route path="/review/:tenantId" element={<SimpleReviewForm />} />
           
           {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
