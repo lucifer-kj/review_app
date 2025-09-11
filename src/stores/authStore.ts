@@ -319,7 +319,13 @@ export const useAuthStore = create<AuthStore>()(
 
               if (!tenantError && tenant) {
                 get().setTenant(tenant);
+              } else {
+                console.warn('Tenant not found for user:', profile.tenant_id);
+                get().setTenant(null);
               }
+            } else {
+              // User doesn't have a tenant assigned
+              get().setTenant(null);
             }
           } catch (error) {
             console.error('Profile refresh failed:', error);

@@ -57,6 +57,57 @@ export interface UpdateTenantData {
 
 export class TenantService extends BaseService {
   /**
+   * Get current tenant for authenticated user
+   */
+  static async getCurrentTenant(): Promise<ServiceResponse<Tenant>> {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        return {
+          data: null,
+          error: 'User not authenticated',
+          success: false,
+        };
+      }
+
+      // Get user profile to find tenant_id
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || !profile?.tenant_id) {
+        return {
+          data: null,
+          error: 'User not assigned to any tenant',
+          success: false,
+        };
+      }
+
+      // Get tenant details
+      const { data: tenant, error: tenantError } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('id', profile.tenant_id)
+        .single();
+
+      if (tenantError) {
+        return this.handleError(tenantError, 'TenantService.getCurrentTenant');
+      }
+
+      return {
+        data: tenant,
+        error: null,
+        success: true,
+      };
+    } catch (error) {
+      return this.handleError(error, 'TenantService.getCurrentTenant');
+    }
+  }
+
+  /**
    * Get all tenants (super admin only)
    */
   static async getAllTenants(): Promise<ServiceResponse<Tenant[]>> {

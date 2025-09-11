@@ -209,6 +209,16 @@ export const useTenantStore = create<TenantStore>()(
                   get().setAvailableTenants([currentTenant]);
                 }
               }
+            } else if (response.error === 'User not assigned to any tenant') {
+              // Handle case where user doesn't have a tenant assigned
+              set({ 
+                currentTenant: null,
+                tenants: [],
+                availableTenants: [],
+                error: null,
+                loading: false 
+              });
+              return;
             } else {
               set({ error: response.error || 'Failed to fetch tenant', loading: false });
             }
