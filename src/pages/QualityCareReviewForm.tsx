@@ -4,9 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star, User, Phone, Mail, Building2 } from 'lucide-react';
+import { Star, User, Phone, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useLoadingState } from '@/hooks/useLoadingState';
@@ -45,7 +44,6 @@ export default function QualityCareReviewForm() {
     phone: '',
     countryCode: '+1',
     rating: 0,
-    reviewText: '',
   });
 
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -410,21 +408,6 @@ export default function QualityCareReviewForm() {
                 </div>
               </div>
 
-              {/* Review Text */}
-              <div className="space-y-2">
-                <Label htmlFor="reviewText" className="text-sm font-medium">
-                  <Mail className="inline h-4 w-4 mr-2" />
-                  Tell us about your experience (Optional)
-                </Label>
-                <Textarea
-                  id="reviewText"
-                  value={formData.reviewText}
-                  onChange={(e) => handleInputChange('reviewText', e.target.value)}
-                  placeholder="Share details about your experience..."
-                  rows={4}
-                  className="text-base"
-                />
-              </div>
 
               {/* Submit Button */}
               <Button
