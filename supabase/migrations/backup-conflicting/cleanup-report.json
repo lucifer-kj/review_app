@@ -1,0 +1,27 @@
+{
+  "timestamp": "2025-09-11T07:26:23.029Z",
+  "removedFiles": [
+    "20250111000000_fix_rls_conflicts.sql",
+    "20250111000001_simple_rls_fix.sql",
+    "20250111000002_fix_missing_functions.sql",
+    "20250111000003_complete_rls_fix.sql",
+    "20250115000000_update_profiles_table.sql",
+    "20250115000001_fix_rls_policies_comprehensive.sql",
+    "20250115000001_fix_ambiguous_column_reference.sql",
+    "20250115000002_create_missing_functions.sql",
+    "20250115000003_fix_role_consistency.sql",
+    "20250115000004_fix_tenant_assignment.sql"
+  ],
+  "remainingFiles": [
+    "20250110000000_consolidated_database_schema.sql",
+    "20250110000001_disable_public_signup.sql",
+    "20250110000002_fix_invitation_rls_policies.sql",
+    "20250110000003_fix_user_creation_trigger.sql",
+    "20250110000004_simplified_magic_link_trigger.sql",
+    "20250111000001_add_plan_type_to_tenants.sql",
+    "20250115000000_fix_public_review_access.sql",
+    "20250116000000_fix_critical_schema_issues.sql",
+    "20250116000001_resolve_rls_policy_conflicts.sql"
+  ],
+  "backupLocation": "supabase/migrations/backup-conflicting"
+}
