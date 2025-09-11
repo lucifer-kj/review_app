@@ -205,7 +205,7 @@ export class TenantReviewFormService extends BaseService {
    */
   static getTenantReviewFormUrl(tenantId: string, baseUrl?: string): string {
     const base = baseUrl || window.location.origin;
-    return `${base}/reviewForm/${tenantId}`;
+    return `${base}/review/${tenantId}`;
   }
 
   /**

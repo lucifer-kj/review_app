@@ -112,7 +112,7 @@ const RouterContent = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           
           {/* Public customer review form */}
-          <Route path="/reviewForm/:tenantId" element={<TenantReviewForm />} />
+          <Route path="/review/:tenantId" element={<TenantReviewForm />} />
           <Route path="/review/feedback" element={<FeedbackPage />} />
           <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
           <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
