@@ -115,8 +115,6 @@ class ErrorHandler {
 
     // Context-specific messages
     switch (context) {
-      case 'ReviewFormPage':
-        return 'Failed to submit review. Please try again.';
       case 'Dashboard':
         return 'Failed to load dashboard data. Please refresh the page.';
       case 'MasterDashboard':

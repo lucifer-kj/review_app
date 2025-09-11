@@ -47,7 +47,6 @@ const TestCallback = lazy(() => import("./pages/TestCallback"));
 const TenantLogin = lazy(() => import("./pages/BackupLogin"));
 
 // Review flow pages
-const ReviewFormPage = lazy(() => import("./pages/ReviewFormPage"));
 const TenantReviewForm = lazy(() => import("./pages/TenantReviewForm"));
 const TenantReviewThankYou = lazy(() => import("./pages/TenantReviewThankYou"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
@@ -113,8 +112,7 @@ const RouterContent = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           
           {/* Public customer review form */}
-          <Route path="/review" element={<ReviewFormPage />} />
-          <Route path="/review/:tenantId" element={<TenantReviewForm />} />
+          <Route path="/reviewForm/:tenantId" element={<TenantReviewForm />} />
           <Route path="/review/feedback" element={<FeedbackPage />} />
           <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
           <Route path="/review/thank-you" element={<ReviewThankYouPage />} />

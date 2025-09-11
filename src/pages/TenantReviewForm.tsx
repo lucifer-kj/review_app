@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Star, User, Phone, Mail, Building2 } from 'lucide-react';
-import { useReviewFlow } from '@/hooks/useReviewFlow';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useLoadingState } from '@/hooks/useLoadingState';
@@ -17,9 +16,24 @@ import { BusinessSettingsService } from '@/services/businessSettingsService';
 export default function TenantReviewForm() {
   const { tenantId } = useParams<{ tenantId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { isSubmitting, handleReviewSubmit } = useReviewFlow();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const sanitizeInput = (input: string | null): string | null => {
+    if (!input) return null;
+    return input
+      .replace(/[<>]/g, "")
+      .replace(/javascript:/gi, "")
+      .replace(/on\w+=/gi, "")
+      .trim();
+  };
+
+  const sanitizedUtmParams = {
+    trackingId: sanitizeInput(searchParams.get('tracking_id')),
+    utmSource: sanitizeInput(searchParams.get('utm_source')),
+    customerName: sanitizeInput(searchParams.get('customer')),
+  };
 
   const { loadingState, execute: executeWithLoading } = useLoadingState<{
     name: string;
@@ -27,7 +41,7 @@ export default function TenantReviewForm() {
   } | null>(null);
 
   const [formData, setFormData] = useState({
-    name: '',
+    name: sanitizedUtmParams.customerName || '',
     phone: '',
     countryCode: '+1',
     rating: 0,
@@ -98,6 +112,7 @@ export default function TenantReviewForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
     if (!formData.name.trim()) {
       toast({
@@ -148,7 +163,8 @@ export default function TenantReviewForm() {
           redirect_opened: false,
           tenant_id: tenantId,
           metadata: {
-            source: 'tenant_review_form',
+            source: sanitizedUtmParams.utmSource || 'tenant_review_form',
+            trackingId: sanitizedUtmParams.trackingId,
             submitted_at: new Date().toISOString(),
             google_review_url: businessSettings?.google_business_url
           }
@@ -209,6 +225,8 @@ export default function TenantReviewForm() {
         description: "Failed to submit review. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -466,6 +484,13 @@ export default function TenantReviewForm() {
             </div>
           </CardContent>
         </Card>
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <div className="flex items-center justify-center gap-2">
+            <img src="/web/icons8-logo-ios-17-outlined-96.png" alt="Crux Logo" className="h-6 w-6" />
+            <span>Powered by Alpha Business Design</span>
+          </div>
+          <p className="mt-2">© {new Date().getFullYear()} Alpha Business Design. All Rights Reserved.</p>
+        </div>
       </div>
     </div>
   );
