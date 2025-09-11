@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { AuthGuard } from "./components/auth/AuthGuard";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import SettingsErrorBoundary from "./components/SettingsErrorBoundary";
@@ -83,9 +84,11 @@ const RouterContent = () => {
           
           {/* Master Dashboard routes - super admin only */}
           <Route path="/master" element={
-            <ProtectedRoute requiredRole="super_admin">
-              <MasterDashboardLayout />
-            </ProtectedRoute>
+            <AuthGuard>
+              <ProtectedRoute requiredRole="super_admin">
+                <MasterDashboardLayout />
+              </ProtectedRoute>
+            </AuthGuard>
           }>
             <Route index element={<PlatformOverview />} />
             <Route path="tenants" element={<TenantList />} />
@@ -100,9 +103,11 @@ const RouterContent = () => {
           
           {/* Dashboard routes - protected (tenant_admin and user) */}
           <Route path="/dashboard" element={
-            <ProtectedRoute requiredRole={["tenant_admin", "user"]}>
-              <DashboardLayout />
-            </ProtectedRoute>
+            <AuthGuard>
+              <ProtectedRoute requiredRole={["tenant_admin", "user"]}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            </AuthGuard>
           }>
             <Route index element={<Dashboard />} />
             <Route path="reviews" element={<DashboardReviews />} />

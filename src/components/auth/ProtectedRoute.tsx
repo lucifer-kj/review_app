@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuthUser, useAuthLoading, useAuthProfile } from '@/stores/authStore';
+import { useAuthUser, useAuthLoading, useAuthProfile, useAuthStore } from '@/stores/authStore';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
