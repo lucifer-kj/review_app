@@ -51,10 +51,12 @@ const TenantLogin = lazy(() => import("./pages/BackupLogin"));
 // Review flow pages
 const TenantReviewForm = lazy(() => import("./pages/TenantReviewForm"));
 const TenantReviewThankYou = lazy(() => import("./pages/TenantReviewThankYou"));
+const QualityCareReviewForm = lazy(() => import("./pages/QualityCareReviewForm"));
 const DebugTenantAccess = lazy(() => import("./pages/DebugTenantAccess"));
 const TestSupabaseConnection = lazy(() => import("./pages/TestSupabaseConnection"));
 const PublicReviewForm = lazy(() => import("./pages/PublicReviewForm"));
 const TestReviewForm = lazy(() => import("./pages/TestReviewForm"));
+const SimpleReviewForm = lazy(() => import("./pages/SimpleReviewForm"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const FeedbackThankYouPage = lazy(() => import("./pages/FeedbackThankYouPage"));
 const ReviewThankYouPage = lazy(() => import("./pages/ReviewThankYouPage"));
@@ -132,7 +134,8 @@ const RouterContent = () => {
           
           {/* Public customer review form */}
           <Route path="/review/link/:linkCode" element={<PublicReviewForm />} />
-          <Route path="/review/:tenantId" element={<TestReviewForm />} />
+          <Route path="/review/:tenantId" element={<SimpleReviewForm />} />
+          <Route path="/review/Quality-and-care-building-inspection" element={<QualityCareReviewForm />} />
           <Route path="/review/feedback" element={<FeedbackPage />} />
           <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
           <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
