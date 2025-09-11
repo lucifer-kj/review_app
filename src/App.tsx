@@ -132,11 +132,15 @@ const RouterContent = () => {
           <Route path="/tenant-login" element={<TenantLogin />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           
-          {/* Public customer review form */}
+          {/* Public customer review forms - Direct URLs */}
+          <Route path="/Quality-and-care-building-inspection" element={<QualityCareReviewForm />} />
+          <Route path="/demo-review" element={<SimpleReviewForm />} />
+          <Route path="/public-review" element={<SimpleReviewForm />} />
+          
+          {/* Review form with link codes */}
           <Route path="/review/link/:linkCode" element={<PublicReviewForm />} />
-          <Route path="/review/Quality-and-care-building-inspection" element={<QualityCareReviewForm />} />
-          <Route path="/review/demo" element={<SimpleReviewForm />} />
-          <Route path="/review/public" element={<SimpleReviewForm />} />
+          
+          {/* Review feedback and thank you pages */}
           <Route path="/review/feedback" element={<FeedbackPage />} />
           <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
           <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
