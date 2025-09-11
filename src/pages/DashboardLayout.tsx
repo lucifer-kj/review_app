@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuthUser, useAuthProfile, useAuthActions } from "@/stores/authStore";
+import { useAuthUser, useAuthProfile, useSignOut } from "@/stores/authStore";
 import { useCurrentTenantId } from "@/stores/tenantStore";
 import {
   DropdownMenu,
@@ -29,7 +29,7 @@ const DashboardLayout = () => {
   // Use Zustand stores instead of useAuth hook
   const user = useAuthUser();
   const profile = useAuthProfile();
-  const { signOut } = useAuthActions();
+  const signOut = useSignOut();
   const currentTenantId = useCurrentTenantId();
   
   const [businessSettings, setBusinessSettings] = useState<BusinessSettings | null>(null);
