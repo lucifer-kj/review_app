@@ -1,90 +1,97 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star, User, Phone, Mail, Building2 } from 'lucide-react';
+import { Star, User, Phone, Mail, Building2, ExternalLink, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { ReviewLinkService } from '@/services/reviewLinkService';
 import { supabase } from '@/integrations/supabase/client';
 
+interface TenantInfo {
+  id: string;
+  name: string;
+  status: string;
+  business_name: string;
+  business_email: string;
+  business_phone: string;
+  business_address: string;
+  google_business_url: string;
+  form_customization: {
+    primary_color?: string;
+    secondary_color?: string;
+    welcome_message?: string;
+    thank_you_message?: string;
+    required_fields?: string[];
+    optional_fields?: string[];
+  };
+}
+
+interface ReviewSubmissionResult {
+  success: boolean;
+  review_id: string | null;
+  message: string;
+}
+
 export default function PublicReviewForm() {
-  const { linkCode } = useParams<{ linkCode: string }>();
+  const { tenantId } = useParams<{ tenantId: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [reviewLink, setReviewLink] = useState<any>(null);
+  const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const sanitizeInput = (input: string | null): string | null => {
-    if (!input) return null;
-    return input
-      .replace(/[<>]/g, "")
-      .replace(/javascript:/gi, "")
-      .replace(/on\w+=/gi, "")
-      .trim();
-  };
-
-  const sanitizedUtmParams = {
-    trackingId: sanitizeInput(searchParams.get('tracking_id')),
-    utmSource: sanitizeInput(searchParams.get('utm_source')),
-    customerName: sanitizeInput(searchParams.get('customer')),
-  };
-
   const [formData, setFormData] = useState({
-    name: sanitizedUtmParams.customerName || '',
-    phone: '',
-    countryCode: '+1',
+    customer_name: '',
+    customer_email: '',
+    customer_phone: '',
+    country_code: '+1',
     rating: 0,
-    reviewText: '',
+    review_text: '',
   });
 
   const [hoveredRating, setHoveredRating] = useState(0);
 
+  // Fetch tenant information
   useEffect(() => {
-    const fetchReviewLink = async () => {
-      if (!linkCode) {
-        setError('No review link code provided');
+    const fetchTenantInfo = async () => {
+      if (!tenantId) {
+        setError('Invalid tenant ID');
         setIsLoading(false);
         return;
       }
 
       try {
-        setIsLoading(true);
-        setError(null);
+        const { data, error } = await supabase
+          .rpc('get_tenant_for_public_review', { p_tenant_id: tenantId });
 
-        const response = await ReviewLinkService.getReviewLinkByCode(linkCode);
-        
-        if (!response.success || !response.data) {
-          throw new Error(response.error || 'Review link not found');
+        if (error) {
+          console.error('Error fetching tenant info:', error);
+          setError('Failed to load business information');
+          return;
         }
 
-        setReviewLink(response.data);
-
-        // Pre-fill name if provided in URL
-        if (sanitizedUtmParams.customerName) {
-          setFormData(prev => ({ 
-            ...prev, 
-            name: decodeURIComponent(sanitizedUtmParams.customerName!) 
-          }));
+        if (!data || data.length === 0) {
+          setError('Business not found or inactive');
+          return;
         }
 
+        const tenant = data[0];
+        setTenantInfo(tenant);
       } catch (err) {
-        console.error('Error fetching review link:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load review link');
+        console.error('Error fetching tenant info:', err);
+        setError('Failed to load business information');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchReviewLink();
-  }, [linkCode, sanitizedUtmParams.customerName]);
+    fetchTenantInfo();
+  }, [tenantId]);
 
   const handleRatingClick = (rating: number) => {
     setFormData(prev => ({ ...prev, rating }));
@@ -92,22 +99,15 @@ export default function PublicReviewForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!tenantId || !tenantInfo) return;
+
     setIsSubmitting(true);
-    
-    if (!formData.name.trim()) {
+
+    // Validate required fields
+    if (!formData.customer_name.trim()) {
       toast({
         title: "Name Required",
         description: "Please enter your name to submit a review.",
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!formData.phone.trim()) {
-      toast({
-        title: "Phone Required",
-        description: "Please enter your phone number to submit a review.",
         variant: "destructive",
       });
       setIsSubmitting(false);
@@ -124,85 +124,74 @@ export default function PublicReviewForm() {
       return;
     }
 
-    if (!reviewLink) {
-      toast({
-        title: "Error",
-        description: "Invalid review link. Please contact support.",
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
-      // Submit the review directly to get the review ID
-      const { data: insertedData, error } = await supabase
-        .from('reviews')
-        .insert({
-          customer_name: formData.name.trim(),
-          customer_phone: formData.phone.trim(),
-          country_code: formData.countryCode || '+1',
-          rating: formData.rating,
-          google_review: formData.rating >= 4,
-          redirect_opened: false,
-          tenant_id: reviewLink.tenant_id,
-          metadata: {
-            source: sanitizedUtmParams.utmSource || 'public_review_form',
-            trackingId: sanitizedUtmParams.trackingId,
-            submitted_at: new Date().toISOString(),
-            google_review_url: reviewLink.google_business_url,
-            review_link_id: reviewLink.id
+      // Submit review using the secure function
+      const { data, error } = await supabase
+        .rpc('submit_public_review', {
+          p_tenant_id: tenantId,
+          p_customer_name: formData.customer_name.trim(),
+          p_customer_email: formData.customer_email.trim() || null,
+          p_customer_phone: formData.customer_phone.trim() || null,
+          p_country_code: formData.country_code,
+          p_rating: formData.rating,
+          p_review_text: formData.review_text.trim() || null,
+          p_metadata: {
+            submitted_via: 'public_form',
+            user_agent: navigator.userAgent,
+            timestamp: new Date().toISOString()
           }
-        })
-        .select()
-        .single();
+        });
 
       if (error) {
-        console.error("Database error:", error);
-        throw error;
+        console.error('Error submitting review:', error);
+        toast({
+          title: "Submission Error",
+          description: "Failed to submit review. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const result = data[0] as ReviewSubmissionResult;
+
+      if (!result.success) {
+        toast({
+          title: "Submission Failed",
+          description: result.message,
+          variant: "destructive",
+        });
+        return;
       }
 
       // Show success message
       toast({
-        title: "Review Submitted",
+        title: "Review Submitted Successfully!",
         description: "Thank you for your feedback!",
       });
 
-      // Handle conditional redirect based on rating
-      if (formData.rating >= 4) {
-        // Redirect to tenant's Google Review URL for ratings 4 and above
-        const googleReviewUrl = reviewLink.google_business_url;
-        if (googleReviewUrl) {
-          toast({
-            title: "Redirecting to Google Reviews",
-            description: "Please help us by leaving a review on Google!",
-          });
-          // Redirect to Google Review URL
-          window.location.href = googleReviewUrl;
-        } else {
-          // Fallback to thank you page if no Google Review URL configured
-          navigate('/review/thank-you', {
-            state: {
-              name: formData.name,
-              rating: formData.rating,
-              businessName: reviewLink.business_name
-            }
-          });
-        }
-      } else {
-        // Navigate to feedback page for ratings below 4
+      // Handle redirect based on rating and business settings
+      if (formData.rating >= 4 && tenantInfo.google_business_url) {
+        // Show message and redirect to Google Reviews
         toast({
-          title: "We'd love to hear more",
-          description: "Please help us improve by sharing more details about your experience.",
+          title: "Redirecting to Google Reviews",
+          description: "Please help us by leaving a review on Google!",
         });
-        navigate('/review/feedback', {
+        
+        // Small delay to show the toast, then redirect
+        setTimeout(() => {
+          window.location.href = tenantInfo.google_business_url;
+        }, 1500);
+      } else {
+        // Navigate to thank you page
+        navigate('/review/thank-you', {
           state: {
-            name: formData.name,
+            name: formData.customer_name,
             rating: formData.rating,
-            reviewId: insertedData.id
+            businessName: tenantInfo.business_name || tenantInfo.name
           }
         });
       }
+
     } catch (error) {
       console.error('Review submission error:', error);
       toast({
@@ -219,59 +208,51 @@ export default function PublicReviewForm() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Early return for invalid linkCode
-  if (!linkCode) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Invalid Review Link</h2>
-            <p className="text-gray-600 mb-4">
-              The review link is missing the link code. Please check the URL and try again.
-            </p>
-            <Button onClick={() => navigate('/')} className="w-full">
-              Go Home
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <LoadingSpinner size="lg" />
-          <p className="mt-4 text-gray-600">Loading review form...</p>
+      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardContent className="flex items-center justify-center py-12">
+              <LoadingSpinner size="lg" />
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
-  if (error || !reviewLink) {
+  // Error state
+  if (error || !tenantInfo) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Review Link Not Found</h2>
-            <p className="text-gray-600 mb-4">
-              {error || 'The review link you\'re looking for doesn\'t exist or has expired.'}
-            </p>
-            <Button onClick={() => navigate('/')} className="w-full">
-              Go Home
-            </Button>
-          </div>
+      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                Business Not Found
+              </h2>
+              <p className="text-gray-600 mb-4">
+                {error || 'The business you\'re looking for is not available or has been deactivated.'}
+              </p>
+              <Button onClick={() => navigate('/')} variant="outline">
+                Go Home
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
-  // Apply customizations from review link
-  const customizations = reviewLink.form_customization || {};
-  const primaryColor = customizations.primary_color || '#3b82f6';
-  const secondaryColor = customizations.secondary_color || '#1e40af';
-  const welcomeMessage = customizations.welcome_message || `Share your experience with ${reviewLink.business_name}`;
+  // Get customization settings
+  const customization = tenantInfo.form_customization || {};
+  const primaryColor = customization.primary_color || '#3b82f6';
+  const secondaryColor = customization.secondary_color || '#1e40af';
+  const welcomeMessage = customization.welcome_message || `Share your experience with ${tenantInfo.business_name || tenantInfo.name}`;
+  const requiredFields = customization.required_fields || ['customer_name', 'rating'];
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -285,10 +266,10 @@ export default function PublicReviewForm() {
               <Building2 className="h-8 w-8 mr-3" style={{ color: primaryColor }} />
               <div>
                 <CardTitle className="text-3xl font-bold" style={{ color: primaryColor }}>
-                  {reviewLink.business_name}
+                  {tenantInfo.business_name || tenantInfo.name}
                 </CardTitle>
-                {reviewLink.business_address && (
-                  <p className="text-sm text-gray-500">{reviewLink.business_address}</p>
+                {tenantInfo.business_email && (
+                  <p className="text-sm text-gray-500">{tenantInfo.business_email}</p>
                 )}
               </div>
             </div>
@@ -300,61 +281,82 @@ export default function PublicReviewForm() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Customer Name */}
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-sm font-medium">
+                <Label htmlFor="customer_name" className="text-sm font-medium">
                   <User className="inline h-4 w-4 mr-2" />
                   Your Name *
                 </Label>
                 <Input
-                  id="name"
+                  id="customer_name"
                   type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  value={formData.customer_name}
+                  onChange={(e) => handleInputChange('customer_name', e.target.value)}
                   placeholder="Enter your full name"
                   required
                   className="text-base"
                 />
               </div>
 
-              {/* Phone Number */}
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-sm font-medium">
-                  <Phone className="inline h-4 w-4 mr-2" />
-                  Phone Number *
-                </Label>
-                <div className="flex gap-2">
-                  <Select
-                    value={formData.countryCode}
-                    onValueChange={(value) => handleInputChange('countryCode', value)}
-                  >
-                    <SelectTrigger className="w-24">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="+1">+1</SelectItem>
-                      <SelectItem value="+44">+44</SelectItem>
-                      <SelectItem value="+33">+33</SelectItem>
-                      <SelectItem value="+49">+49</SelectItem>
-                      <SelectItem value="+81">+81</SelectItem>
-                      <SelectItem value="+86">+86</SelectItem>
-                    </SelectContent>
-                  </Select>
+              {/* Customer Email (if required or provided) */}
+              {(requiredFields.includes('customer_email') || formData.customer_email) && (
+                <div className="space-y-2">
+                  <Label htmlFor="customer_email" className="text-sm font-medium">
+                    <Mail className="inline h-4 w-4 mr-2" />
+                    Email Address {requiredFields.includes('customer_email') ? '*' : '(Optional)'}
+                  </Label>
                   <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    placeholder="Enter your phone number"
-                    required
-                    className="flex-1 text-base"
+                    id="customer_email"
+                    type="email"
+                    value={formData.customer_email}
+                    onChange={(e) => handleInputChange('customer_email', e.target.value)}
+                    placeholder="Enter your email address"
+                    required={requiredFields.includes('customer_email')}
+                    className="text-base"
                   />
                 </div>
-              </div>
+              )}
+
+              {/* Phone Number (if required or provided) */}
+              {(requiredFields.includes('customer_phone') || formData.customer_phone) && (
+                <div className="space-y-2">
+                  <Label htmlFor="customer_phone" className="text-sm font-medium">
+                    <Phone className="inline h-4 w-4 mr-2" />
+                    Phone Number {requiredFields.includes('customer_phone') ? '*' : '(Optional)'}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={formData.country_code}
+                      onValueChange={(value) => handleInputChange('country_code', value)}
+                    >
+                      <SelectTrigger className="w-24">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="+1">+1</SelectItem>
+                        <SelectItem value="+44">+44</SelectItem>
+                        <SelectItem value="+33">+33</SelectItem>
+                        <SelectItem value="+49">+49</SelectItem>
+                        <SelectItem value="+81">+81</SelectItem>
+                        <SelectItem value="+86">+86</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      id="customer_phone"
+                      type="tel"
+                      value={formData.customer_phone}
+                      onChange={(e) => handleInputChange('customer_phone', e.target.value)}
+                      placeholder="Enter your phone number"
+                      required={requiredFields.includes('customer_phone')}
+                      className="flex-1 text-base"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Rating */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium">
                   <Star className="inline h-4 w-4 mr-2" />
-                  How would you rate your experience with {reviewLink.business_name}? *
+                  How would you rate your experience with {tenantInfo.business_name || tenantInfo.name}? *
                 </Label>
                 <div className="flex gap-1 justify-center">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -389,13 +391,18 @@ export default function PublicReviewForm() {
                 {formData.rating > 0 && (
                   <div className="mt-3 p-3 rounded-lg text-sm" style={{
                     backgroundColor: formData.rating >= 4 ? '#dbeafe' : '#fef3c7',
-                    borderColor: formData.rating >= 4 ? '#3b82f6' : '#f59e0b',
+                    borderColor: formData.rating >= 4 ? primaryColor : '#f59e0b',
                     borderWidth: '1px'
                   }}>
-                    {formData.rating >= 4 ? (
-                      <p className="text-blue-800">
-                        <strong>Great!</strong> After submitting, you'll be redirected to Google Reviews to help others discover {reviewLink.business_name}.
-                      </p>
+                    {formData.rating >= 4 && tenantInfo.google_business_url ? (
+                      <div className="text-blue-800">
+                        <p className="font-semibold mb-1">🌟 Great! Here's what happens next:</p>
+                        <p>After submitting, you'll be redirected to Google Reviews to help others discover {tenantInfo.business_name || tenantInfo.name}.</p>
+                        <div className="mt-2 flex items-center text-xs">
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          <span>You'll be taken to: {tenantInfo.google_business_url}</span>
+                        </div>
+                      </div>
                     ) : (
                       <p className="text-amber-800">
                         <strong>We appreciate your feedback!</strong> After submitting, you'll be asked to share more details to help us improve.
@@ -407,16 +414,17 @@ export default function PublicReviewForm() {
 
               {/* Review Text */}
               <div className="space-y-2">
-                <Label htmlFor="reviewText" className="text-sm font-medium">
+                <Label htmlFor="review_text" className="text-sm font-medium">
                   <Mail className="inline h-4 w-4 mr-2" />
-                  Additional Comments (Optional)
+                  Additional Comments {requiredFields.includes('review_text') ? '*' : '(Optional)'}
                 </Label>
                 <Textarea
-                  id="reviewText"
-                  value={formData.reviewText}
-                  onChange={(e) => handleInputChange('reviewText', e.target.value)}
-                  placeholder={`Tell us more about your experience with ${reviewLink.business_name}...`}
+                  id="review_text"
+                  value={formData.review_text}
+                  onChange={(e) => handleInputChange('review_text', e.target.value)}
+                  placeholder={`Tell us more about your experience with ${tenantInfo.business_name || tenantInfo.name}...`}
                   rows={4}
+                  required={requiredFields.includes('review_text')}
                   className="text-base"
                 />
               </div>
@@ -426,11 +434,11 @@ export default function PublicReviewForm() {
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full text-base py-3"
-                size="lg"
                 style={{ 
                   backgroundColor: primaryColor,
                   borderColor: primaryColor
                 }}
+                size="lg"
               >
                 {isSubmitting ? (
                   <>

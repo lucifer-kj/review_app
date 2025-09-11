@@ -45,9 +45,10 @@ export default function TenantCreateWizard() {
       };
     },
     onSuccess: (result) => {
-      toast.success("Tenant workspace created successfully! You can now invite users to this workspace.", {
-        description: "Click 'Invite User' to add admin and regular users to this workspace.",
-        duration: 5000
+      const reviewUrl = `${window.location.origin}/review/${result.tenant.id}`;
+      toast.success("Tenant workspace created successfully!", {
+        description: `Public review URL: ${reviewUrl}`,
+        duration: 8000
       });
       queryClient.invalidateQueries({ queryKey: ['tenants'] });
       queryClient.invalidateQueries({ queryKey: ['platform-analytics'] });

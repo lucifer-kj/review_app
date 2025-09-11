@@ -54,6 +54,7 @@ const TenantReviewThankYou = lazy(() => import("./pages/TenantReviewThankYou"));
 const QualityCareReviewForm = lazy(() => import("./pages/QualityCareReviewForm"));
 const DebugTenantAccess = lazy(() => import("./pages/DebugTenantAccess"));
 const TestSupabaseConnection = lazy(() => import("./pages/TestSupabaseConnection"));
+const TestPublicReview = lazy(() => import("./pages/TestPublicReview"));
 const PublicReviewForm = lazy(() => import("./pages/PublicReviewForm"));
 const TestReviewForm = lazy(() => import("./pages/TestReviewForm"));
 const SimpleReviewForm = lazy(() => import("./pages/SimpleReviewForm"));
@@ -89,6 +90,7 @@ const RouterContent = () => {
           <Route path="/test-callback" element={<TestCallback />} />
           <Route path="/debug-tenant/:tenantId" element={<DebugTenantAccess />} />
           <Route path="/test-supabase" element={<TestSupabaseConnection />} />
+          <Route path="/test-public-review" element={<TestPublicReview />} />
           
           {/* Master Dashboard routes - super admin only */}
           <Route path="/master" element={
@@ -132,20 +134,14 @@ const RouterContent = () => {
           <Route path="/tenant-login" element={<TenantLogin />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           
-          {/* Public customer review forms - Direct URLs */}
-          <Route path="/Quality-and-care-building-inspection" element={<QualityCareReviewForm />} />
-          <Route path="/demo-review" element={<SimpleReviewForm />} />
-          <Route path="/public-review" element={<SimpleReviewForm />} />
-          
-          {/* Review form with link codes */}
+          {/* Public customer review form */}
           <Route path="/review/link/:linkCode" element={<PublicReviewForm />} />
-          
-          {/* Review feedback and thank you pages */}
+          <Route path="/review/Quality-and-care-building-inspection" element={<QualityCareReviewForm />} />
           <Route path="/review/feedback" element={<FeedbackPage />} />
           <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
           <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
           <Route path="/review/tenant-thank-you" element={<TenantReviewThankYou />} />
-          <Route path="/review/:tenantId" element={<SimpleReviewForm />} />
+          <Route path="/review/:tenantId" element={<PublicReviewForm />} />
           
           {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />
