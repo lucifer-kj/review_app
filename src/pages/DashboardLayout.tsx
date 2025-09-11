@@ -1,6 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { Building2, LogOut, Settings, User, ChevronDown } from "lucide-react";
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useState, useEffect } from "react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MobileHeader } from "@/components/MobileHeader";
+import { BusinessSettingsService, type BusinessSettings } from "@/services/businessSettingsService";
 
 const ShareButton = lazy(() => import("@/components/ShareButton").then(module => ({ default: module.ShareButton })));
 const CopyLinkButton = lazy(() => import("@/components/CopyLinkButton").then(module => ({ default: module.CopyLinkButton })));
@@ -24,6 +25,19 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, profile, signOut } = useAuth();
+  const [businessSettings, setBusinessSettings] = useState<BusinessSettings | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (profile?.tenant_id) {
+        const response = await BusinessSettingsService.getBusinessSettings();
+        if (response.success && response.data) {
+          setBusinessSettings(response.data);
+        }
+      }
+    };
+    fetchSettings();
+  }, [profile?.tenant_id]);
 
   const handleLogout = async () => {
     try {
@@ -50,7 +64,7 @@ const DashboardLayout = () => {
   return (
     <div className="min-h-screen flex flex-col w-full">
       {/* Mobile Header */}
-      <MobileHeader onLogout={handleLogout} tenantId={profile?.tenant_id} />
+      <MobileHeader onLogout={handleLogout} tenantId={profile?.tenant_id} businessSettings={businessSettings} />
       
       {/* Desktop Header */}
       <header className="hidden lg:flex h-16 items-center justify-between border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6">
@@ -69,7 +83,7 @@ const DashboardLayout = () => {
         </div>
         <div className="flex items-center gap-3">
           <Suspense fallback={<LoadingSpinner />}>
-            <CopyLinkButton tenantId={profile?.tenant_id} />
+            <CopyLinkButton tenantId={profile?.tenant_id} businessSettings={businessSettings} />
           </Suspense>
           <Suspense fallback={<LoadingSpinner />}>
             <ShareButton tenantId={profile?.tenant_id} />
