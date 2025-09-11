@@ -7,9 +7,9 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import SettingsErrorBoundary from "./components/SettingsErrorBoundary";
+import { StoreInitializer } from "./components/StoreInitializer";
 import { useRouteProgress } from "@/hooks/useRouteProgress";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useAuthStore, useTenantStore } from "@/stores";
 import { Analytics } from "@vercel/analytics/react";
 
 // Lazy load pages for better performance
@@ -60,25 +60,8 @@ const RouterContent = () => {
   const { ProgressBar } = useRouteProgress();
   const reduced = useReducedMotion();
   
-  // Initialize Zustand stores
-  const { initialize: initAuth } = useAuthStore();
-  const { initialize: initTenant } = useTenantStore();
-  
-  // Initialize stores on app start
-  React.useEffect(() => {
-    const initializeStores = async () => {
-      try {
-        await Promise.all([
-          initAuth(),
-          initTenant(),
-        ]);
-      } catch (error) {
-        console.error('Failed to initialize stores:', error);
-      }
-    };
-    
-    initializeStores();
-  }, [initAuth, initTenant]);
+  // Remove store initialization from here to prevent infinite loops
+  // Stores will initialize themselves when needed
 
   return (
     <>
@@ -154,6 +137,7 @@ const RouterContent = () => {
 const App = () => (
   <AppErrorBoundary>
     <QueryClientProvider client={queryClient}>
+      <StoreInitializer />
       <Toaster />
       <Sonner />
       <BrowserRouter 

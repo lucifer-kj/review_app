@@ -3,6 +3,7 @@
  * Replaces useAuth and useEnhancedAuth hooks
  */
 
+import React from 'react';
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import type { User, Session } from '@supabase/supabase-js';
@@ -408,8 +409,13 @@ export const useAuthStore = create<AuthStore>()(
           }
         },
 
-        // Initialization
+        // Auto-initialization when store is first accessed
         initialize: async () => {
+          // Only initialize if not already initialized
+          if (get().loading === false && get().user === null && get().error === null) {
+            return; // Already initialized
+          }
+          
           try {
             set({ loading: true, error: null });
             
