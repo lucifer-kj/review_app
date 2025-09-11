@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { supabase } from '@/integrations/supabase/client';
 import { TenantService } from '@/services/tenantService';
+import { env } from '@/utils/env';
 import type { BaseStore } from './types';
 
 export interface Tenant {
@@ -395,6 +396,20 @@ export const useTenantStore = create<TenantStore>()(
         initialize: async () => {
           try {
             set({ loading: true, error: null });
+            
+            // Check if Supabase is properly configured
+            if (!env.supabase.url || env.supabase.url.includes('placeholder') || 
+                !env.supabase.anonKey || env.supabase.anonKey.includes('placeholder')) {
+              console.warn('Supabase not properly configured, skipping tenant initialization');
+              set({
+                currentTenant: null,
+                tenants: [],
+                availableTenants: [],
+                error: 'Supabase not configured',
+                loading: false
+              });
+              return;
+            }
             
             // Check if cache is valid
             if (get().isCacheValid() && get().tenants.length > 0) {

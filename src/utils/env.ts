@@ -39,7 +39,12 @@ const validateEnvironment = (): EnvironmentConfig => {
   const envError = getEnvironmentError();
   if (envError) {
     console.error('Environment validation failed:', envError);
-    throw new Error(envError);
+    // Don't throw error in production, use fallback values
+    if (import.meta.env.PROD) {
+      console.warn('Using fallback environment configuration');
+    } else {
+      throw new Error(envError);
+    }
   }
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;

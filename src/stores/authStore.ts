@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SessionManagementService } from '@/services/sessionManagementService';
 import { EmailVerificationService } from '@/services/emailVerificationService';
 import { InvitationService } from '@/services/invitationService';
+import { env } from '@/utils/env';
 import type { BaseStore } from './types';
 
 export interface UserProfile {
@@ -411,6 +412,25 @@ export const useAuthStore = create<AuthStore>()(
         initialize: async () => {
           try {
             set({ loading: true, error: null });
+            
+            // Check if Supabase is properly configured
+            if (!env.supabase.url || env.supabase.url.includes('placeholder') || 
+                !env.supabase.anonKey || env.supabase.anonKey.includes('placeholder')) {
+              console.warn('Supabase not properly configured, skipping session initialization');
+              set({
+                user: null,
+                session: null,
+                profile: null,
+                tenant: null,
+                isAuthenticated: false,
+                isEmailVerified: false,
+                sessionExpiringSoon: false,
+                timeUntilExpiry: 0,
+                loading: false,
+                error: 'Supabase not configured',
+              });
+              return;
+            }
             
             // Initialize session management
             const sessionResponse = await SessionManagementService.initializeSession();

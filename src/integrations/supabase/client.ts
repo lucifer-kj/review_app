@@ -4,7 +4,11 @@ import type { Database } from './types';
 import { env } from '@/utils/env';
 
 // Single Supabase client instance to prevent multiple instances warning
-export const supabase = createClient<Database>(env.supabase.url, env.supabase.anonKey, {
+// Use fallback values if environment variables are not set
+const supabaseUrl = env.supabase.url || 'https://placeholder.supabase.co';
+const supabaseAnonKey = env.supabase.anonKey || 'placeholder_key';
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: localStorage,
     persistSession: true,
