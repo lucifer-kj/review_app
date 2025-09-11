@@ -57,7 +57,6 @@ const TestSupabaseConnection = lazy(() => import("./pages/TestSupabaseConnection
 const TestPublicReview = lazy(() => import("./pages/TestPublicReview"));
 const PublicReviewForm = lazy(() => import("./pages/PublicReviewForm"));
 const TestReviewForm = lazy(() => import("./pages/TestReviewForm"));
-const SimpleReviewForm = lazy(() => import("./pages/SimpleReviewForm"));
 const FeedbackPage = lazy(() => import("./pages/FeedbackPage"));
 const FeedbackThankYouPage = lazy(() => import("./pages/FeedbackThankYouPage"));
 const ReviewThankYouPage = lazy(() => import("./pages/ReviewThankYouPage"));
@@ -134,13 +133,14 @@ const RouterContent = () => {
           <Route path="/tenant-login" element={<TenantLogin />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           
-          {/* Public customer review form */}
-          <Route path="/review/link/:linkCode" element={<PublicReviewForm />} />
+          {/* Public customer review form - specific routes first */}
           <Route path="/review/Quality-and-care-building-inspection" element={<QualityCareReviewForm />} />
           <Route path="/review/feedback" element={<FeedbackPage />} />
           <Route path="/review/feedback-thank-you" element={<FeedbackThankYouPage />} />
           <Route path="/review/thank-you" element={<ReviewThankYouPage />} />
           <Route path="/review/tenant-thank-you" element={<TenantReviewThankYou />} />
+          <Route path="/review/link/:linkCode" element={<PublicReviewForm />} />
+          {/* Tenant-specific review form - must be last to avoid conflicts */}
           <Route path="/review/:tenantId" element={<PublicReviewForm />} />
           
           {/* Catch-all route */}
