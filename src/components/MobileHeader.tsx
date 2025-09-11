@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
+import type { BusinessSettings } from "@/services/businessSettingsService";
 
 // Lazy load the share and copy components
 const ShareButton = lazy(() => import("@/components/ShareButton").then(module => ({ default: module.ShareButton })));
@@ -13,9 +14,10 @@ const CopyLinkButton = lazy(() => import("@/components/CopyLinkButton").then(mod
 interface MobileHeaderProps {
   onLogout: () => void;
   tenantId?: string;
+  businessSettings?: BusinessSettings | null;
 }
 
-export const MobileHeader = ({ onLogout, tenantId }: MobileHeaderProps) => {
+export const MobileHeader = ({ onLogout, tenantId, businessSettings }: MobileHeaderProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -96,7 +98,7 @@ export const MobileHeader = ({ onLogout, tenantId }: MobileHeaderProps) => {
                   <div className="text-sm font-medium text-muted-foreground mb-4">Share & Copy</div>
                   <Suspense fallback={<LoadingSpinner />}>
                     <div className="space-y-3">
-                      <CopyLinkButton tenantId={tenantId} />
+                      <CopyLinkButton tenantId={tenantId} businessSettings={businessSettings} />
                       <ShareButton tenantId={tenantId} />
                     </div>
                   </Suspense>
